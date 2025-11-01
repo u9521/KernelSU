@@ -165,7 +165,7 @@ fun SettingScreen(navigator: DestinationsNavigator) {
             var umountChecked by rememberSaveable {
                 mutableStateOf(Natives.isDefaultUmountModules())
             }
-            
+
             KsuIsValid() {
                 SwitchItem(
                     icon = Icons.Filled.FolderDelete,
@@ -178,7 +178,7 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                     }
                 }
             }
-            
+
             KsuIsValid() {
                 if (Natives.version >= Natives.MINIMAL_SUPPORTED_SU_COMPAT) {
                     var isSuDisabled by rememberSaveable {
@@ -219,7 +219,7 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                     prefs.getBoolean("enable_web_debugging", false)
                 )
             }
-            
+
             KsuIsValid() {
                 SwitchItem(
                     icon = Icons.Filled.DeveloperMode,
@@ -365,7 +365,7 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                 )
             }
 
-            val lkmMode = Natives.version >= Natives.MINIMAL_SUPPORTED_KERNEL_LKM && Natives.isLkmMode
+            val lkmMode = Natives.isLkmMode
             if (lkmMode) {
                 UninstallItem(navigator) {
                     loadingDialog.withLoading(it)
