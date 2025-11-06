@@ -152,7 +152,7 @@ fun SettingScreen(navigator: DestinationsNavigator) {
             }
 
             val profileTemplate = stringResource(id = R.string.settings_profile_template)
-            KsuIsValid() {
+            KsuIsValid {
                 ListItem(
                     leadingContent = { Icon(Icons.Filled.Fence, profileTemplate) },
                     headlineContent = { Text(profileTemplate) },
@@ -167,7 +167,7 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                 mutableStateOf(Natives.isDefaultUmountModules())
             }
 
-            KsuIsValid() {
+            KsuIsValid {
                 SwitchItem(
                     icon = Icons.Filled.FolderDelete,
                     title = stringResource(id = R.string.settings_umount_modules_default),
@@ -180,26 +180,24 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                 }
             }
 
-            KsuIsValid() {
-                if (Natives.version >= Natives.MINIMAL_SUPPORTED_SU_COMPAT) {
-                    var isSuDisabled by rememberSaveable {
-                        mutableStateOf(!Natives.isSuEnabled())
-                    }
-                    SwitchItem(
-                        icon = Icons.Filled.RemoveModerator,
-                        title = stringResource(id = R.string.settings_disable_su),
-                        summary = stringResource(id = R.string.settings_disable_su_summary),
-                        checked = isSuDisabled,
-                    ) { checked ->
-                        val shouldEnable = !checked
-                        if (Natives.setSuEnabled(shouldEnable)) {
-                            isSuDisabled = !shouldEnable
-                        }
+            KsuIsValid {
+                var isSuDisabled by rememberSaveable {
+                    mutableStateOf(!Natives.isSuEnabled())
+                }
+                SwitchItem(
+                    icon = Icons.Filled.RemoveModerator,
+                    title = stringResource(id = R.string.settings_disable_su),
+                    summary = stringResource(id = R.string.settings_disable_su_summary),
+                    checked = isSuDisabled,
+                ) { checked ->
+                    val shouldEnable = !checked
+                    if (Natives.setSuEnabled(shouldEnable)) {
+                        isSuDisabled = !shouldEnable
                     }
                 }
             }
 
-            KsuIsValid() {
+            KsuIsValid {
                 var isKernelUmountDisabled by rememberSaveable {
                     mutableStateOf(!Natives.isKernelUmountEnabled())
                 }
@@ -238,7 +236,7 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                 )
             }
 
-            KsuIsValid() {
+            KsuIsValid {
                 SwitchItem(
                     icon = Icons.Filled.DeveloperMode,
                     title = stringResource(id = R.string.enable_web_debugging),
@@ -361,7 +359,7 @@ fun SettingScreen(navigator: DestinationsNavigator) {
 
             val shrink = stringResource(id = R.string.shrink_sparse_image)
             val shrinkMessage = stringResource(id = R.string.shrink_sparse_image_message)
-            KsuIsValid() {
+            KsuIsValid {
                 ListItem(
                     leadingContent = {
                         Icon(
