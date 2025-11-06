@@ -1,18 +1,45 @@
 package me.weishu.kernelsu.ui.screen
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.*
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.runtime.*
+import androidx.compose.material3.rememberTopAppBarState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -21,6 +48,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.edit
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -32,6 +60,7 @@ import kotlinx.coroutines.launch
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.SearchAppBar
+import me.weishu.kernelsu.ui.component.SearchStatus
 import me.weishu.kernelsu.ui.viewmodel.SuperUserViewModel
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
@@ -42,27 +71,27 @@ fun SuperUserScreen(navigator: DestinationsNavigator) {
     val scope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
     val listState = rememberLazyListState()
+    val searchStatus by viewModel.searchStatus
+    val context = LocalContext.current
+    val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
     LaunchedEffect(key1 = navigator) {
-        viewModel.search = ""
-        if (viewModel.appList.isEmpty()) {
+        viewModel.updateSearchText("")
+        if (viewModel.appList.value.isEmpty() || viewModel.searchResults.value.isEmpty()) {
+            viewModel.showSystemApps = prefs.getBoolean("show_system_apps", false)
             viewModel.fetchAppList()
         }
     }
 
-    LaunchedEffect(viewModel.search) {
-        if (viewModel.search.isEmpty()) {
-            listState.scrollToItem(0)
-        }
+    LaunchedEffect(searchStatus.searchText) {
+        viewModel.updateSearchText(searchStatus.searchText)
     }
 
     Scaffold(
         topBar = {
             SearchAppBar(
                 title = { Text(stringResource(R.string.superuser)) },
-                searchText = viewModel.search,
-                onSearchTextChange = { viewModel.search = it },
-                onClearClick = { viewModel.search = "" },
+                searchStatus = searchStatus,
                 dropdownContent = {
                     var showDropdown by remember { mutableStateOf(false) }
 
@@ -95,6 +124,12 @@ fun SuperUserScreen(navigator: DestinationsNavigator) {
                                 )
                             }, onClick = {
                                 viewModel.showSystemApps = !viewModel.showSystemApps
+                                prefs.edit {
+                                    putBoolean("show_system_apps", viewModel.showSystemApps)
+                                }
+                                scope.launch {
+                                    viewModel.fetchAppList()
+                                }
                                 showDropdown = false
                             })
                         }
@@ -105,6 +140,13 @@ fun SuperUserScreen(navigator: DestinationsNavigator) {
         },
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     ) { innerPadding ->
+        var displayAppList = viewModel.appList.value
+        if (viewModel.searchStatus.value.resultStatus == SearchStatus.ResultStatus.SHOW) {
+            displayAppList = viewModel.searchResults.value
+        }
+        if (viewModel.searchStatus.value.resultStatus == SearchStatus.ResultStatus.EMPTY) {
+            displayAppList = viewModel.searchResults.value
+        }
         PullToRefreshBox(
             modifier = Modifier.padding(innerPadding),
             onRefresh = {
@@ -118,7 +160,7 @@ fun SuperUserScreen(navigator: DestinationsNavigator) {
                     .fillMaxSize()
                     .nestedScroll(scrollBehavior.nestedScrollConnection)
             ) {
-                items(viewModel.appList, key = { it.packageName + it.uid }) { app ->
+                items(displayAppList, key = { it.packageName + it.uid }) { app ->
                     AppItem(app) {
                         navigator.navigate(AppProfileScreenDestination(app))
                     }
@@ -134,6 +176,7 @@ private fun AppItem(
     app: SuperUserViewModel.AppInfo,
     onClickListener: () -> Unit,
 ) {
+    val userId = if (app.uid / 100000 > 1) app.uid % 100000 else 0
     ListItem(
         modifier = Modifier.clickable(onClick = onClickListener),
         headlineContent = { Text(app.label) },
@@ -150,6 +193,9 @@ private fun AppItem(
                     }
                     if (app.hasCustomProfile) {
                         LabelText(label = "CUSTOM")
+                    }
+                    if (userId != 0) {
+                        LabelText("UID $userId")
                     }
                 }
             }

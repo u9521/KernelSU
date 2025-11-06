@@ -134,6 +134,9 @@ fun AppProfileScreen(
                         .height(48.dp)
                 )
             },
+            appUid = appInfo.uid,
+            appVersionCode = appInfo.packageInfo.versionCode.toLong(),
+            appVersionName = appInfo.packageInfo.versionName ?: "null",
             profile = profile,
             onViewTemplate = {
                 getTemplateInfoById(it)?.let { info ->
@@ -173,6 +176,9 @@ private fun AppProfileInner(
     packageName: String,
     appLabel: String,
     appIcon: @Composable () -> Unit,
+    appUid: Int,
+    appVersionName: String,
+    appVersionCode: Long,
     profile: Natives.Profile,
     onViewTemplate: (id: String) -> Unit = {},
     onManageTemplate: () -> Unit = {},
@@ -184,7 +190,13 @@ private fun AppProfileInner(
         AppMenuBox(packageName) {
             ListItem(
                 headlineContent = { Text(appLabel) },
-                supportingContent = { Text(packageName) },
+                supportingContent = {
+                    Text("$appVersionName ($appVersionCode)")
+                    Text(packageName)
+                },
+                trailingContent = {
+                    LabelText("UID $appUid")
+                },
                 leadingContent = appIcon,
             )
         }
@@ -388,6 +400,9 @@ private fun AppProfilePreview() {
         onProfileChange = {
             profile = it
         },
+        appUid = 1234,
+        appVersionName = "test",
+        appVersionCode = 1234,
     )
 }
 

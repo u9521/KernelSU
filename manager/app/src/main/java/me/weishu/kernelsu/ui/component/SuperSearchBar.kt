@@ -27,6 +27,7 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,15 +42,23 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
+// Search Status Class
+@Stable
+class SearchStatus(val label: String) {
+    var searchText by mutableStateOf("")
+    var resultStatus by mutableStateOf(ResultStatus.DEFAULT)
+
+    enum class ResultStatus { DEFAULT, EMPTY, LOAD, SHOW }
+}
+
+
 private const val TAG = "SearchBar"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchAppBar(
     title: @Composable () -> Unit,
-    searchText: String,
-    onSearchTextChange: (String) -> Unit,
-    onClearClick: () -> Unit,
+    searchStatus: SearchStatus,
     onBackClick: (() -> Unit)? = null,
     onConfirm: (() -> Unit)? = null,
     dropdownContent: @Composable (() -> Unit)? = null,
@@ -93,14 +102,14 @@ fun SearchAppBar(
                                 if (focusState.isFocused) onSearch = true
                                 Log.d(TAG, "onFocusChanged: $focusState")
                             },
-                        value = searchText,
-                        onValueChange = onSearchTextChange,
+                        value = searchStatus.searchText,
+                        onValueChange = { searchStatus.searchText = it },
                         trailingIcon = {
                             IconButton(
                                 onClick = {
                                     onSearch = false
                                     keyboardController?.hide()
-                                    onClearClick()
+                                    searchStatus.searchText = ""
                                 },
                                 content = { Icon(Icons.Filled.Close, null) }
                             )
@@ -148,11 +157,10 @@ fun SearchAppBar(
 @Preview
 @Composable
 private fun SearchAppBarPreview() {
-    var searchText by remember { mutableStateOf("") }
+    var searchStatus = SearchStatus("")
     SearchAppBar(
         title = { Text("Search text") },
-        searchText = searchText,
-        onSearchTextChange = { searchText = it },
-        onClearClick = { searchText = "" }
+        searchStatus = searchStatus
     )
 }
+

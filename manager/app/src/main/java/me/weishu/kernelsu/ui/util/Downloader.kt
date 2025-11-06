@@ -86,7 +86,7 @@ fun checkNewVersion(): LatestVersionInfo {
 
                     val regex = Regex("v(.+?)_(\\d+)-")
                     val matchResult = regex.find(name) ?: continue
-                    val versionName = matchResult.groupValues[1]
+                    matchResult.groupValues[1]
                     val versionCode = matchResult.groupValues[2].toInt()
                     val downloadUrl = asset.getString("browser_download_url")
 

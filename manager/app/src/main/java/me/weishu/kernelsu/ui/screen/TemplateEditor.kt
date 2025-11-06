@@ -186,7 +186,8 @@ fun TemplateEditorScreen(
                 }
             }
 
-            RootProfileConfig(fixedName = true,
+            RootProfileConfig(
+                fixedName = true,
                 profile = toNativeProfile(template),
                 onProfileChange = {
                     template.copy(
@@ -212,7 +213,8 @@ fun TemplateEditorScreen(
 }
 
 fun toNativeProfile(templateInfo: TemplateViewModel.TemplateInfo): Natives.Profile {
-    return Natives.Profile().copy(rootTemplate = templateInfo.id,
+    return Natives.Profile().copy(
+        rootTemplate = templateInfo.id,
         uid = templateInfo.uid,
         gid = templateInfo.gid,
         groups = templateInfo.groups,

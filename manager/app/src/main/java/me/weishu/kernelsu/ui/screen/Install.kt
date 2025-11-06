@@ -177,7 +177,8 @@ fun InstallScreen(navigator: DestinationsNavigator) {
                         )
                     )
                 }
-                Button(modifier = Modifier.fillMaxWidth(),
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
                     enabled = installMethod != null,
                     onClick = {
                         onLkmUpload()
@@ -187,7 +188,8 @@ fun InstallScreen(navigator: DestinationsNavigator) {
                         fontSize = MaterialTheme.typography.bodyMedium.fontSize
                     )
                 }
-                Button(modifier = Modifier.fillMaxWidth(),
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
                     enabled = installMethod != null,
                     onClick = {
                         onClickNext()
@@ -341,18 +343,19 @@ fun rememberSelectKmiDialog(onSelected: (String?) -> Unit): DialogHandle {
         }
 
         var selection by remember { mutableStateOf<String?>(null) }
-        ListDialog(state = rememberUseCaseState(visible = true, onFinishedRequest = {
-            onSelected(selection)
-        }, onCloseRequest = {
-            dismiss()
-        }), header = Header.Default(
-            title = stringResource(R.string.select_kmi),
-        ), selection = ListSelection.Single(
-            showRadioButtons = true,
-            options = options,
-        ) { _, option ->
-            selection = option.titleText
-        })
+        ListDialog(
+            state = rememberUseCaseState(visible = true, onFinishedRequest = {
+                onSelected(selection)
+            }, onCloseRequest = {
+                dismiss()
+            }), header = Header.Default(
+                title = stringResource(R.string.select_kmi),
+            ), selection = ListSelection.Single(
+                showRadioButtons = true,
+                options = options,
+            ) { _, option ->
+                selection = option.titleText
+            })
     }
 }
 
@@ -363,10 +366,10 @@ private fun TopBar(
 ) {
     TopAppBar(
         title = { Text(stringResource(R.string.install)) }, navigationIcon = {
-        IconButton(
-            onClick = onBack
-        ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
-    }, windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal), scrollBehavior = scrollBehavior
+            IconButton(
+                onClick = onBack
+            ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
+        }, windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal), scrollBehavior = scrollBehavior
     )
 }
 
