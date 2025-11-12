@@ -538,48 +538,64 @@ where
     result
 }
 
+pub fn _uninstall_module(module_dir: &str, mid: &str, uninstall: bool) -> Result<()> {
+    let dir = Path::new(module_dir);
+    ensure!(dir.exists(), "No module installed");
+    let module_path = dir.join(mid);
+    ensure!(module_path.exists(), "Module '{}' not found or not installed", mid);
+
+    let module_prop_path = module_path.join("module.prop");
+    ensure!(
+        module_prop_path.exists(),
+        "Module '{}' missing module.prop, maybe corrupted!",
+        mid
+    );
+    let content = std::fs::read(&module_prop_path)
+        .with_context(|| format!("Failed to read module.prop for '{}'", mid))?;
+    let mut prop_id = String::new();
+    PropertiesIter::new_with_encoding(Cursor::new(content), encoding_rs::UTF_8).read_into(
+        |k, v| {
+            if k.eq("id") {
+                prop_id = v;
+            }
+        },
+    )?;
+    ensure!(
+        prop_id.eq(mid),
+        "Module ID mismatch in module.prop (expected '{}', found '{}'). This module maybe corrupted.",
+        mid,
+        prop_id
+    );
+    let remove_file = module_path.join(defs::REMOVE_FILE_NAME);
+    if uninstall {
+        if remove_file.exists() {
+            bail!("Module '{}' is already in remove status!", mid);
+        }
+        File::create(&remove_file)
+            .with_context(|| format!("Failed to create remove file for module '{}'", mid))?;
+    } else {
+        if !remove_file.exists() {
+            bail!(
+                "Module '{}' is not in remove status!",
+                mid
+            );
+        }
+        std::fs::remove_file(&remove_file)
+            .with_context(|| format!("Failed to remove uninstall marker for module '{}'", mid))?;
+    }
+    let _ = mark_module_state(mid, defs::REMOVE_FILE_NAME, uninstall);
+    Ok(())
+}
+
 pub fn uninstall_module(id: &str) -> Result<()> {
     update_module(defs::MODULE_UPDATE_TMP_DIR, id, |mid, update_dir| {
-        let dir = Path::new(update_dir);
-        ensure!(dir.exists(), "No module installed");
+        _uninstall_module(update_dir, mid, true)
+    })
+}
 
-        // iterate the modules_update dir, find the module to be removed
-        let dir = std::fs::read_dir(dir)?;
-        for entry in dir.flatten() {
-            let path = entry.path();
-            let module_prop = path.join("module.prop");
-            if !module_prop.exists() {
-                continue;
-            }
-            let content = std::fs::read(module_prop)?;
-            let mut module_id: String = String::new();
-            PropertiesIter::new_with_encoding(Cursor::new(content), encoding_rs::UTF_8).read_into(
-                |k, v| {
-                    if k.eq("id") {
-                        module_id = v;
-                    }
-                },
-            )?;
-            if module_id.eq(mid) {
-                let remove_file = path.join(defs::REMOVE_FILE_NAME);
-                File::create(remove_file).with_context(|| "Failed to create remove file.")?;
-                break;
-            }
-        }
-
-        // santity check
-        let target_module_path = format!("{update_dir}/{mid}");
-        let target_module = Path::new(&target_module_path);
-        if target_module.exists() {
-            let remove_file = target_module.join(defs::REMOVE_FILE_NAME);
-            if !remove_file.exists() {
-                File::create(remove_file).with_context(|| "Failed to create remove file.")?;
-            }
-        }
-
-        let _ = mark_module_state(id, defs::REMOVE_FILE_NAME, true);
-
-        Ok(())
+pub fn undo_uninstall_module(id: &str) -> Result<()> {
+    update_module(defs::MODULE_UPDATE_TMP_DIR, id, |mid, update_dir| {
+        _uninstall_module(update_dir, mid, false)
     })
 }
 
