@@ -4,71 +4,27 @@ import android.app.Activity.RESULT_OK
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.material.icons.automirrored.outlined.Wysiwyg
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.outlined.PlayArrow
-import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.Undo
+import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.rememberTopAppBarState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -99,14 +55,7 @@ import me.weishu.kernelsu.ui.component.ConfirmResult
 import me.weishu.kernelsu.ui.component.SearchAppBar
 import me.weishu.kernelsu.ui.component.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.rememberLoadingDialog
-import me.weishu.kernelsu.ui.util.DownloadListener
-import me.weishu.kernelsu.ui.util.LocalSnackbarHost
-import me.weishu.kernelsu.ui.util.download
-import me.weishu.kernelsu.ui.util.hasMagisk
-import me.weishu.kernelsu.ui.util.reboot
-import me.weishu.kernelsu.ui.util.toggleModule
-import me.weishu.kernelsu.ui.util.uninstallModule
-import me.weishu.kernelsu.ui.util.getFileName
+import me.weishu.kernelsu.ui.util.*
 import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel
 import me.weishu.kernelsu.ui.webui.WebUIActivity
 
@@ -229,10 +178,15 @@ fun ModuleScreen(navigator: DestinationsNavigator) {
 
                     if (uris.size == 1) {
                         navigator.navigate(FlashScreenDestination(FlashIt.FlashModules(listOf(uris.first()))))
-                    } else if (uris.size > 1)  {
+                    } else if (uris.size > 1) {
                         // multiple files selected
-                        val moduleNames = uris.mapIndexed { index, uri -> "\n${index + 1}. ${uri.getFileName(context)}" }.joinToString("")
-                        val confirmContent = context.getString(R.string.module_install_prompt_with_name, moduleNames)
+                        val moduleNames = uris.mapIndexed { index, uri ->
+                            "\n${index + 1}. ${
+                                uri.getFileName(context)
+                            }"
+                        }.joinToString("")
+                        val confirmContent =
+                            context.getString(R.string.module_install_prompt_with_name, moduleNames)
                         zipUris = uris
                         confirmDialog.showConfirm(
                             title = confirmTitle,
@@ -316,6 +270,8 @@ private fun ModuleList(
 ) {
     val failedEnable = stringResource(R.string.module_failed_to_enable)
     val failedDisable = stringResource(R.string.module_failed_to_disable)
+    val failedUndoUninstall = stringResource(R.string.module_undo_uninstall_failed)
+    val successUndoUninstall = stringResource(R.string.module_undo_uninstall_success)
     val failedUninstall = stringResource(R.string.module_uninstall_failed)
     val successUninstall = stringResource(R.string.module_uninstall_success)
     val reboot = stringResource(R.string.reboot)
@@ -396,6 +352,28 @@ private fun ModuleList(
                 }
             )
         }
+    }
+
+    suspend fun onModuleUndoUninstall(module: ModuleViewModel.ModuleInfo) {
+
+        val success = loadingDialog.withLoading {
+            withContext(Dispatchers.IO) {
+                undoUninstallModule(module.id)
+            }
+        }
+
+        if (success) {
+            viewModel.fetchModuleList()
+        }
+        val message = if (success) {
+            successUndoUninstall.format(module.name)
+        } else {
+            failedUndoUninstall.format(module.name)
+        }
+        snackBarHost.showSnackbar(
+            message = message,
+            duration = SnackbarDuration.Long
+        )
     }
 
     suspend fun onModuleUninstall(module: ModuleViewModel.ModuleInfo) {
@@ -501,6 +479,9 @@ private fun ModuleList(
                             onUninstall = {
                                 scope.launch { onModuleUninstall(module) }
                             },
+                            onUndoUninstall = {
+                                scope.launch { onModuleUndoUninstall(module) }
+                            },
                             onCheckChanged = {
                                 scope.launch {
                                     val success = loadingDialog.withLoading {
@@ -520,7 +501,8 @@ private fun ModuleList(
                                             reboot()
                                         }
                                     } else {
-                                        val message = if (module.enabled) failedDisable else failedEnable
+                                        val message =
+                                            if (module.enabled) failedDisable else failedEnable
                                         snackBarHost.showSnackbar(message.format(module.name))
                                     }
                                 }
@@ -558,6 +540,7 @@ fun ModuleItem(
     module: ModuleViewModel.ModuleInfo,
     updateUrl: String,
     onUninstall: (ModuleViewModel.ModuleInfo) -> Unit,
+    onUndoUninstall: (ModuleViewModel.ModuleInfo) -> Unit,
     onCheckChanged: (Boolean) -> Unit,
     onUpdate: (ModuleViewModel.ModuleInfo) -> Unit,
     onClick: (ModuleViewModel.ModuleInfo) -> Unit
@@ -657,7 +640,6 @@ fun ModuleItem(
             HorizontalDivider(thickness = Dp.Hairline)
 
             Spacer(modifier = Modifier.height(4.dp))
-
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -742,25 +724,45 @@ fun ModuleItem(
 
                     Spacer(modifier = Modifier.weight(0.1f, true))
                 }
-
-                FilledTonalButton(
-                    modifier = Modifier.defaultMinSize(52.dp, 32.dp),
-                    enabled = !module.remove,
-                    onClick = { onUninstall(module) },
-                    contentPadding = ButtonDefaults.TextButtonContentPadding
-                ) {
-                    Icon(
-                        modifier = Modifier.size(20.dp),
-                        imageVector = Icons.Outlined.Delete,
-                        contentDescription = null
-                    )
-                    if (!module.hasActionScript && !module.hasWebUi && updateUrl.isEmpty()) {
-                        Text(
-                            modifier = Modifier.padding(start = 7.dp),
-                            fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
-                            fontSize = MaterialTheme.typography.labelMedium.fontSize,
-                            text = stringResource(R.string.uninstall)
+                if (module.remove) {
+                    FilledTonalButton(
+                        modifier = Modifier.defaultMinSize(52.dp, 32.dp),
+                        onClick = { onUndoUninstall(module) },
+                        contentPadding = ButtonDefaults.TextButtonContentPadding
+                    ) {
+                        Icon(
+                            modifier = Modifier.size(20.dp),
+                            imageVector = Icons.AutoMirrored.Outlined.Undo,
+                            contentDescription = null
                         )
+                        if (!module.hasActionScript && !module.hasWebUi && updateUrl.isEmpty()) {
+                            Text(
+                                modifier = Modifier.padding(start = 7.dp),
+                                fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
+                                fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                                text = stringResource(R.string.undo)
+                            )
+                        }
+                    }
+                } else {
+                    FilledTonalButton(
+                        modifier = Modifier.defaultMinSize(52.dp, 32.dp),
+                        onClick = { onUninstall(module) },
+                        contentPadding = ButtonDefaults.TextButtonContentPadding
+                    ) {
+                        Icon(
+                            modifier = Modifier.size(20.dp),
+                            imageVector = Icons.Outlined.Delete,
+                            contentDescription = null
+                        )
+                        if (!module.hasActionScript && !module.hasWebUi && updateUrl.isEmpty()) {
+                            Text(
+                                modifier = Modifier.padding(start = 7.dp),
+                                fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
+                                fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                                text = stringResource(R.string.uninstall)
+                            )
+                        }
                     }
                 }
             }
@@ -785,5 +787,5 @@ fun ModuleItemPreview() {
         hasWebUi = false,
         hasActionScript = false
     )
-    ModuleItem(EmptyDestinationsNavigator, module, "", {}, {}, {}, {})
+    ModuleItem(EmptyDestinationsNavigator, module, "", {}, {}, {}, {}, {})
 }
