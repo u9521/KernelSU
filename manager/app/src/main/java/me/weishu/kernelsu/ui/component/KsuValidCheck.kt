@@ -2,6 +2,7 @@ package me.weishu.kernelsu.ui.component
 
 import androidx.compose.runtime.Composable
 import me.weishu.kernelsu.Natives
+import me.weishu.kernelsu.ksuApp
 
 @Composable
 fun KsuIsValid(
@@ -9,7 +10,6 @@ fun KsuIsValid(
 ) {
     val isManager = Natives.isManager
     val ksuVersion = if (isManager) Natives.version else null
-
     if (ksuVersion != null) {
         content()
     }
