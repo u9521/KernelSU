@@ -10,15 +10,25 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.MaterialTheme.colorScheme
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.lifecycleScope
 import androidx.webkit.WebViewAssetLoader
-import kotlinx.coroutines.launch
 import com.topjohnwu.superuser.Shell
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import me.weishu.kernelsu.ui.theme.KernelSUTheme
 import me.weishu.kernelsu.ui.util.createRootShell
 import me.weishu.kernelsu.ui.viewmodel.SuperUserViewModel
 import java.io.File
@@ -28,8 +38,8 @@ class WebUIActivity : ComponentActivity() {
     private lateinit var webviewInterface: WebViewInterface
 
     private var rootShell: Shell? = null
-    private val superUserViewModel: SuperUserViewModel by viewModels()
 
+    @OptIn(ExperimentalMaterial3ExpressiveApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
 
         // Enable edge to edge
@@ -40,10 +50,26 @@ class WebUIActivity : ComponentActivity() {
 
         super.onCreate(savedInstanceState)
 
-        lifecycleScope.launch {
-            superUserViewModel.fetchAppList()
+        setContent {
+            KernelSUTheme {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(colorScheme.background),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LoadingIndicator()
+                }
+            }
         }
 
+        lifecycleScope.launch {
+            SuperUserViewModel.isAppListLoaded.first { it }
+            setupWebView()
+        }
+    }
+
+    private fun setupWebView() {
         val moduleId = intent.getStringExtra("id")!!
         val name = intent.getStringExtra("name")!!
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
