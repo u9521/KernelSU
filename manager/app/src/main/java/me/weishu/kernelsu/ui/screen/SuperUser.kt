@@ -1,11 +1,12 @@
 package me.weishu.kernelsu.ui.screen
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
@@ -21,6 +22,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.edit
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -32,6 +34,7 @@ import kotlinx.coroutines.launch
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.SearchAppBar
+import me.weishu.kernelsu.ui.component.SearchStatus
 import me.weishu.kernelsu.ui.viewmodel.SuperUserViewModel
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
@@ -43,26 +46,28 @@ fun SuperUserScreen(navigator: DestinationsNavigator) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
     val listState = rememberLazyListState()
 
+    val searchStatus by viewModel.searchStatus
+    val context = LocalContext.current
+    val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+
     LaunchedEffect(key1 = navigator) {
-        viewModel.search = ""
-        if (viewModel.appList.isEmpty()) {
+        if (viewModel.appList.value.isEmpty() || viewModel.searchResults.value.isEmpty()) {
+            viewModel.showSystemApps = prefs.getBoolean("show_system_apps", false)
             viewModel.fetchAppList()
         }
     }
 
-    LaunchedEffect(viewModel.search) {
-        if (viewModel.search.isEmpty()) {
-            listState.scrollToItem(0)
-        }
+    LaunchedEffect(searchStatus.searchText) {
+        viewModel.updateSearchText(searchStatus.searchText)
     }
 
     Scaffold(
         topBar = {
             SearchAppBar(
                 title = { Text(stringResource(R.string.superuser)) },
-                searchText = viewModel.search,
-                onSearchTextChange = { viewModel.search = it },
-                onClearClick = { viewModel.search = "" },
+                searchText = searchStatus.searchText,
+                onSearchTextChange = { searchStatus.searchText = it },
+                onClearClick = { searchStatus.searchText = "" },
                 dropdownContent = {
                     var showDropdown by remember { mutableStateOf(false) }
 
@@ -94,6 +99,12 @@ fun SuperUserScreen(navigator: DestinationsNavigator) {
                                     }
                                 )
                             }, onClick = {
+                                prefs.edit {
+                                    putBoolean(
+                                        "show_system_apps",
+                                        !viewModel.showSystemApps
+                                    )
+                                }
                                 viewModel.showSystemApps = !viewModel.showSystemApps
                                 showDropdown = false
                             })
@@ -118,7 +129,13 @@ fun SuperUserScreen(navigator: DestinationsNavigator) {
                     .fillMaxSize()
                     .nestedScroll(scrollBehavior.nestedScrollConnection)
             ) {
-                items(viewModel.appList, key = { it.packageName + it.uid }) { app ->
+                val appItem =
+                    if (viewModel.searchStatus.value.resultStatus == SearchStatus.ResultStatus.DEFAULT) {
+                        viewModel.appList.value
+                    } else {
+                        viewModel.searchResults.value
+                    }
+                items(appItem, key = { it.packageName + it.uid }) { app ->
                     AppItem(app) {
                         navigator.navigate(AppProfileScreenDestination(app))
                     }

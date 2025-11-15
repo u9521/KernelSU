@@ -2,6 +2,9 @@ package me.weishu.kernelsu.ui.component
 
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
@@ -27,12 +30,14 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -142,6 +147,55 @@ fun SearchAppBar(
         windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
         scrollBehavior = scrollBehavior
     )
+}
+
+// Search Status Class
+@Stable
+class SearchStatus(val label: String) {
+    var searchText by mutableStateOf("")
+    var current by mutableStateOf(Status.COLLAPSED)
+
+    var offsetY by mutableStateOf(0.dp)
+    var resultStatus by mutableStateOf(ResultStatus.DEFAULT)
+
+    fun isExpand() = current == Status.EXPANDED
+    fun isCollapsed() = current == Status.COLLAPSED
+    fun shouldExpand() = current == Status.EXPANDED || current == Status.EXPANDING
+    fun shouldCollapsed() = current == Status.COLLAPSED || current == Status.COLLAPSING
+    fun isAnimatingExpand() = current == Status.EXPANDING
+
+    // 动画完成回调
+    fun onAnimationComplete() {
+        current = when (current) {
+            Status.EXPANDING -> Status.EXPANDED
+            Status.COLLAPSING -> {
+                searchText = ""
+                Status.COLLAPSED
+            }
+
+            else -> current
+        }
+    }
+
+    @Composable
+    fun TopAppBarAnim(
+        modifier: Modifier = Modifier,
+        visible: Boolean = shouldCollapsed(),
+        content: @Composable() () -> Unit
+    ) {
+        val topAppBarAlpha = animateFloatAsState(
+            if (visible) 1f else 0f,
+            animationSpec = tween(if (visible) 550 else 0, easing = FastOutSlowInEasing),
+        )
+        Box(
+            modifier = modifier.alpha(topAppBarAlpha.value),
+        ) {
+            content()
+        }
+    }
+
+    enum class Status { EXPANDED, EXPANDING, COLLAPSED, COLLAPSING }
+    enum class ResultStatus { DEFAULT, EMPTY, LOAD, SHOW }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
