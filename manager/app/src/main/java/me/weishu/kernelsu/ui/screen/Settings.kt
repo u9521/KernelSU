@@ -20,7 +20,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.BugReport
-import androidx.compose.material.icons.filled.Compress
 import androidx.compose.material.icons.filled.ContactPage
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteForever
@@ -48,6 +47,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -64,7 +64,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.core.content.edit
-import androidx.lifecycle.compose.dropUnlessResumed
 import com.maxkeppeker.sheets.core.models.base.Header
 import com.maxkeppeker.sheets.core.models.base.IconSource
 import com.maxkeppeker.sheets.core.models.base.rememberUseCaseState
@@ -95,6 +94,7 @@ import me.weishu.kernelsu.ui.component.rememberLoadingDialog
 import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.util.execKsud
 import me.weishu.kernelsu.ui.util.getBugreportFile
+import me.weishu.kernelsu.ui.util.getFeatureStatus
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -113,10 +113,10 @@ fun SettingScreen(navigator: DestinationsNavigator) {
 
     Scaffold(
         topBar = {
-            TopBar(
-                scrollBehavior = scrollBehavior
-            )
-        }, snackbarHost = { SnackbarHost(snackBarHost) }, contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+        TopBar(
+            scrollBehavior = scrollBehavior
+        )
+    }, snackbarHost = { SnackbarHost(snackBarHost) }, contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     ) { paddingValues ->
         val aboutDialog = rememberCustomDialog {
             AboutDialog(it)
@@ -167,10 +167,22 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                         if (savedPersist == 2) 2 else if (currentEnabled) 1 else 0
                     })
             }
+
+            val enhancedStatus by produceState(initialValue = "") {
+                value = getFeatureStatus("enhanced_security")
+            }
+            val enhancedSummary = when (enhancedStatus) {
+                "unsupported" -> stringResource(id = R.string.feature_status_unsupported_summary)
+                "managed" -> stringResource(id = R.string.feature_status_managed_summary)
+                else -> stringResource(id = R.string.settings_enable_enhanced_security_summary)
+            }
+
+
             KsuIsValid {
                 FeatureItem(
                     title = stringResource(id = R.string.settings_enable_enhanced_security),
-                    summary = stringResource(id = R.string.settings_enable_enhanced_security_summary),
+                    summary = enhancedSummary,
+                    enabled = enhancedStatus == "supported",
                     icon = Icons.Rounded.EnhancedEncryption,
                     index = enhancedSecurityMode
                 ) { index ->
@@ -211,11 +223,22 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                     })
             }
 
+            val suStatus by produceState(initialValue = "") {
+                value = getFeatureStatus("su_compat")
+            }
+            val suSummary = when (suStatus) {
+                "unsupported" -> stringResource(id = R.string.feature_status_unsupported_summary)
+                "managed" -> stringResource(id = R.string.feature_status_managed_summary)
+                else -> stringResource(id = R.string.settings_disable_su_summary)
+            }
+
+
             KsuIsValid {
                 FeatureItem(
                     icon = Icons.Filled.RemoveModerator,
                     title = stringResource(id = R.string.settings_disable_su),
-                    summary = stringResource(id = R.string.settings_disable_su_summary),
+                    summary = suSummary,
+                    enabled = suStatus == "supported",
                     index = suCompatMode,
                 ) { index ->
                     when (index) {
@@ -254,11 +277,22 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                     })
             }
 
+            val umountStatus by produceState(initialValue = "") {
+                value = getFeatureStatus("kernel_umount")
+            }
+            val umountSummary = when (umountStatus) {
+                "unsupported" -> stringResource(id = R.string.feature_status_unsupported_summary)
+                "managed" -> stringResource(id = R.string.feature_status_managed_summary)
+                else -> stringResource(id = R.string.settings_disable_kernel_umount_summary)
+            }
+
+
             KsuIsValid {
                 FeatureItem(
                     icon = Icons.Filled.FolderDelete,
                     title = stringResource(id = R.string.settings_disable_kernel_umount),
-                    summary = stringResource(id = R.string.settings_disable_kernel_umount_summary),
+                    summary = umountSummary,
+                    enabled = umountStatus == "supported",
                     index = kernelUmountMode,
                 ) { index ->
                     when (index) {

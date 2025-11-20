@@ -116,7 +116,7 @@ fun RadioItem(
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun FeatureItem(
-    icon: ImageVector? = null, title: String, summary: String? = null, index: Int, onCheckedChange: (Int) -> Unit
+    icon: ImageVector? = null, title: String,enabled: Boolean = true, summary: String? = null, index: Int, onCheckedChange: (Int) -> Unit
 ) {
     val modeItems = listOf(
         stringResource(id = R.string.settings_mode_default),
@@ -146,6 +146,7 @@ fun FeatureItem(
             modeItems.forEachIndexed { index, label ->
                 ToggleButton(
                     checked = selectedIndex == index,
+                    enabled = enabled,
                     onCheckedChange = {
                         selectedIndex = index
                         onCheckedChange(index)
