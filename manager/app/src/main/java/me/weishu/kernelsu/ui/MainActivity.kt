@@ -29,6 +29,8 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -40,16 +42,22 @@ import androidx.navigation.compose.rememberNavController
 import com.ramcosta.composedestinations.DestinationsNavHost
 import com.ramcosta.composedestinations.animations.NavHostAnimatedDestinationStyle
 import com.ramcosta.composedestinations.generated.NavGraphs
+import com.ramcosta.composedestinations.generated.destinations.FlashScreenDestination
+import com.ramcosta.composedestinations.generated.destinations.FlashScreenDestination.invoke
 import com.ramcosta.composedestinations.utils.isRouteOnBackStackAsState
 import com.ramcosta.composedestinations.utils.rememberDestinationsNavigator
+import kotlinx.coroutines.flow.MutableStateFlow
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.ui.screen.BottomBarDestination
+import me.weishu.kernelsu.ui.screen.FlashIt
 import me.weishu.kernelsu.ui.theme.KernelSUTheme
 import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.util.install
 import me.weishu.kernelsu.ui.util.rootAvailable
 
 class MainActivity : ComponentActivity() {
+
+    private val intentState = MutableStateFlow(0)
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -67,6 +75,19 @@ class MainActivity : ComponentActivity() {
         setContent {
             KernelSUTheme {
                 val navController = rememberNavController()
+                val navigator = navController.rememberDestinationsNavigator()
+
+                // Navigate to FlashScreen if ZIP file is provided and isManager
+                // Collect intentState as Compose State for thread-safe observation
+                val intentStateValue by intentState.collectAsState()
+                LaunchedEffect(intentStateValue) {
+                    intent?.data
+                        ?.takeIf { isManager && it.scheme == "content" && intent.type == "application/zip" }
+                        ?.let {
+                            navigator.navigate(FlashScreenDestination(FlashIt.FlashModules(listOf(it))))
+                        }
+                }
+
                 val snackBarHostState = remember { SnackbarHostState() }
                 val bottomBarRoutes = remember {
                     BottomBarDestination.entries.map { it.direction.route }.toSet()
@@ -128,6 +149,12 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        // Increment intentState to trigger LaunchedEffect re-execution
+        intentState.value += 1
     }
 }
 
