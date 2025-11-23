@@ -28,7 +28,6 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -40,8 +39,8 @@ import com.ramcosta.composedestinations.DestinationsNavHost
 import com.ramcosta.composedestinations.animations.NavHostAnimatedDestinationStyle
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
-import com.ramcosta.composedestinations.generated.destinations.FlashScreenDestination
 import com.ramcosta.composedestinations.generated.NavGraphs
+import com.ramcosta.composedestinations.generated.destinations.MainScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.utils.rememberDestinationsNavigator
 import dev.chrisbanes.haze.HazeState
@@ -52,7 +51,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.ui.component.BottomBar
-import me.weishu.kernelsu.ui.screen.FlashIt
 import me.weishu.kernelsu.ui.screen.HomePager
 import me.weishu.kernelsu.ui.screen.ModulePager
 import me.weishu.kernelsu.ui.screen.SettingPager
@@ -111,21 +109,10 @@ class MainActivity : ComponentActivity() {
                 onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
             }
 
+            val navController = rememberNavController()
+            val navigator = navController.rememberDestinationsNavigator()
+
             KernelSUTheme(colorMode = colorMode, keyColor = keyColor) {
-                val navController = rememberNavController()
-                val navigator = navController.rememberDestinationsNavigator()
-
-                // Navigate to FlashScreen if ZIP file is provided and isManager
-                // Collect intentState as Compose State for thread-safe observation
-                val intentStateValue by intentState.collectAsState()
-                LaunchedEffect(intentStateValue) {
-                    intent?.data
-                        ?.takeIf { isManager && it.scheme == "content" && intent.type == "application/zip" }
-                        ?.let {
-                            navigator.navigate(FlashScreenDestination(FlashIt.FlashModules(listOf(it))))
-                        }
-                }
-
                 Scaffold {
                     DestinationsNavHost(
                         modifier = Modifier,
@@ -167,6 +154,20 @@ class MainActivity : ComponentActivity() {
                     )
                 }
             }
+
+            // Navigate to FlashScreen if ZIP file is provided and isManager
+            // Collect intentState as Compose State for thread-safe observation
+            val intentStateValue by intentState.collectAsState()
+            LaunchedEffect(intentStateValue) {
+                intent?.data
+                    ?.takeIf { isManager && it.scheme == "content" && intent.type == "application/zip" }
+                    ?.let {
+                        navigator.navigate(MainScreenDestination(installModuleUri = it.toString())) {
+                            popUpTo(NavGraphs.root.startRoute) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+            }
         }
     }
 
@@ -184,10 +185,16 @@ val LocalHandlePageChange = compositionLocalOf<(Int) -> Unit> { error("No handle
 
 @Composable
 @Destination<RootGraph>(start = true)
-fun MainScreen(navController: DestinationsNavigator) {
+fun MainScreen(
+    navController: DestinationsNavigator,
+    installModuleUri: String? = null
+) {
     val activity = LocalActivity.current
     val coroutineScope = rememberCoroutineScope()
-    val pagerState = rememberPagerState(initialPage = 0, pageCount = { 4 })
+    val pagerState = rememberPagerState(
+        initialPage = if (installModuleUri != null) 2 else 0,
+        pageCount = { 4 }
+    )
     val hazeState = remember { HazeState() }
     val hazeStyle = HazeStyle(
         backgroundColor = MiuixTheme.colorScheme.background,
@@ -227,7 +234,12 @@ fun MainScreen(navController: DestinationsNavigator) {
                 when (it) {
                     0 -> HomePager(pagerState, navController, innerPadding.calculateBottomPadding())
                     1 -> SuperUserPager(navController, innerPadding.calculateBottomPadding())
-                    2 -> ModulePager(navController, innerPadding.calculateBottomPadding())
+                    2 -> ModulePager(
+                        navController,
+                        innerPadding.calculateBottomPadding(),
+                        installModuleUri
+                    )
+
                     3 -> SettingPager(navController, innerPadding.calculateBottomPadding())
                 }
             }

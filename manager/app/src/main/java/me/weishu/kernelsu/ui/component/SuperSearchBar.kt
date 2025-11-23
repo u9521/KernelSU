@@ -63,6 +63,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.max
 import androidx.compose.ui.zIndex
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
@@ -222,8 +223,13 @@ fun SearchStatus.SearchPager(
 ) {
     val searchStatus = this
     val systemBarsPadding = WindowInsets.systemBars.asPaddingValues().calculateTopPadding()
+    // On some devices, when opening the module zip through the manager, the interface flies in
+    // from the top-left corner, which causes negative padding. Idnkw.
     val topPadding by animateDpAsState(
-        if (searchStatus.shouldExpand()) systemBarsPadding + 5.dp else searchStatus.offsetY,
+        if (searchStatus.shouldExpand()) systemBarsPadding + 5.dp else max(
+            searchStatus.offsetY,
+            0.dp
+        ),
         animationSpec = tween(300, easing = LinearOutSlowInEasing)
     ) {
         searchStatus.onAnimationComplete()
