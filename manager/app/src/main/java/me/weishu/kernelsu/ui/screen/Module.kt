@@ -149,7 +149,8 @@ import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 @Composable
 fun ModulePager(
     navigator: DestinationsNavigator,
-    bottomInnerPadding: Dp
+    bottomInnerPadding: Dp,
+    installModuleUri: String? = null,
 ) {
     val viewModel = viewModel<ModuleViewModel>()
     val scope = rememberCoroutineScope()
@@ -159,6 +160,123 @@ fun ModulePager(
     val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
     val modules = viewModel.moduleList
+
+    var zipUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
+    val confirmInstallDialog = rememberConfirmDialog(
+        onConfirm = {
+            navigator.navigate(FlashScreenDestination(FlashIt.FlashModules(zipUris))) {
+                launchSingleTop = true
+            }
+            viewModel.markNeedRefresh()
+        }
+    )
+
+    val loadingDialog = rememberLoadingDialog()
+
+    val showInstallConfirmDialog: suspend (Uri) -> Unit = { uri ->
+        zipUris = listOf(uri)
+        val moduleInfoResult = loadingDialog.withLoading {
+            withContext(Dispatchers.IO) {
+                ModuleParser.parse(context, uri)
+            }
+        }
+        val confirmTitle = context.getString(R.string.module)
+        moduleInfoResult.onSuccess { moduleInfo ->
+            val moduleName = moduleInfo.name ?: uri.getFileName(context)
+            val confirmContent = buildString {
+                append(
+                    context.getString(
+                        R.string.module_install_prompt_with_name,
+                        "\n$moduleName"
+                    )
+                )
+                append("\n\n")
+                append(
+                    context.getString(
+                        R.string.module_info_id,
+                        moduleInfo.id
+                    )
+                )
+                moduleInfo.version?.let {
+                    append(
+                        "\n${
+                            context.getString(
+                                R.string.module_info_version,
+                                it
+                            )
+                        }"
+                    )
+                }
+                moduleInfo.versionCode?.let {
+                    append(
+                        "\n${
+                            context.getString(
+                                R.string.module_info_version_code,
+                                it
+                            )
+                        }"
+                    )
+                }
+                moduleInfo.author?.let {
+                    append(
+                        "\n${
+                            context.getString(
+                                R.string.module_info_author,
+                                it
+                            )
+                        }"
+                    )
+                }
+                moduleInfo.description?.takeIf { it.isNotBlank() }?.let {
+                    append(
+                        "\n${
+                            context.getString(
+                                R.string.module_info_description,
+                                it
+                            )
+                        }"
+                    )
+                }
+            }
+            confirmInstallDialog.showConfirm(
+                title = confirmTitle,
+                content = confirmContent
+            )
+        }.onFailure { exception ->
+            val fileName = uri.getFileName(context)
+            val reason = if (exception is ModuleParser.ModuleParseException) {
+                exception.getMessage(context = context)
+            } else {
+                exception.message ?: "Unknown error"
+            }
+            val content = "${
+                context.getString(
+                    R.string.module_parse_failed,
+                    fileName
+                )
+            }\n\n${
+                context.getString(
+                    R.string.module_parse_reason,
+                    reason
+                )
+            }\n\n${context.getString(R.string.module_install_confirm_extra)}"
+            confirmInstallDialog.showConfirm(
+                title = confirmTitle,
+                content = content
+            )
+        }
+    }
+
+    var installModuleUriHandled by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(installModuleUri) {
+        if (installModuleUri != null && !installModuleUriHandled) {
+            showInstallConfirmDialog(installModuleUri.toUri())
+            installModuleUriHandled = true
+        } else {
+            installModuleUriHandled = false
+        }
+    }
 
     LaunchedEffect(navigator) {
         if (viewModel.moduleList.isEmpty() || viewModel.searchResults.value.isEmpty() || viewModel.isNeedRefresh) {
@@ -184,7 +302,6 @@ fun ModulePager(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { viewModel.fetchModuleList() }
 
-    val loadingDialog = rememberLoadingDialog()
     val confirmDialog = rememberConfirmDialog()
 
     val isSafeMode = Natives.isSafeMode
@@ -467,15 +584,6 @@ fun ModulePager(
             if (!hideInstallButton) {
                 val moduleInstall = stringResource(id = R.string.module_install)
                 val confirmTitle = stringResource(R.string.module)
-                var zipUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
-                val confirmDialog = rememberConfirmDialog(
-                    onConfirm = {
-                        navigator.navigate(FlashScreenDestination(FlashIt.FlashModules(zipUris))) {
-                            launchSingleTop = true
-                        }
-                        viewModel.markNeedRefresh()
-                    }
-                )
                 val selectZipLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.StartActivityForResult()
                 ) {
@@ -496,105 +604,14 @@ fun ModulePager(
 
                     if (uris.size == 1) {
                         scope.launch {
-                            val moduleInfoResult = loadingDialog.withLoading {
-                                withContext(Dispatchers.IO) {
-                                    ModuleParser.parse(context, uris.first())
-                                }
-                            }
-
-                            moduleInfoResult.onSuccess { moduleInfo ->
-                                val moduleName =
-                                    moduleInfo.name ?: uris.first().getFileName(context)
-                                val confirmContent = buildString {
-                                    append(
-                                        context.getString(
-                                            R.string.module_install_prompt_with_name,
-                                            "\n$moduleName"
-                                        )
-                                    )
-                                    append("\n\n")
-                                    append(
-                                        context.getString(
-                                            R.string.module_info_id,
-                                            moduleInfo.id
-                                        )
-                                    )
-                                    moduleInfo.version?.let {
-                                        append(
-                                            "\n${
-                                                context.getString(
-                                                    R.string.module_info_version,
-                                                    it
-                                                )
-                                            }"
-                                        )
-                                    }
-                                    moduleInfo.versionCode?.let {
-                                        append(
-                                            "\n${
-                                                context.getString(
-                                                    R.string.module_info_version_code,
-                                                    it
-                                                )
-                                            }"
-                                        )
-                                    }
-                                    moduleInfo.author?.let {
-                                        append(
-                                            "\n${
-                                                context.getString(
-                                                    R.string.module_info_author,
-                                                    it
-                                                )
-                                            }"
-                                        )
-                                    }
-                                    moduleInfo.description?.takeIf { it.isNotBlank() }?.let {
-                                        append(
-                                            "\n${
-                                                context.getString(
-                                                    R.string.module_info_description,
-                                                    it
-                                                )
-                                            }"
-                                        )
-                                    }
-                                }
-
-                                confirmDialog.showConfirm(
-                                    title = confirmTitle,
-                                    content = confirmContent
-                                )
-                            }.onFailure { exception ->
-                                val fileName = zipUris.first().getFileName(context)
-                                val reason = if (exception is ModuleParser.ModuleParseException) {
-                                    exception.getMessage(context = context)
-                                } else {
-                                    exception.message ?: "Unknown error"
-                                }
-                                val content = "${
-                                    context.getString(
-                                        R.string.module_parse_failed,
-                                        fileName
-                                    )
-                                }\n\n${
-                                    context.getString(
-                                        R.string.module_parse_reason,
-                                        reason
-                                    )
-                                }\n\n${context.getString(R.string.module_install_confirm_extra)}"
-                                confirmDialog.showConfirm(
-                                    title = confirmTitle,
-                                    content = content
-                                )
-                            }
+                            showInstallConfirmDialog(uris.first())
                         }
                     } else if (uris.size > 1) {
                         // multiple files selected
                         zipUris = uris
                         val moduleNames = uris.mapIndexed { index, uri -> "\n${index + 1}. ${uri.getFileName(context)}" }.joinToString("")
                         val confirmContent = context.getString(R.string.module_install_prompt_with_name, moduleNames)
-                        confirmDialog.showConfirm(
+                        confirmInstallDialog.showConfirm(
                             title = confirmTitle,
                             content = confirmContent
                         )
