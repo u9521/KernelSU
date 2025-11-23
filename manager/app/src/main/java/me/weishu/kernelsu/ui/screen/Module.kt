@@ -46,7 +46,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Code
@@ -112,6 +111,7 @@ import me.weishu.kernelsu.ui.component.SearchPager
 import me.weishu.kernelsu.ui.component.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.rememberLoadingDialog
 import me.weishu.kernelsu.ui.util.DownloadListener
+import me.weishu.kernelsu.ui.util.ModuleParser
 import me.weishu.kernelsu.ui.util.download
 import me.weishu.kernelsu.ui.util.getFileName
 import me.weishu.kernelsu.ui.util.hasMagisk
@@ -495,8 +495,99 @@ fun ModulePager(
                     }
 
                     if (uris.size == 1) {
-                        navigator.navigate(FlashScreenDestination(FlashIt.FlashModules(listOf(uris.first())))) {
-                            launchSingleTop = true
+                        scope.launch {
+                            val moduleInfoResult = loadingDialog.withLoading {
+                                withContext(Dispatchers.IO) {
+                                    ModuleParser.parse(context, uris.first())
+                                }
+                            }
+
+                            moduleInfoResult.onSuccess { moduleInfo ->
+                                val moduleName =
+                                    moduleInfo.name ?: uris.first().getFileName(context)
+                                val confirmContent = buildString {
+                                    append(
+                                        context.getString(
+                                            R.string.module_install_prompt_with_name,
+                                            "\n$moduleName"
+                                        )
+                                    )
+                                    append("\n\n")
+                                    append(
+                                        context.getString(
+                                            R.string.module_info_id,
+                                            moduleInfo.id
+                                        )
+                                    )
+                                    moduleInfo.version?.let {
+                                        append(
+                                            "\n${
+                                                context.getString(
+                                                    R.string.module_info_version,
+                                                    it
+                                                )
+                                            }"
+                                        )
+                                    }
+                                    moduleInfo.versionCode?.let {
+                                        append(
+                                            "\n${
+                                                context.getString(
+                                                    R.string.module_info_version_code,
+                                                    it
+                                                )
+                                            }"
+                                        )
+                                    }
+                                    moduleInfo.author?.let {
+                                        append(
+                                            "\n${
+                                                context.getString(
+                                                    R.string.module_info_author,
+                                                    it
+                                                )
+                                            }"
+                                        )
+                                    }
+                                    moduleInfo.description?.takeIf { it.isNotBlank() }?.let {
+                                        append(
+                                            "\n${
+                                                context.getString(
+                                                    R.string.module_info_description,
+                                                    it
+                                                )
+                                            }"
+                                        )
+                                    }
+                                }
+
+                                confirmDialog.showConfirm(
+                                    title = confirmTitle,
+                                    content = confirmContent
+                                )
+                            }.onFailure { exception ->
+                                val fileName = zipUris.first().getFileName(context)
+                                val reason = if (exception is ModuleParser.ModuleParseException) {
+                                    exception.getMessage(context = context)
+                                } else {
+                                    exception.message ?: "Unknown error"
+                                }
+                                val content = "${
+                                    context.getString(
+                                        R.string.module_parse_failed,
+                                        fileName
+                                    )
+                                }\n\n${
+                                    context.getString(
+                                        R.string.module_parse_reason,
+                                        reason
+                                    )
+                                }\n\n${context.getString(R.string.module_install_confirm_extra)}"
+                                confirmDialog.showConfirm(
+                                    title = confirmTitle,
+                                    content = content
+                                )
+                            }
                         }
                     } else if (uris.size > 1) {
                         // multiple files selected
@@ -566,13 +657,13 @@ fun ModulePager(
                             }
                         }
                         val onUndoUninstallClick = remember(module.id, itemScope, ::onModuleUndoUninstall) {
-                            {
-                                itemScope.launch {
-                                    onModuleUndoUninstall(currentModuleState.value)
+                                {
+                                    itemScope.launch {
+                                        onModuleUndoUninstall(currentModuleState.value)
+                                    }
+                                    Unit
                                 }
-                                Unit
                             }
-                        }
                         val onToggleClick = remember(module.id, itemScope, ::onModuleToggle) {
                             { _: Boolean ->
                                 itemScope.launch {
@@ -806,13 +897,13 @@ private fun ModuleList(
                         val moduleUpdateInfo = updateInfoMap[module.id] ?: ModuleViewModel.ModuleUpdateInfo.Empty
 
                         val onUndoUninstallClick = remember(module.id, scope, onModuleUndoUninstall) {
-                            {
-                                scope.launch {
-                                    onModuleUndoUninstall(currentModuleState.value)
+                                {
+                                    scope.launch {
+                                        onModuleUndoUninstall(currentModuleState.value)
+                                    }
+                                    Unit
                                 }
-                                Unit
                             }
-                        }
                         val onUninstallClick = remember(module.id, scope, onModuleUninstall) {
                             {
                                 scope.launch {
@@ -830,18 +921,18 @@ private fun ModuleList(
                             }
                         }
                         val onUpdateClick = remember(module.id, moduleUpdateInfo, scope, onModuleUpdate) {
-                            {
-                                scope.launch {
-                                    onModuleUpdate(
-                                        currentModuleState.value,
-                                        moduleUpdateInfo.changelog,
-                                        moduleUpdateInfo.downloadUrl,
-                                        "${currentModuleState.value.name}-${moduleUpdateInfo.version}.zip",
-                                    )
+                                {
+                                    scope.launch {
+                                        onModuleUpdate(
+                                            currentModuleState.value,
+                                            moduleUpdateInfo.changelog,
+                                            moduleUpdateInfo.downloadUrl,
+                                            "${currentModuleState.value.name}-${moduleUpdateInfo.version}.zip",
+                                        )
+                                    }
+                                    Unit
                                 }
-                                Unit
                             }
-                        }
                         val onExecuteActionClick = remember(module.id, navigator, viewModel) {
                             {
                                 navigator.navigate(ExecuteModuleActionScreenDestination(currentModuleState.value.id)) {
