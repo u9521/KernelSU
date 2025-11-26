@@ -111,6 +111,7 @@ import me.weishu.kernelsu.ui.component.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.rememberLoadingDialog
 import me.weishu.kernelsu.ui.theme.isInDarkTheme
 import me.weishu.kernelsu.ui.util.DownloadListener
+import me.weishu.kernelsu.ui.util.ModuleParser
 import me.weishu.kernelsu.ui.util.download
 import me.weishu.kernelsu.ui.util.getFileName
 import me.weishu.kernelsu.ui.util.hasMagisk
@@ -533,8 +534,17 @@ fun ModulePager(
                     }
 
                     if (uris.size == 1) {
-                        navigator.navigate(FlashScreenDestination(FlashIt.FlashModules(listOf(uris.first())))) {
-                            launchSingleTop = true
+                        zipUris = uris
+                        scope.launch {
+                            val moduleInstallDesc = loadingDialog.withLoading {
+                                withContext(Dispatchers.IO) {
+                                    ModuleParser.getModuleInstallDesc(context, uris.first(), viewModel.moduleList)
+                                }
+                            }
+                            confirmDialog.showConfirm(
+                                title = confirmTitle,
+                                content = moduleInstallDesc
+                            )
                         }
                         viewModel.markNeedRefresh()
                     } else if (uris.size > 1) {
