@@ -106,6 +106,7 @@ import me.weishu.kernelsu.ui.navigation.TopLevelRoute
 import me.weishu.kernelsu.ui.util.DownloadListener
 import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.LocalSnackbarHost
+import me.weishu.kernelsu.ui.util.ModuleParser
 import me.weishu.kernelsu.ui.util.download
 import me.weishu.kernelsu.ui.util.getFileName
 import me.weishu.kernelsu.ui.util.hasMagisk
@@ -161,6 +162,9 @@ fun ModuleScreen() {
     val webUILauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { viewModel.fetchModuleList() }
+
+    val loadingDialog = rememberLoadingDialog()
+
 
     Scaffold(
         topBar = {
@@ -245,7 +249,19 @@ fun ModuleScreen() {
                     }
 
                     if (uris.size == 1) {
-                        navigator.navigate(FlashScreenDestination(FlashIt.FlashModules(listOf(uris.first()))))
+                        zipUris = uris
+                        scope.launch {
+                            val moduleInstallDesc = loadingDialog.withLoading {
+                                withContext(Dispatchers.IO) {
+                                    ModuleParser.getModuleInstallDesc(context, uris.first(), viewModel.moduleList)
+                                }
+                            }
+                            confirmDialog.showConfirm(
+                                title = confirmTitle,
+                                content = moduleInstallDesc,
+                                markdown = true
+                            )
+                        }
                     } else if (uris.size > 1) {
                         // multiple files selected
                         viewModel.markNeedRefresh()
@@ -290,13 +306,31 @@ fun ModuleScreen() {
             }
 
             else -> {
+                var zipUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
+                val confirmDialog = rememberConfirmDialog(onConfirm = {
+                    navigator.navigateTo(FlashScreenNavKey(FlashIt.FlashModules(zipUris)))
+                    viewModel.markNeedRefresh()
+                })
+                val confirmTitle = stringResource(R.string.module)
                 ModuleList(
                     navigator,
                     viewModel = viewModel,
                     modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
                     boxModifier = Modifier.padding(innerPadding),
                     onInstallModule = {
-                        navigator.navigateTo(FlashScreenNavKey(FlashIt.FlashModules(listOf(it))))
+                        zipUris = listOf(it)
+                        scope.launch {
+                            val moduleInstallDesc = loadingDialog.withLoading {
+                                withContext(Dispatchers.IO) {
+                                    ModuleParser.getModuleInstallDesc(context, it, viewModel.moduleList)
+                                }
+                            }
+                            confirmDialog.showConfirm(
+                                title = confirmTitle,
+                                content = moduleInstallDesc,
+                                markdown = true
+                            )
+                        }
                     },
                     onClickModule = { id, name, hasWebUi ->
                         if (hasWebUi) {
