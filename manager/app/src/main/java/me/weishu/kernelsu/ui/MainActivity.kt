@@ -40,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
@@ -50,17 +51,22 @@ import com.ramcosta.composedestinations.generated.destinations.FlashScreenDestin
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.utils.isRouteOnBackStackAsState
 import com.ramcosta.composedestinations.utils.rememberDestinationsNavigator
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.withContext
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.rememberConfirmDialog
+import me.weishu.kernelsu.ui.component.rememberLoadingDialog
 import me.weishu.kernelsu.ui.screen.BottomBarDestination
 import me.weishu.kernelsu.ui.screen.FlashIt
 import me.weishu.kernelsu.ui.theme.KernelSUTheme
 import me.weishu.kernelsu.ui.util.LocalSnackbarHost
+import me.weishu.kernelsu.ui.util.ModuleParser
 import me.weishu.kernelsu.ui.util.getFileName
 import me.weishu.kernelsu.ui.util.install
 import me.weishu.kernelsu.ui.util.rootAvailable
+import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel
 
 class MainActivity : ComponentActivity() {
 
@@ -86,10 +92,7 @@ class MainActivity : ComponentActivity() {
 
                 // Handle ZIP file installation from external apps
                 ZipFileIntentHandler(
-                    intentState = intentState,
-                    intent = intent,
-                    isManager = isManager,
-                    navigator = navigator
+                    intentState = intentState, intent = intent, isManager = isManager, navigator = navigator
                 )
 
                 val snackBarHostState = remember { SnackbarHostState() }
@@ -97,8 +100,7 @@ class MainActivity : ComponentActivity() {
                     BottomBarDestination.entries.map { it.direction.route }.toSet()
                 }
                 Scaffold(
-                    bottomBar = { BottomBar(navController) },
-                    contentWindowInsets = WindowInsets(0, 0, 0, 0)
+                    bottomBar = { BottomBar(navController) }, contentWindowInsets = WindowInsets(0, 0, 0, 0)
                 ) { innerPadding ->
                     CompositionLocalProvider(
                         LocalSnackbarHost provides snackBarHostState,
@@ -147,8 +149,7 @@ class MainActivity : ComponentActivity() {
                                         fadeOut(animationSpec = tween(340))
                                     }
                                 }
-                            }
-                        )
+                            })
                     }
                 }
             }
@@ -169,8 +170,7 @@ private fun BottomBar(navController: NavHostController) {
     val isManager = Natives.isManager
     val fullFeatured = isManager && !Natives.requireNewKernel() && rootAvailable()
     NavigationBar(
-        tonalElevation = 8.dp,
-        windowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout).only(
+        tonalElevation = 8.dp, windowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout).only(
             WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
         )
     ) {
@@ -178,8 +178,7 @@ private fun BottomBar(navController: NavHostController) {
             if (!fullFeatured && destination.rootRequired) return@forEach
             val isCurrentDestOnBackStack by navController.isRouteOnBackStackAsState(destination.direction)
             NavigationBarItem(
-                selected = isCurrentDestOnBackStack,
-                onClick = {
+                selected = isCurrentDestOnBackStack, onClick = {
                     if (isCurrentDestOnBackStack) {
                         navigator.popBackStack(destination.direction, false)
                     }
@@ -190,16 +189,13 @@ private fun BottomBar(navController: NavHostController) {
                         launchSingleTop = true
                         restoreState = true
                     }
-                },
-                icon = {
+                }, icon = {
                     if (isCurrentDestOnBackStack) {
                         Icon(destination.iconSelected, stringResource(destination.label))
                     } else {
                         Icon(destination.iconNotSelected, stringResource(destination.label))
                     }
-                },
-                label = { Text(stringResource(destination.label)) },
-                alwaysShowLabel = false
+                }, label = { Text(stringResource(destination.label)) }, alwaysShowLabel = false
             )
         }
     }
@@ -212,10 +208,7 @@ private fun BottomBar(navController: NavHostController) {
  */
 @Composable
 private fun ZipFileIntentHandler(
-    intentState: MutableStateFlow<Int>,
-    intent: android.content.Intent?,
-    isManager: Boolean,
-    navigator: DestinationsNavigator
+    intentState: MutableStateFlow<Int>, intent: android.content.Intent?, isManager: Boolean, navigator: DestinationsNavigator
 ) {
     val context = LocalActivity.current ?: return
     var zipUri by remember { mutableStateOf<android.net.Uri?>(null) }
@@ -228,8 +221,7 @@ private fun ZipFileIntentHandler(
                 navigator.navigate(FlashScreenDestination(FlashIt.FlashModules(listOf(uri))))
             }
             clearZipUri()
-        },
-        onDismiss = clearZipUri
+        }, onDismiss = clearZipUri
     )
 
     fun getDisplayName(uri: android.net.Uri): String {
@@ -237,6 +229,9 @@ private fun ZipFileIntentHandler(
     }
 
     val intentStateValue by intentState.collectAsState()
+    val loadingDialog = rememberLoadingDialog()
+    val viewModel = viewModel<ModuleViewModel>()
+
     LaunchedEffect(intentStateValue) {
         val uri = intent?.data ?: return@LaunchedEffect
 
@@ -246,18 +241,22 @@ private fun ZipFileIntentHandler(
 
         if (isSafeMode) {
             Toast.makeText(
-                context,
-                context.getString(R.string.safe_mode_module_disabled), Toast.LENGTH_SHORT
-            )
-                .show()
+                context, context.getString(R.string.safe_mode_module_disabled), Toast.LENGTH_SHORT
+            ).show()
         } else {
             zipUri = uri
+            viewModel.fetchModuleList()
+            val moduleInstallDesc = loadingDialog.withLoading {
+                withContext(Dispatchers.IO) {
+                    zipUri?.let { uri ->
+                        ModuleParser.getModuleInstallDesc(
+                            context, uri, viewModel.moduleList
+                        )
+                    }
+                }
+            }
             installDialog.showConfirm(
-                title = context.getString(R.string.module),
-                content = context.getString(
-                    R.string.module_install_prompt_with_name,
-                    "\n${getDisplayName(uri)}"
-                )
+                title = context.getString(R.string.module), content = moduleInstallDesc!!, markdown = true
             )
         }
     }

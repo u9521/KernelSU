@@ -105,6 +105,7 @@ import me.weishu.kernelsu.ui.component.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.rememberLoadingDialog
 import me.weishu.kernelsu.ui.util.DownloadListener
 import me.weishu.kernelsu.ui.util.LocalSnackbarHost
+import me.weishu.kernelsu.ui.util.ModuleParser
 import me.weishu.kernelsu.ui.util.download
 import me.weishu.kernelsu.ui.util.getFileName
 import me.weishu.kernelsu.ui.util.hasMagisk
@@ -160,6 +161,9 @@ fun ModuleScreen(navigator: DestinationsNavigator) {
     val webUILauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { viewModel.fetchModuleList() }
+
+    val loadingDialog = rememberLoadingDialog()
+
 
     Scaffold(
         topBar = {
@@ -244,7 +248,19 @@ fun ModuleScreen(navigator: DestinationsNavigator) {
                     }
 
                     if (uris.size == 1) {
-                        navigator.navigate(FlashScreenDestination(FlashIt.FlashModules(listOf(uris.first()))))
+                        zipUris = uris
+                        scope.launch {
+                            val moduleInstallDesc = loadingDialog.withLoading {
+                                withContext(Dispatchers.IO) {
+                                    ModuleParser.getModuleInstallDesc(context, uris.first(), viewModel.moduleList)
+                                }
+                            }
+                            confirmDialog.showConfirm(
+                                title = confirmTitle,
+                                content = moduleInstallDesc,
+                                markdown = true
+                            )
+                        }
                     } else if (uris.size > 1) {
                         // multiple files selected
                         viewModel.markNeedRefresh()
