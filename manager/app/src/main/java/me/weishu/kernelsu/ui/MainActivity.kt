@@ -37,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.compose.rememberNavController
 import com.ramcosta.composedestinations.DestinationsNavHost
@@ -51,21 +52,25 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeSource
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.BottomBar
 import me.weishu.kernelsu.ui.component.rememberConfirmDialog
+import me.weishu.kernelsu.ui.component.rememberLoadingDialog
 import me.weishu.kernelsu.ui.screen.FlashIt
 import me.weishu.kernelsu.ui.screen.HomePager
 import me.weishu.kernelsu.ui.screen.ModulePager
 import me.weishu.kernelsu.ui.screen.SettingPager
 import me.weishu.kernelsu.ui.screen.SuperUserPager
 import me.weishu.kernelsu.ui.theme.KernelSUTheme
-import me.weishu.kernelsu.ui.util.getFileName
+import me.weishu.kernelsu.ui.util.ModuleParser
 import me.weishu.kernelsu.ui.util.install
+import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -310,31 +315,38 @@ private fun ZipFileIntentHandler(
         onDismiss = clearZipUri
     )
 
-    fun getDisplayName(uri: android.net.Uri): String {
-        return uri.getFileName(context) ?: uri.lastPathSegment ?: "Unknown"
-    }
-
     val intentStateValue by intentState.collectAsState()
+    val loadingDialog = rememberLoadingDialog()
+    val viewModel = viewModel<ModuleViewModel>()
+    if (isSafeMode) {
+        Toast.makeText(
+            context,
+            context.getString(R.string.safe_mode_module_disabled), Toast.LENGTH_SHORT
+        )
+            .show()
+        return
+    }
     LaunchedEffect(intentStateValue) {
-        val uri = intent?.data ?: return@LaunchedEffect
-
-        if (!isManager || uri.scheme != "content" || intent.type != "application/zip") {
-            return@LaunchedEffect
-        }
-
-        if (isSafeMode) {
-            Toast.makeText(context,
-                context.getString(R.string.safe_mode_module_disabled), Toast.LENGTH_SHORT)
-                .show()
-        } else {
-            zipUri = uri
-            installDialog.showConfirm(
-                title = context.getString(R.string.module),
-                content = context.getString(
-                    R.string.module_install_prompt_with_name,
-                    "\n${getDisplayName(uri)}"
+        intent?.data
+            ?.takeIf { isManager && it.scheme == "content" && intent.type == "application/zip" }
+            ?.also { zipUri = it }
+            ?.let {
+                viewModel.fetchModuleList()
+                val moduleInstallDesc = loadingDialog.withLoading {
+                    withContext(Dispatchers.IO) {
+                        zipUri?.let { uri ->
+                            ModuleParser.getModuleInstallDesc(
+                                context,
+                                uri,
+                                viewModel.moduleList
+                            )
+                        }
+                    }
+                }
+                installDialog.showConfirm(
+                    title = context.getString(R.string.module),
+                    content = moduleInstallDesc
                 )
-            )
-        }
+            }
     }
 }
