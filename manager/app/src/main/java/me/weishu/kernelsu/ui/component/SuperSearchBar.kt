@@ -66,7 +66,7 @@ fun SearchAppBar(
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
-    var onSearch by remember { mutableStateOf(false) }
+    var onSearch by remember { mutableStateOf(searchStatus.searchText != "") }
 
     if (onSearch) {
         LaunchedEffect(Unit) { focusRequester.requestFocus() }
