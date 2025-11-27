@@ -44,6 +44,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -94,6 +95,7 @@ import me.weishu.kernelsu.ui.component.rememberLoadingDialog
 import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.util.execKsud
 import me.weishu.kernelsu.ui.util.getBugreportFile
+import me.weishu.kernelsu.ui.util.getFeaturePersistValue
 import me.weishu.kernelsu.ui.util.getFeatureStatus
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -113,10 +115,10 @@ fun SettingScreen(navigator: DestinationsNavigator) {
 
     Scaffold(
         topBar = {
-        TopBar(
-            scrollBehavior = scrollBehavior
-        )
-    }, snackbarHost = { SnackbarHost(snackBarHost) }, contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+            TopBar(
+                scrollBehavior = scrollBehavior
+            )
+        }, snackbarHost = { SnackbarHost(snackBarHost) }, contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     ) { paddingValues ->
         val aboutDialog = rememberCustomDialog {
             AboutDialog(it)
@@ -159,13 +161,16 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                     })
             }
 
-            var enhancedSecurityMode by rememberSaveable {
-                mutableIntStateOf(
-                    run {
-                        val currentEnabled = Natives.isEnhancedSecurityEnabled()
-                        val savedPersist = prefs.getInt("enhanced_security_mode", 0)
-                        if (savedPersist == 2) 2 else if (currentEnabled) 1 else 0
-                    })
+            val currentEnhancedEnabled = Natives.isEnhancedSecurityEnabled()
+            var enhancedSecurityMode by rememberSaveable { mutableIntStateOf(if (currentEnhancedEnabled) 1 else 0) }
+            val enhancedPersistValue by produceState(initialValue = null as Long?) {
+                value = getFeaturePersistValue("enhanced_security")
+            }
+            println("Enhanced persist value: $enhancedPersistValue")
+            LaunchedEffect(enhancedPersistValue) {
+                enhancedPersistValue?.let { v ->
+                    enhancedSecurityMode = if (v != 0L) 2 else if (currentEnhancedEnabled) 1 else 0
+                }
             }
 
             val enhancedStatus by produceState(initialValue = "") {
@@ -214,13 +219,15 @@ fun SettingScreen(navigator: DestinationsNavigator) {
 
             }
 
-            var suCompatMode by rememberSaveable {
-                mutableIntStateOf(
-                    run {
-                        val currentEnabled = Natives.isSuEnabled()
-                        val savedPersist = prefs.getInt("su_compat_mode", 0)
-                        if (savedPersist == 2) 2 else if (!currentEnabled) 1 else 0
-                    })
+            val currentSuEnabled = Natives.isSuEnabled()
+            var suCompatMode by rememberSaveable { mutableIntStateOf(if (!currentSuEnabled) 1 else 0) }
+            val suPersistValue by produceState(initialValue = null as Long?) {
+                value = getFeaturePersistValue("su_compat")
+            }
+            LaunchedEffect(suPersistValue) {
+                suPersistValue?.let { v ->
+                    suCompatMode = if (v == 0L) 2 else if (!currentSuEnabled) 1 else 0
+                }
             }
 
             val suStatus by produceState(initialValue = "") {
@@ -231,7 +238,6 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                 "managed" -> stringResource(id = R.string.feature_status_managed_summary)
                 else -> stringResource(id = R.string.settings_disable_su_summary)
             }
-
 
             KsuIsValid {
                 FeatureItem(
@@ -268,13 +274,15 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                 }
             }
 
-            var kernelUmountMode by rememberSaveable {
-                mutableIntStateOf(
-                    run {
-                        val currentEnabled = Natives.isKernelUmountEnabled()
-                        val savedPersist = prefs.getInt("kernel_umount_mode", 0)
-                        if (savedPersist == 2) 2 else if (!currentEnabled) 1 else 0
-                    })
+            val currentUmountEnabled = Natives.isKernelUmountEnabled()
+            var kernelUmountMode by rememberSaveable { mutableIntStateOf(if (!currentUmountEnabled) 1 else 0) }
+            val umountPersistValue by produceState(initialValue = null as Long?) {
+                value = getFeaturePersistValue("kernel_umount")
+            }
+            LaunchedEffect(umountPersistValue) {
+                umountPersistValue?.let { v ->
+                    kernelUmountMode = if (v == 0L) 2 else if (!currentUmountEnabled) 1 else 0
+                }
             }
 
             val umountStatus by produceState(initialValue = "") {
