@@ -271,7 +271,7 @@ private fun TopBar(
             IconButton(onClick = onSave) {
                 Icon(
                     imageVector = Icons.Filled.Save,
-                    contentDescription = "Localized description"
+                    contentDescription = stringResource(id = R.string.save_log)
                 )
             }
         },
