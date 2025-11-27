@@ -1,21 +1,12 @@
 package me.weishu.kernelsu.ui.component
 
-import android.graphics.text.LineBreaker
-import android.os.Build
 import android.os.Parcelable
-import android.text.Layout
-import android.text.method.LinkMovementMethod
 import android.util.Log
-import android.view.ViewGroup
-import android.widget.TextView
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -30,14 +21,11 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import io.noties.markwon.Markwon
-import io.noties.markwon.utils.NoCopySpannableFactory
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
@@ -95,25 +83,16 @@ interface ConfirmDialogHandle : DialogHandle {
     val visuals: ConfirmDialogVisuals
 
     fun showConfirm(
-        title: String,
-        content: String,
-        markdown: Boolean = false,
-        confirm: String? = null,
-        dismiss: String? = null
+        title: String, content: String, markdown: Boolean = false, confirm: String? = null, dismiss: String? = null
     )
 
     suspend fun awaitConfirm(
-        title: String,
-        content: String,
-        markdown: Boolean = false,
-        confirm: String? = null,
-        dismiss: String? = null
+        title: String, content: String, markdown: Boolean = false, confirm: String? = null, dismiss: String? = null
     ): ConfirmResult
 }
 
 private abstract class DialogHandleBase(
-    val visible: MutableState<Boolean>,
-    val coroutineScope: CoroutineScope
+    val visible: MutableState<Boolean>, val coroutineScope: CoroutineScope
 ) : DialogHandle {
     override val isShown: Boolean
         get() = visible.value
@@ -136,8 +115,7 @@ private abstract class DialogHandleBase(
 }
 
 private class LoadingDialogHandleImpl(
-    visible: MutableState<Boolean>,
-    coroutineScope: CoroutineScope
+    visible: MutableState<Boolean>, coroutineScope: CoroutineScope
 ) : LoadingDialogHandle, DialogHandleBase(visible, coroutineScope) {
     override suspend fun <R> withLoading(block: suspend () -> R): R {
         return coroutineScope.async {
@@ -218,18 +196,14 @@ private class ConfirmDialogHandleImpl(
 
     init {
         coroutineScope.launch {
-            resultFlow
-                .consumeAsFlow()
-                .onEach { result ->
-                    awaitContinuation?.let {
-                        awaitContinuation = null
-                        if (it.isActive) {
-                            it.resume(result)
-                        }
+            resultFlow.consumeAsFlow().onEach { result ->
+                awaitContinuation?.let {
+                    awaitContinuation = null
+                    if (it.isActive) {
+                        it.resume(result)
                     }
                 }
-                .onEach { hide() }
-                .collect(resultCollector)
+            }.onEach { hide() }.collect(resultCollector)
         }
     }
 
@@ -258,11 +232,7 @@ private class ConfirmDialogHandleImpl(
     }
 
     override fun showConfirm(
-        title: String,
-        content: String,
-        markdown: Boolean,
-        confirm: String?,
-        dismiss: String?
+        title: String, content: String, markdown: Boolean, confirm: String?, dismiss: String?
     ) {
         coroutineScope.launch {
             updateVisuals(ConfirmDialogVisualsImpl(title, content, markdown, confirm, dismiss))
@@ -271,11 +241,7 @@ private class ConfirmDialogHandleImpl(
     }
 
     override suspend fun awaitConfirm(
-        title: String,
-        content: String,
-        markdown: Boolean,
-        confirm: String?,
-        dismiss: String?
+        title: String, content: String, markdown: Boolean, confirm: String?, dismiss: String?
     ): ConfirmResult {
         coroutineScope.launch {
             updateVisuals(ConfirmDialogVisualsImpl(title, content, markdown, confirm, dismiss))
@@ -292,25 +258,18 @@ private class ConfirmDialogHandleImpl(
 
     companion object {
         fun Saver(
-            visible: MutableState<Boolean>,
-            coroutineScope: CoroutineScope,
-            callback: ConfirmCallback,
-            resultChannel: ReceiveChannel<ConfirmResult>
-        ) = Saver<ConfirmDialogHandle, ConfirmDialogVisuals>(
-            save = {
-                it.visuals
-            },
-            restore = {
-                Log.d(TAG, "ConfirmDialog restore, visuals: $it")
-                ConfirmDialogHandleImpl(visible, coroutineScope, callback, it, resultChannel)
-            }
-        )
+            visible: MutableState<Boolean>, coroutineScope: CoroutineScope, callback: ConfirmCallback, resultChannel: ReceiveChannel<ConfirmResult>
+        ) = Saver<ConfirmDialogHandle, ConfirmDialogVisuals>(save = {
+            it.visuals
+        }, restore = {
+            Log.d(TAG, "ConfirmDialog restore, visuals: $it")
+            ConfirmDialogHandleImpl(visible, coroutineScope, callback, it, resultChannel)
+        })
     }
 }
 
 private class CustomDialogHandleImpl(
-    visible: MutableState<Boolean>,
-    coroutineScope: CoroutineScope
+    visible: MutableState<Boolean>, coroutineScope: CoroutineScope
 ) : DialogHandleBase(visible, coroutineScope) {
     override val dialogType: String get() = "CustomDialog"
 }
@@ -342,18 +301,15 @@ private fun rememberConfirmDialog(visuals: ConfirmDialogVisuals, callback: Confi
     }
 
     val handle = rememberSaveable(
-        saver = ConfirmDialogHandleImpl.Saver(visible, coroutineScope, callback, resultChannel),
-        init = {
+        saver = ConfirmDialogHandleImpl.Saver(visible, coroutineScope, callback, resultChannel), init = {
             ConfirmDialogHandleImpl(visible, coroutineScope, callback, visuals, resultChannel)
-        }
-    )
+        })
 
     if (visible.value) {
         ConfirmDialog(
             handle.visuals,
             confirm = { coroutineScope.launch { resultChannel.send(ConfirmResult.Confirmed) } },
-            dismiss = { coroutineScope.launch { resultChannel.send(ConfirmResult.Canceled) } }
-        )
+            dismiss = { coroutineScope.launch { resultChannel.send(ConfirmResult.Canceled) } })
     }
 
     return handle
@@ -395,8 +351,7 @@ fun rememberCustomDialog(composable: @Composable (dismiss: () -> Unit) -> Unit):
 @Composable
 private fun LoadingDialog() {
     Dialog(
-        onDismissRequest = {},
-        properties = DialogProperties(dismissOnClickOutside = false, dismissOnBackPress = false)
+        onDismissRequest = {}, properties = DialogProperties(dismissOnClickOutside = false, dismissOnBackPress = false)
     ) {
         Surface(
             modifier = Modifier.size(100.dp), shape = RoundedCornerShape(8.dp)
@@ -421,7 +376,7 @@ private fun ConfirmDialog(visuals: ConfirmDialogVisuals, confirm: () -> Unit, di
         },
         text = {
             if (visuals.isMarkdown) {
-                MarkdownContent(content = visuals.content)
+                MarkdownContent(visuals.content)
             } else {
                 Text(text = visuals.content)
             }
@@ -436,33 +391,5 @@ private fun ConfirmDialog(visuals: ConfirmDialogVisuals, confirm: () -> Unit, di
                 Text(text = visuals.dismiss ?: stringResource(id = android.R.string.cancel))
             }
         },
-    )
-}
-
-@Composable
-private fun MarkdownContent(content: String) {
-    val contentColor = LocalContentColor.current
-
-    AndroidView(
-        factory = { context ->
-            TextView(context).apply {
-                movementMethod = LinkMovementMethod.getInstance()
-                setSpannableFactory(NoCopySpannableFactory.getInstance())
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    breakStrategy = LineBreaker.BREAK_STRATEGY_SIMPLE
-                }
-                hyphenationFrequency = Layout.HYPHENATION_FREQUENCY_NONE
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
-                )
-            }
-        },
-        modifier = Modifier
-            .fillMaxWidth()
-            .wrapContentHeight(),
-        update = {
-            Markwon.create(it.context).setMarkdown(it, content)
-            it.setTextColor(contentColor.toArgb())
-        }
     )
 }
