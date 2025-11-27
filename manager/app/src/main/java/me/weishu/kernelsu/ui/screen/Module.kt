@@ -131,11 +131,17 @@ fun ModuleScreen(navigator: DestinationsNavigator) {
 
 
     LaunchedEffect(Unit) {
-        if (viewModel.moduleList.isEmpty() || viewModel.isNeedRefresh) {
-            viewModel.checkModuleUpdate = prefs.getBoolean("module_check_update", true)
-            viewModel.sortEnabledFirst = prefs.getBoolean("module_sort_enabled_first", false)
-            viewModel.sortActionFirst = prefs.getBoolean("module_sort_action_first", false)
-            viewModel.fetchModuleList()
+        when {
+            viewModel.moduleList.isEmpty() -> {
+                viewModel.checkModuleUpdate = prefs.getBoolean("module_check_update", true)
+                viewModel.sortEnabledFirst = prefs.getBoolean("module_sort_enabled_first", false)
+                viewModel.sortActionFirst = prefs.getBoolean("module_sort_action_first", false)
+                viewModel.fetchModuleList()
+            }
+
+            viewModel.isNeedRefresh -> {
+                viewModel.fetchModuleList()
+            }
         }
     }
 
@@ -471,26 +477,20 @@ private fun ModuleList(
                 displayModuleList = viewModel.searchResults.value
             }
             when {
-                viewModel.searchStatus.value.resultStatus == SearchStatus.ResultStatus.EMPTY -> {
-                    item {
-                        Box(
-                            modifier = Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                "no modules found", textAlign = TextAlign.Center
-                            )
-                        }
-                    }
-                }
-
                 viewModel.moduleList.isEmpty() -> {
                     item {
                         Box(
                             modifier = Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                stringResource(R.string.module_empty), textAlign = TextAlign.Center
-                            )
+                            if (viewModel.searchStatus.value.resultStatus == SearchStatus.ResultStatus.EMPTY) {
+                                Text(
+                                    "no modules found", textAlign = TextAlign.Center
+                                )
+                            } else {
+                                Text(
+                                    stringResource(R.string.module_empty), textAlign = TextAlign.Center
+                                )
+                            }
                         }
                     }
                 }

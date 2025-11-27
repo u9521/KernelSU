@@ -1,6 +1,7 @@
 package me.weishu.kernelsu.ui.screen
 
 import android.content.Context
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -46,7 +47,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -65,7 +66,6 @@ import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.AppProfileScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import kotlinx.coroutines.launch
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.SearchAppBar
@@ -79,18 +79,16 @@ import me.weishu.kernelsu.ui.viewmodel.SuperUserViewModel
 @Composable
 fun SuperUserScreen(navigator: DestinationsNavigator) {
     val viewModel = viewModel<SuperUserViewModel>()
-    val scope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
     val listState = rememberLazyListState()
     val searchStatus by viewModel.searchStatus
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
-    LaunchedEffect(key1 = navigator) {
-        viewModel.updateSearchText("")
-        if (viewModel.appList.value.isEmpty() || viewModel.searchResults.value.isEmpty()) {
+    LaunchedEffect(key1 = Unit) {
+        if (viewModel.appList.value.isEmpty() || viewModel.isRefreshing) {
             viewModel.showSystemApps = prefs.getBoolean("show_system_apps", false)
-            viewModel.fetchAppList()
+            viewModel.loadAppList()
         }
     }
 
@@ -100,26 +98,22 @@ fun SuperUserScreen(navigator: DestinationsNavigator) {
 
     Scaffold(
         topBar = {
+            var showDropdown by remember { mutableStateOf(false) }
             SearchAppBar(
                 title = { Text(stringResource(R.string.superuser)) }, searchStatus = searchStatus, dropdownContent = {
-                    var showDropdown by remember { mutableStateOf(false) }
-
                     IconButton(
                         onClick = { showDropdown = true },
                     ) {
                         Icon(
                             imageVector = Icons.Filled.MoreVert, contentDescription = stringResource(id = R.string.settings)
                         )
-
                         DropdownMenu(expanded = showDropdown, onDismissRequest = {
                             showDropdown = false
                         }) {
                             DropdownMenuItem(text = {
                                 Text(stringResource(R.string.refresh))
                             }, onClick = {
-                                scope.launch {
-                                    viewModel.fetchAppList()
-                                }
+                                viewModel.loadAppList()
                                 showDropdown = false
                             })
                             DropdownMenuItem(text = {
@@ -135,9 +129,7 @@ fun SuperUserScreen(navigator: DestinationsNavigator) {
                                 prefs.edit {
                                     putBoolean("show_system_apps", viewModel.showSystemApps)
                                 }
-                                scope.launch {
-                                    viewModel.fetchAppList()
-                                }
+                                viewModel.loadAppList()
                                 showDropdown = false
                             })
                         }
@@ -146,37 +138,46 @@ fun SuperUserScreen(navigator: DestinationsNavigator) {
             )
         }, contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     ) { innerPadding ->
-        var displayAppList = viewModel.appList.value
-        if (viewModel.searchStatus.value.resultStatus == SearchStatus.ResultStatus.SHOW) {
-            displayAppList = viewModel.searchResults.value
+        val displayAppList = when (viewModel.searchStatus.value.resultStatus) {
+            SearchStatus.ResultStatus.SHOW,
+            SearchStatus.ResultStatus.EMPTY -> viewModel.searchResults.value
+
+            else -> viewModel.appList.value
         }
-        if (viewModel.searchStatus.value.resultStatus == SearchStatus.ResultStatus.EMPTY) {
-            displayAppList = viewModel.searchResults.value
+        val groups = remember(displayAppList) {
+            buildGroups(displayAppList)
         }
-        val allGroups = remember(viewModel.appList.value) { buildGroups(viewModel.appList.value) }
-        val matchedByUid = remember(viewModel.searchResults.value) {
-            viewModel.searchResults.value.groupBy { it.uid }
-        }
-        val searchGroups = remember(allGroups, matchedByUid) {
-            allGroups.filter { matchedByUid.containsKey(it.uid) }
-        }
-        val expandedSearchUids = remember { mutableStateOf(setOf<Int>()) }
-        LaunchedEffect(matchedByUid) {
-            expandedSearchUids.value = searchGroups.filter { it.apps.size > 1 }.map { it.uid }.toSet()
+        val expandedUids = rememberSaveable() { mutableStateOf(setOf<Int>()) }
+
+        LaunchedEffect(viewModel.searchStatus.value.resultStatus, viewModel.searchResults.value) {
+            when (viewModel.searchStatus.value.resultStatus) {
+                SearchStatus.ResultStatus.SHOW -> {
+                    // 搜索状态下，默认展开有多个应用的搜索结果组
+                    val searchResultsByUid = viewModel.searchResults.value.groupBy { it.uid }
+                    expandedUids.value = groups
+                        .filter { group ->
+                            // 只展开有多个应用且出现在搜索结果中的组
+                            val appsInGroup = searchResultsByUid[group.uid] ?: emptyList()
+                            appsInGroup.size > 1
+                        }
+                        .map { it.uid }
+                        .toSet()
+                }
+                SearchStatus.ResultStatus.EMPTY,
+                SearchStatus.ResultStatus.DEFAULT -> expandedUids.value = emptySet()
+                SearchStatus.ResultStatus.LOAD -> {}
+            }
         }
 
-        val groups = remember(viewModel.appList.value) { buildGroups(viewModel.appList.value) }
-        val expandedUids = remember { mutableStateOf(setOf<Int>()) }
         PullToRefreshBox(
-            modifier = Modifier.padding(innerPadding), onRefresh = {
-                scope.launch { viewModel.fetchAppList() }
-            }, isRefreshing = viewModel.isRefreshing
+            modifier = Modifier.padding(innerPadding), onRefresh = { viewModel.loadAppList() }, isRefreshing = viewModel.isRefreshing
         ) {
             LazyColumn(
                 state = listState, modifier = Modifier
                     .fillMaxSize()
                     .nestedScroll(scrollBehavior.nestedScrollConnection)
             ) {
+                Log.d("TAG", "SuperUserScreen: ${viewModel.searchStatus.value.resultStatus}")
                 items(groups, key = { it.uid }) { group ->
                     val expanded = expandedUids.value.contains(group.uid)
                     GroupItem(
