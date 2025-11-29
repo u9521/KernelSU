@@ -1,0 +1,182 @@
+diff --git a/arch/x86/entry/syscall_32.c b/arch/x86/entry/syscall_32.c
+index 2b15ea17bb7c5..da6949dd6c57a 100644
+--- a/arch/x86/entry/syscall_32.c
++++ b/arch/x86/entry/syscall_32.c
+@@ -27,18 +27,11 @@
+ #undef  __SYSCALL_NORETURN
+ #define __SYSCALL_NORETURN __SYSCALL
+ 
+-/*
+- * The sys_call_table[] is no longer used for system calls, but
+- * kernel/trace/trace_syscalls.c still wants to know the system
+- * call address.
+- */
+-#ifdef CONFIG_X86_32
+ #define __SYSCALL(nr, sym) __ia32_##sym,
+-const sys_call_ptr_t sys_call_table[] = {
++const sys_call_ptr_t ia32_sys_call_table[] = {
+ #include <asm/syscalls_32.h>
+ };
+ #undef  __SYSCALL
+-#endif
+ 
+ #define __SYSCALL(nr, sym) case nr: return __ia32_##sym(regs);
+ long ia32_sys_call(const struct pt_regs *regs, unsigned int nr)
+@@ -80,7 +73,10 @@ static __always_inline void do_syscall_32_irqs_on(struct pt_regs *regs, int nr)
+ 
+ 	if (likely(unr < IA32_NR_syscalls)) {
+ 		unr = array_index_nospec(unr, IA32_NR_syscalls);
+-		regs->ax = ia32_sys_call(regs, unr);
++		if (likely(cpu_feature_enabled(X86_FEATURE_INDIRECT_SAFE)))
++			regs->ax = ia32_sys_call_table[unr](regs);
++		else
++			regs->ax = ia32_sys_call(regs, unr);
+ 	} else if (nr != -1) {
+ 		regs->ax = __ia32_sys_ni_syscall(regs);
+ 	}
+diff --git a/arch/x86/entry/syscall_64.c b/arch/x86/entry/syscall_64.c
+index b6e68ea98b839..cdd1298957dc8 100644
+--- a/arch/x86/entry/syscall_64.c
++++ b/arch/x86/entry/syscall_64.c
+@@ -20,11 +20,14 @@
+ #undef  __SYSCALL_NORETURN
+ #define __SYSCALL_NORETURN __SYSCALL
+ 
+-/*
+- * The sys_call_table[] is no longer used for system calls, but
+- * kernel/trace/trace_syscalls.c still wants to know the system
+- * call address.
+- */
++#ifdef CONFIG_X86_X32_ABI
++#define __SYSCALL(nr, sym) __x64_##sym,
++const sys_call_ptr_t x32_sys_call_table[] = {
++#include <asm/syscalls_x32.h>
++};
++#undef __SYSCALL
++#endif
++
+ #define __SYSCALL(nr, sym) __x64_##sym,
+ const sys_call_ptr_t sys_call_table[] = {
+ #include <asm/syscalls_64.h>
+@@ -60,7 +63,10 @@ static __always_inline bool do_syscall_x64(struct pt_regs *regs, int nr)
+ 
+ 	if (likely(unr < NR_syscalls)) {
+ 		unr = array_index_nospec(unr, NR_syscalls);
+-		regs->ax = x64_sys_call(regs, unr);
++		if (likely(cpu_feature_enabled(X86_FEATURE_INDIRECT_SAFE)))
++			regs->ax = sys_call_table[unr](regs);
++		else
++			regs->ax = x64_sys_call(regs, unr);
+ 		return true;
+ 	}
+ 	return false;
+@@ -77,7 +83,10 @@ static __always_inline bool do_syscall_x32(struct pt_regs *regs, int nr)
+ 
+ 	if (IS_ENABLED(CONFIG_X86_X32_ABI) && likely(xnr < X32_NR_syscalls)) {
+ 		xnr = array_index_nospec(xnr, X32_NR_syscalls);
+-		regs->ax = x32_sys_call(regs, xnr);
++		if (likely(cpu_feature_enabled(X86_FEATURE_INDIRECT_SAFE)))
++			regs->ax = x32_sys_call_table[xnr](regs);
++		else
++			regs->ax = x32_sys_call(regs, xnr);
+ 		return true;
+ 	}
+ 	return false;
+diff --git a/arch/x86/include/asm/cpufeatures.h b/arch/x86/include/asm/cpufeatures.h
+index 4091a776e37aa..a5d29876abb1a 100644
+--- a/arch/x86/include/asm/cpufeatures.h
++++ b/arch/x86/include/asm/cpufeatures.h
+@@ -499,6 +499,7 @@
+ #define X86_FEATURE_IBPB_EXIT_TO_USER	(21*32+14) /* Use IBPB on exit-to-userspace, see VMSCAPE bug */
+ #define X86_FEATURE_ABMC		(21*32+15) /* Assignable Bandwidth Monitoring Counters */
+ #define X86_FEATURE_MSR_IMM		(21*32+16) /* MSR immediate form instructions */
++#define X86_FEATURE_INDIRECT_SAFE	(21*32 + 17) /* "" Indirect branches aren't vulnerable to Spectre v2 */
+ 
+ /*
+  * BUG word(s)
+diff --git a/arch/x86/include/asm/syscall.h b/arch/x86/include/asm/syscall.h
+index c10dbb74cd001..0f5120f6f6ffe 100644
+--- a/arch/x86/include/asm/syscall.h
++++ b/arch/x86/include/asm/syscall.h
+@@ -16,14 +16,20 @@
+ #include <asm/thread_info.h>	/* for TS_COMPAT */
+ #include <asm/unistd.h>
+ 
+-/* This is used purely for kernel/trace/trace_syscalls.c */
+ typedef long (*sys_call_ptr_t)(const struct pt_regs *);
+ extern const sys_call_ptr_t sys_call_table[];
+ 
++#if defined(CONFIG_X86_32)
++#define ia32_sys_call_table sys_call_table
++#else
+ /*
+  * These may not exist, but still put the prototypes in so we
+  * can use IS_ENABLED().
+  */
++extern const sys_call_ptr_t ia32_sys_call_table[];
++extern const sys_call_ptr_t x32_sys_call_table[];
++#endif
++
+ extern long ia32_sys_call(const struct pt_regs *, unsigned int nr);
+ extern long x32_sys_call(const struct pt_regs *, unsigned int nr);
+ extern long x64_sys_call(const struct pt_regs *, unsigned int nr);
+diff --git a/arch/x86/kernel/cpu/bugs.c b/arch/x86/kernel/cpu/bugs.c
+index d7fa03bf51b45..aa1bcd9a10aaf 100644
+--- a/arch/x86/kernel/cpu/bugs.c
++++ b/arch/x86/kernel/cpu/bugs.c
+@@ -2254,6 +2254,15 @@ static void __init bhi_apply_mitigation(void)
+ 	if (spec_ctrl_bhi_dis())
+ 		return;
+ 
++	/*
++	 * There's no hardware mitigation in place, so mark indirect branches
++	 * as unsafe.
++	 *
++	 * One could argue the SW loop makes indirect branches safe again, but
++	 * Linus prefers it this way.
++	 */
++	setup_clear_cpu_cap(X86_FEATURE_INDIRECT_SAFE);
++
+ 	if (bhi_mitigation == BHI_MITIGATION_VMEXIT_ONLY) {
+ 		pr_info("Spectre BHI mitigation: SW BHB clearing on VM exit only\n");
+ 		setup_force_cpu_cap(X86_FEATURE_CLEAR_BHB_VMEXIT);
+@@ -2267,6 +2276,21 @@ static void __init bhi_apply_mitigation(void)
+ 
+ static void __init spectre_v2_select_mitigation(void)
+ {
++	/*
++	 * X86_FEATURE_INDIRECT_SAFE indicates whether indirect calls can be
++	 * considered safe.  That means either:
++	 *
++	 *   - the CPU isn't vulnerable to Spectre v2 or its variants;
++	 *
++	 *   - a hardware mitigation is in place (e.g., IBRS, BHI_DIS_S); or
++	 *
++	 *   - the user turned off mitigations altogether.
++	 *
++	 * Assume innocence until proven guilty: set the cap bit now, then
++	 * clear it later if/when needed.
++	 */
++	setup_force_cpu_cap(X86_FEATURE_INDIRECT_SAFE);
++
+ 	if ((spectre_v2_cmd == SPECTRE_V2_CMD_RETPOLINE ||
+ 	     spectre_v2_cmd == SPECTRE_V2_CMD_RETPOLINE_LFENCE ||
+ 	     spectre_v2_cmd == SPECTRE_V2_CMD_RETPOLINE_GENERIC ||
+@@ -2411,11 +2435,16 @@ static void __init spectre_v2_apply_mitigation(void)
+ 		break;
+ 
+ 	case SPECTRE_V2_LFENCE:
++		setup_clear_cpu_cap(X86_FEATURE_INDIRECT_SAFE);
++		fallthrough;
+ 	case SPECTRE_V2_EIBRS_LFENCE:
+ 		setup_force_cpu_cap(X86_FEATURE_RETPOLINE_LFENCE);
+-		fallthrough;
++		setup_force_cpu_cap(X86_FEATURE_RETPOLINE);
++		break;
+ 
+ 	case SPECTRE_V2_RETPOLINE:
++		setup_clear_cpu_cap(X86_FEATURE_INDIRECT_SAFE);
++		fallthrough;
+ 	case SPECTRE_V2_EIBRS_RETPOLINE:
+ 		setup_force_cpu_cap(X86_FEATURE_RETPOLINE);
+ 		break;
