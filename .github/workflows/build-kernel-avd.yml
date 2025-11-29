@@ -1,0 +1,30 @@
+name: AVD - Build Kernel / LKM
+on:
+  push:
+    branches: ["main", "ci", "checkci", "dev"]
+    paths:
+      - ".github/workflows/build-kernel-avd.yml"
+      - ".github/workflows/kernel-lkm-avd.yml"
+      - ".github/scripts/**"
+      - "kernel/**"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/build-kernel-avd.yml"
+      - ".github/workflows/kernel-lkm-avd.yml"
+      - ".github/scripts/**"
+      - "kernel/**"
+  workflow_call:
+  workflow_dispatch:
+jobs:
+  build-kernel:
+    if: github.event_name != 'pull_request' && github.ref != 'refs/heads/checkci'
+    uses: ./.github/workflows/kernel-lkm-avd.yml
+    secrets: inherit
+    strategy:
+      matrix:
+        include:
+          - image_label: "avd-android16-6.12-x64-13996879"
+    with:
+      image_label: ${{ matrix.image_label }}
+      debug: true
