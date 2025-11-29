@@ -1,0 +1,180 @@
+diff --git a/arch/x86/kernel/cpu/bugs.c b/arch/x86/kernel/cpu/bugs.c
+index aa1bcd9a10aaf..d7fa03bf51b45 100644
+--- a/arch/x86/kernel/cpu/bugs.c
++++ b/arch/x86/kernel/cpu/bugs.c
+@@ -2254,15 +2254,6 @@ static void __init bhi_apply_mitigation(void)
+ 	if (spec_ctrl_bhi_dis())
+ 		return;
+ 
+-	/*
+-	 * There's no hardware mitigation in place, so mark indirect branches
+-	 * as unsafe.
+-	 *
+-	 * One could argue the SW loop makes indirect branches safe again, but
+-	 * Linus prefers it this way.
+-	 */
+-	setup_clear_cpu_cap(X86_FEATURE_INDIRECT_SAFE);
+-
+ 	if (bhi_mitigation == BHI_MITIGATION_VMEXIT_ONLY) {
+ 		pr_info("Spectre BHI mitigation: SW BHB clearing on VM exit only\n");
+ 		setup_force_cpu_cap(X86_FEATURE_CLEAR_BHB_VMEXIT);
+@@ -2276,21 +2267,6 @@ static void __init bhi_apply_mitigation(void)
+ 
+ static void __init spectre_v2_select_mitigation(void)
+ {
+-	/*
+-	 * X86_FEATURE_INDIRECT_SAFE indicates whether indirect calls can be
+-	 * considered safe.  That means either:
+-	 *
+-	 *   - the CPU isn't vulnerable to Spectre v2 or its variants;
+-	 *
+-	 *   - a hardware mitigation is in place (e.g., IBRS, BHI_DIS_S); or
+-	 *
+-	 *   - the user turned off mitigations altogether.
+-	 *
+-	 * Assume innocence until proven guilty: set the cap bit now, then
+-	 * clear it later if/when needed.
+-	 */
+-	setup_force_cpu_cap(X86_FEATURE_INDIRECT_SAFE);
+-
+ 	if ((spectre_v2_cmd == SPECTRE_V2_CMD_RETPOLINE ||
+ 	     spectre_v2_cmd == SPECTRE_V2_CMD_RETPOLINE_LFENCE ||
+ 	     spectre_v2_cmd == SPECTRE_V2_CMD_RETPOLINE_GENERIC ||
+@@ -2435,16 +2411,11 @@ static void __init spectre_v2_apply_mitigation(void)
+ 		break;
+ 
+ 	case SPECTRE_V2_LFENCE:
+-		setup_clear_cpu_cap(X86_FEATURE_INDIRECT_SAFE);
+-		fallthrough;
+ 	case SPECTRE_V2_EIBRS_LFENCE:
+ 		setup_force_cpu_cap(X86_FEATURE_RETPOLINE_LFENCE);
+-		setup_force_cpu_cap(X86_FEATURE_RETPOLINE);
+-		break;
++		fallthrough;
+ 
+ 	case SPECTRE_V2_RETPOLINE:
+-		setup_clear_cpu_cap(X86_FEATURE_INDIRECT_SAFE);
+-		fallthrough;
+ 	case SPECTRE_V2_EIBRS_RETPOLINE:
+ 		setup_force_cpu_cap(X86_FEATURE_RETPOLINE);
+ 		break;
+diff --git a/arch/x86/kernel/cpu/common.c b/arch/x86/kernel/cpu/common.c
+index 02d97834a1d4d..50b174bf5c382 100644
+--- a/arch/x86/kernel/cpu/common.c
++++ b/arch/x86/kernel/cpu/common.c
+@@ -283,6 +283,39 @@ static int __init x86_noinvpcid_setup(char *s)
+ }
+ early_param("noinvpcid", x86_noinvpcid_setup);
+ 
++enum syscall_hardening_switch {
++	SYSCALL_HARDENING_ON,
++	SYSCALL_HARDENING_OFF,
++};
++
++static enum syscall_hardening_switch syscall_hardening __ro_after_init = SYSCALL_HARDENING_ON;
++
++static int __init syscall_hardening_parse_cmdline(char *str)
++{
++	if (!str)
++		return -EINVAL;
++
++	if (!strcmp(str, "off"))
++		syscall_hardening = SYSCALL_HARDENING_OFF;
++	else if (!strcmp(str, "on"))
++		syscall_hardening = SYSCALL_HARDENING_ON;
++	else
++		pr_err("Ignoring unknown syscall_hardening option (%s)", str);
++
++	return 0;
++}
++early_param("syscall_hardening", syscall_hardening_parse_cmdline);
++
++static void __init syscall_hardening_disable(void)
++{
++	pr_info("syscall hardening function called \n");
++	if (syscall_hardening == SYSCALL_HARDENING_ON)
++		return;
++
++	setup_force_cpu_cap(X86_FEATURE_INDIRECT_SAFE);
++	pr_info("Syscall hardening is disabled to allow indirect calls !\n");
++}
++
+ /* Standard macro to see if a specific flag is changeable */
+ static inline bool flag_is_changeable_p(unsigned long flag)
+ {
+@@ -2531,6 +2564,12 @@ void __init arch_cpu_finalize_init(void)
+ 
+ 	identify_boot_cpu();
+ 
++	/* Projects like KernelSU is relying on hooking indirect syscall which
++	 * is being hardened by default on recent kernel. Allow disabling it
++	 * if user specified in cmdline.
++	 */
++	syscall_hardening_disable();
++
+ 	select_idle_routine();
+ 
+ 	/*
+@@ -2616,3 +2655,17 @@ void __init arch_cpu_finalize_init(void)
+ 	 */
+ 	mem_encrypt_init();
+ }
++
++#ifdef CONFIG_SYSFS
++static ssize_t syscall_hardening_show_state(char *buf)
++{
++	if (boot_cpu_has(X86_FEATURE_INDIRECT_SAFE))
++		return sysfs_emit(buf, "Syscall hardening: Disabled\n");
++	return sysfs_emit(buf, "Syscall hardening: Enabled\n");
++}
++
++ssize_t cpu_show_syscall_hardening(struct device *dev, struct device_attribute *attr, char *buf)
++{
++	return syscall_hardening_show_state(buf);
++}
++#endif
+diff --git a/drivers/base/cpu.c b/drivers/base/cpu.c
+index fa0a2eef93ac8..4b7f1285c7f6f 100644
+--- a/drivers/base/cpu.c
++++ b/drivers/base/cpu.c
+@@ -300,6 +300,15 @@ static ssize_t print_cpus_isolated(struct device *dev,
+ }
+ static DEVICE_ATTR(isolated, 0444, print_cpus_isolated, NULL);
+ 
++#if defined(CONFIG_X86) || defined(CONFIG_X86_64)
++ssize_t __weak cpu_show_syscall_hardening(struct device *dev,
++				 struct device_attribute *attr, char *buf)
++{
++	return sysfs_emit(buf, "Not available\n");
++}
++static DEVICE_ATTR(syscall_hardening, 0444, cpu_show_syscall_hardening, NULL);
++#endif
++
+ #ifdef CONFIG_NO_HZ_FULL
+ static ssize_t print_cpus_nohz_full(struct device *dev,
+ 				    struct device_attribute *attr, char *buf)
+@@ -505,6 +514,9 @@ static struct attribute *cpu_root_attrs[] = {
+ 	&dev_attr_offline.attr,
+ 	&dev_attr_enabled.attr,
+ 	&dev_attr_isolated.attr,
++#if defined(CONFIG_X86) || defined(CONFIG_X86_64)
++	&dev_attr_syscall_hardening.attr,
++#endif
+ #ifdef CONFIG_NO_HZ_FULL
+ 	&dev_attr_nohz_full.attr,
+ #endif
+diff --git a/include/linux/cpu.h b/include/linux/cpu.h
+index 487b3bf2e1eaf..39e7f3e5b94be 100644
+--- a/include/linux/cpu.h
++++ b/include/linux/cpu.h
+@@ -84,6 +84,10 @@ extern ssize_t cpu_show_indirect_target_selection(struct device *dev,
+ 					  struct device_attribute *attr, char *buf);
+ extern ssize_t cpu_show_tsa(struct device *dev, struct device_attribute *attr, char *buf);
+ extern ssize_t cpu_show_vmscape(struct device *dev, struct device_attribute *attr, char *buf);
++#if defined(CONFIG_X86) || defined(CONFIG_X86_64)
++extern ssize_t cpu_show_syscall_hardening(struct device *dev,
++				       struct device_attribute *attr, char *buf);
++#endif
+ 
+ extern __printf(4, 5)
+ struct device *cpu_device_create(struct device *parent, void *drvdata,

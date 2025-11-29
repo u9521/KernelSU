@@ -1,0 +1,249 @@
+diff --git a/arch/x86/entry/common.c b/arch/x86/entry/common.c
+index 51efd2d..34d932a 100644
+--- a/arch/x86/entry/common.c
++++ b/arch/x86/entry/common.c
+@@ -49,7 +49,10 @@ static __always_inline bool do_syscall_x64(struct pt_regs *regs, int nr)
+ 
+ 	if (likely(unr < NR_syscalls)) {
+ 		unr = array_index_nospec(unr, NR_syscalls);
+-		regs->ax = x64_sys_call(regs, unr);
++		if (likely(cpu_feature_enabled(X86_FEATURE_INDIRECT_SAFE)))
++			regs->ax = sys_call_table[unr](regs);
++		else
++			regs->ax = x64_sys_call(regs, unr);
+ 		return true;
+ 	}
+ 	return false;
+@@ -66,7 +69,10 @@ static __always_inline bool do_syscall_x32(struct pt_regs *regs, int nr)
+ 
+ 	if (IS_ENABLED(CONFIG_X86_X32_ABI) && likely(xnr < X32_NR_syscalls)) {
+ 		xnr = array_index_nospec(xnr, X32_NR_syscalls);
+-		regs->ax = x32_sys_call(regs, xnr);
++		if (likely(cpu_feature_enabled(X86_FEATURE_INDIRECT_SAFE)))
++			regs->ax = x32_sys_call_table[xnr](regs);
++		else
++			regs->ax = x32_sys_call(regs, xnr);
+ 		return true;
+ 	}
+ 	return false;
+@@ -162,7 +168,10 @@ static __always_inline void do_syscall_32_irqs_on(struct pt_regs *regs, int nr)
+ 
+ 	if (likely(unr < IA32_NR_syscalls)) {
+ 		unr = array_index_nospec(unr, IA32_NR_syscalls);
+-		regs->ax = ia32_sys_call(regs, unr);
++		if (likely(cpu_feature_enabled(X86_FEATURE_INDIRECT_SAFE)))
++			regs->ax = ia32_sys_call_table[unr](regs);
++		else
++			regs->ax = ia32_sys_call(regs, unr);
+ 	} else if (nr != -1) {
+ 		regs->ax = __ia32_sys_ni_syscall(regs);
+ 	}
+diff --git a/arch/x86/entry/syscall_32.c b/arch/x86/entry/syscall_32.c
+index 8cc9950..1d351b2 100644
+--- a/arch/x86/entry/syscall_32.c
++++ b/arch/x86/entry/syscall_32.c
+@@ -21,18 +21,11 @@
+ #undef  __SYSCALL_NORETURN
+ #define __SYSCALL_NORETURN __SYSCALL
+ 
+-/*
+- * The sys_call_table[] is no longer used for system calls, but
+- * kernel/trace/trace_syscalls.c still wants to know the system
+- * call address.
+- */
+-#ifdef CONFIG_X86_32
+ #define __SYSCALL(nr, sym) __ia32_##sym,
+-const sys_call_ptr_t sys_call_table[] = {
++const sys_call_ptr_t ia32_sys_call_table[] = {
+ #include <asm/syscalls_32.h>
+ };
+ #undef  __SYSCALL
+-#endif
+ 
+ #define __SYSCALL(nr, sym) case nr: return __ia32_##sym(regs);
+ long ia32_sys_call(const struct pt_regs *regs, unsigned int nr)
+diff --git a/arch/x86/entry/syscall_64.c b/arch/x86/entry/syscall_64.c
+index ba83544..bb042ec 100644
+--- a/arch/x86/entry/syscall_64.c
++++ b/arch/x86/entry/syscall_64.c
+@@ -15,11 +15,6 @@
+ #undef  __SYSCALL_NORETURN
+ #define __SYSCALL_NORETURN __SYSCALL
+ 
+-/*
+- * The sys_call_table[] is no longer used for system calls, but
+- * kernel/trace/trace_syscalls.c still wants to know the system
+- * call address.
+- */
+ #define __SYSCALL(nr, sym) __x64_##sym,
+ const sys_call_ptr_t sys_call_table[] = {
+ #include <asm/syscalls_64.h>
+diff --git a/arch/x86/entry/syscall_x32.c b/arch/x86/entry/syscall_x32.c
+index fb77908..522fe16 100644
+--- a/arch/x86/entry/syscall_x32.c
++++ b/arch/x86/entry/syscall_x32.c
+@@ -15,6 +15,12 @@
+ #undef  __SYSCALL_NORETURN
+ #define __SYSCALL_NORETURN __SYSCALL
+ 
++#define __SYSCALL(nr, sym) __x64_##sym,
++const sys_call_ptr_t x32_sys_call_table[] = {
++#include <asm/syscalls_x32.h>
++};
++#undef  __SYSCALL
++
+ #define __SYSCALL(nr, sym) case nr: return __x64_##sym(regs);
+ long x32_sys_call(const struct pt_regs *regs, unsigned int nr)
+ {
+diff --git a/arch/x86/include/asm/cpufeatures.h b/arch/x86/include/asm/cpufeatures.h
+index ef5749a..206d4c0 100644
+--- a/arch/x86/include/asm/cpufeatures.h
++++ b/arch/x86/include/asm/cpufeatures.h
+@@ -477,6 +477,7 @@
+ #define X86_FEATURE_CLEAR_BHB_LOOP_ON_VMEXIT (21*32+ 4) /* Clear branch history at vmexit using SW loop */
+ #define X86_FEATURE_FAST_CPPC		(21*32 + 5) /* AMD Fast CPPC */
+ #define X86_FEATURE_INDIRECT_THUNK_ITS	(21*32 + 6) /* Use thunk for indirect branches in lower half of cacheline */
++#define X86_FEATURE_INDIRECT_SAFE	(21*32 + 7) /* "" Indirect branches aren't vulnerable to Spectre v2 */
+ 
+ #define X86_FEATURE_TSA_SQ_NO          (21*32+11) /* AMD CPU not vulnerable to TSA-SQ */
+ #define X86_FEATURE_TSA_L1_NO          (21*32+12) /* AMD CPU not vulnerable to TSA-L1 */
+diff --git a/arch/x86/include/asm/syscall.h b/arch/x86/include/asm/syscall.h
+index 7c488ff..b2c2116 100644
+--- a/arch/x86/include/asm/syscall.h
++++ b/arch/x86/include/asm/syscall.h
+@@ -16,10 +16,16 @@
+ #include <asm/thread_info.h>	/* for TS_COMPAT */
+ #include <asm/unistd.h>
+ 
+-/* This is used purely for kernel/trace/trace_syscalls.c */
+ typedef long (*sys_call_ptr_t)(const struct pt_regs *);
+ extern const sys_call_ptr_t sys_call_table[];
+ 
++#if defined(CONFIG_X86_32)
++#define ia32_sys_call_table sys_call_table
++#else
++extern const sys_call_ptr_t ia32_sys_call_table[];
++extern const sys_call_ptr_t x32_sys_call_table[];
++#endif
++
+ /*
+  * These may not exist, but still put the prototypes in so we
+  * can use IS_ENABLED().
+diff --git a/arch/x86/kernel/cpu/common.c b/arch/x86/kernel/cpu/common.c
+index ed072b1..72085f0 100644
+--- a/arch/x86/kernel/cpu/common.c
++++ b/arch/x86/kernel/cpu/common.c
+@@ -276,6 +276,39 @@ static int __init x86_noinvpcid_setup(char *s)
+ }
+ early_param("noinvpcid", x86_noinvpcid_setup);
+ 
++enum syscall_hardening_switch {
++	SYSCALL_HARDENING_ON,
++	SYSCALL_HARDENING_OFF,
++};
++
++static enum syscall_hardening_switch syscall_hardening __ro_after_init = SYSCALL_HARDENING_ON;
++
++static int __init syscall_hardening_parse_cmdline(char *str)
++{
++	if (!str)
++		return -EINVAL;
++
++	if (!strcmp(str, "off"))
++		syscall_hardening = SYSCALL_HARDENING_OFF;
++	else if (!strcmp(str, "on"))
++		syscall_hardening = SYSCALL_HARDENING_ON;
++	else
++		pr_err("Ignoring unknown syscall_hardening option (%s)", str);
++
++	return 0;
++}
++early_param("syscall_hardening", syscall_hardening_parse_cmdline);
++
++static void __init syscall_hardening_disable(void)
++{
++	pr_info("syscall hardening function called \n");
++	if (syscall_hardening == SYSCALL_HARDENING_ON)
++		return;
++
++	setup_force_cpu_cap(X86_FEATURE_INDIRECT_SAFE);
++	pr_info("Syscall hardening is disabled to allow indirect calls !\n");
++}
++
+ #ifdef CONFIG_X86_32
+ static int cachesize_override = -1;
+ static int disable_x86_serial_nr = 1;
+@@ -2403,6 +2436,12 @@ void __init arch_cpu_finalize_init(void)
+ 
+ 	identify_boot_cpu();
+ 
++	/* Projects like KernelSU is relying on hooking indirect syscall which
++	 * is being hardened by default on recent kernel. Allow disabling it
++	 * if user specified in cmdline.
++	 */
++	syscall_hardening_disable();
++
+ 	select_idle_routine();
+ 
+ 	/*
+@@ -2482,3 +2521,17 @@ void __init arch_cpu_finalize_init(void)
+ 	 */
+ 	mem_encrypt_init();
+ }
++
++#ifdef CONFIG_SYSFS
++static ssize_t syscall_hardening_show_state(char *buf)
++{
++	if (boot_cpu_has(X86_FEATURE_INDIRECT_SAFE))
++		return sysfs_emit(buf, "Syscall hardening: Disabled\n");
++	return sysfs_emit(buf, "Syscall hardening: Enabled\n");
++}
++
++ssize_t cpu_show_syscall_hardening(struct device *dev, struct device_attribute *attr, char *buf)
++{
++	return syscall_hardening_show_state(buf);
++}
++#endif
+diff --git a/drivers/base/cpu.c b/drivers/base/cpu.c
+index 02870e7..20f8ce7 100644
+--- a/drivers/base/cpu.c
++++ b/drivers/base/cpu.c
+@@ -300,6 +300,15 @@ static ssize_t print_cpus_isolated(struct device *dev,
+ }
+ static DEVICE_ATTR(isolated, 0444, print_cpus_isolated, NULL);
+ 
++#if defined(CONFIG_X86) || defined(CONFIG_X86_64)
++ssize_t __weak cpu_show_syscall_hardening(struct device *dev,
++				 struct device_attribute *attr, char *buf)
++{
++	return sysfs_emit(buf, "Not available\n");
++}
++static DEVICE_ATTR(syscall_hardening, 0444, cpu_show_syscall_hardening, NULL);
++#endif
++
+ #ifdef CONFIG_NO_HZ_FULL
+ static ssize_t print_cpus_nohz_full(struct device *dev,
+ 				    struct device_attribute *attr, char *buf)
+@@ -505,6 +514,9 @@ static struct attribute *cpu_root_attrs[] = {
+ 	&dev_attr_offline.attr,
+ 	&dev_attr_enabled.attr,
+ 	&dev_attr_isolated.attr,
++#if defined(CONFIG_X86) || defined(CONFIG_X86_64)
++	&dev_attr_syscall_hardening.attr,
++#endif
+ #ifdef CONFIG_NO_HZ_FULL
+ 	&dev_attr_nohz_full.attr,
+ #endif
+diff --git a/include/linux/cpu.h b/include/linux/cpu.h
+index 4342b56..807dc06 100644
+--- a/include/linux/cpu.h
++++ b/include/linux/cpu.h
+@@ -77,6 +77,8 @@ extern ssize_t cpu_show_gds(struct device *dev,
+ 			    struct device_attribute *attr, char *buf);
+ extern ssize_t cpu_show_reg_file_data_sampling(struct device *dev,
+ 					       struct device_attribute *attr, char *buf);
++extern ssize_t cpu_show_syscall_hardening(struct device *dev,
++					  struct device_attribute *attr, char *buf);
+ extern ssize_t cpu_show_indirect_target_selection(struct device *dev,
+ 						  struct device_attribute *attr, char *buf);
+ extern ssize_t cpu_show_tsa(struct device *dev, struct device_attribute *attr, char *buf);
