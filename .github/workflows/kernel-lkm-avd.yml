@@ -1,0 +1,113 @@
+name: Build Kernel / LKM For AVD
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        required: true
+        type: string
+        description: >
+          With PATCHLEVEL of kernel,eg. android12-5.10
+      arch:
+        required: true
+        type: string
+        description: >
+          Build arch: aarch64/x86_64
+      debug:
+        required: true
+        type: boolean
+        default: true
+        description: >
+          Enable ksu debug feature
+      manifest_name:
+        required: true
+        type: string
+        description: >
+          repo manifest xml name eg. android-14-6.1-avd_x64
+  workflow_call:
+    inputs:
+      version_name:
+        required: true
+        type: string
+        description: >
+          With PATCHLEVEL of kernel,eg. android12-5.10
+      arch:
+        required: true
+        type: string
+        description: >
+          Build arch: aarch64/x86_64
+      debug:
+        required: false
+        type: boolean
+        default: true
+        description: >
+          Enable ksu debug feature
+      manifest_name:
+        required: false
+        type: string
+        description: >
+          repo manifest xml name eg. android-14-6.1-avd_x64
+    secrets:
+      BOOT_SIGN_KEY:
+        required: false
+
+jobs:
+  build:
+    name: Build ${{ inputs.version_name }}
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 8192
+          temp-reserve-mb: 2048
+          remove-dotnet: "true"
+          remove-android: "true"
+          remove-haskell: "true"
+          remove-codeql: "true"
+
+      - uses: actions/checkout@v4
+        with:
+          path: KernelSU
+          fetch-depth: 0
+
+      - name: Setup kernel source
+        if: steps.cache-kernel-source-restore.cache-hit != 'true'
+        run: |
+          echo "Free space:"
+          df -h
+          cd $GITHUB_WORKSPACE
+          sudo apt-get install repo python3 -y
+          mkdir android-kernel && cd android-kernel
+          repo init --depth=1 -u https://android.googlesource.com/kernel/manifest -m "$GITHUB_WORKSPACE/KernelSU/.github/manifests/${{ inputs.manifest_name }}" --repo-rev=v2.16
+          repo --version
+          repo --trace sync -c -j$(nproc --all) --no-tags
+          echo "Free space after setup kernel source code:"
+          df -h
+
+      - name: Setup, Build and Package Kernel
+        run: |
+          python3 $GITHUB_WORKSPACE/KernelSU/.github/scripts/kernel_build.py \
+            --arch "${{ inputs.arch }}" \
+            --buildtype avd \
+            --buildmode lkm-gki \
+            $([[ ${{ inputs.debug }} == 'true' ]] && echo '--debug') \
+            --github-env-file "$GITHUB_ENV" \
+            --kernel-source-path "$GITHUB_WORKSPACE/android-kernel" \
+            --ksu-source-path "$GITHUB_WORKSPACE/KernelSU" \
+            --kernel-version "${{ inputs.version_name }}" \
+            --workspace "$GITHUB_WORKSPACE"
+
+      - name: Upload Kernel
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel-${{ inputs.arch }}-avd-${{ inputs.version_name }}-${{ env.ksu_version }}
+          path: ./KernelSUbuild/avd/*Image*
+
+      # - name: Upload dist
+      #   uses: actions/upload-artifact@v5
+      #   with:
+      #     name: dist-${{ inputs.arch }}_${{ inputs.version_name }}_${{ env.ksu_version }}
+      #     path: |
+      #       ./KernelSUbuild/avd/*
+      #       !./KernelSUbuild/avd/vmlinux*
