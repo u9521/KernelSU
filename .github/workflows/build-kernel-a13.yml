@@ -1,0 +1,55 @@
+name: Build Kernel - Android 13
+on:
+#  push:
+#    branches: ["main", "ci", "checkci", "dev"]
+#    paths:
+#      - ".github/workflows/build-kernel-a13.yml"
+#      - ".github/workflows/kernel-lkm-gki.yml"
+#      - ".github/scripts/**"
+#      - "kernel/**"
+#  pull_request:
+#    branches: ["main"]
+#    paths:
+#      - ".github/workflows/build-kernel-a13.yml"
+#      - ".github/workflows/kernel-lkm-gki.yml"
+#      - ".github/scripts/**"
+#      - "kernel/**"
+  workflow_call:
+    inputs:
+      debug:
+        description: 'Build debug kernel'
+        required: false
+        type: boolean
+        default: false
+  workflow_dispatch:
+    inputs:
+      debug:
+        description: 'Build debug kernel'
+        required: false
+        type: boolean
+        default: false
+jobs:
+  build-kernel:
+    if: github.event_name != 'pull_request' && github.ref != 'refs/heads/checkci'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # - image_label: android13-5.10-2024-11
+          # - image_label: android13-5.10-2025-01
+          # - image_label: android13-5.10-2025-03
+          # - image_label: android13-5.10-2025-05
+          # - image_label: android13-5.10-2025-07
+          - image_label: android13-5.10-2025-10
+          # - image_label: android13-5.15-2024-09
+          # - image_label: android13-5.15-2024-11
+          # - image_label: android13-5.15-2025-01
+          # - image_label: android13-5.15-2025-03
+          # - image_label: android13-5.15-2025-05
+          # - image_label: android13-5.15-2025-07
+          - image_label: android13-5.15-2025-09
+    uses: ./.github/workflows/kernel-lkm-gki.yml
+    secrets: inherit
+    with:
+      image_label: ${{ matrix.image_label }}
+      debug: ${{ inputs.debug || false }}

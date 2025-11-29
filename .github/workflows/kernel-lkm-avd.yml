@@ -1,0 +1,86 @@
+name: Build Kernel / LKM For AVD
+
+on:
+  workflow_dispatch:
+    inputs:
+      debug:
+        required: true
+        type: boolean
+        default: true
+        description: >
+          Enable ksu debug feature
+      image_label:
+        required: false
+        type: string
+        default: avd-android16-6.12-x64-13996879
+        description: >
+          GKI snapshot image label
+  workflow_call:
+    inputs:
+      debug:
+        required: false
+        type: boolean
+        default: true
+        description: >
+          Enable ksu debug feature
+      image_label:
+        required: true
+        type: string
+        description: >
+          GKI snapshot image label
+
+jobs:
+  build:
+    name: Build ${{ inputs.image_label }}
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      packages: read
+    env:
+      GKI_DOCKER_IMAGE: ${{ format('ghcr.io/u9521/gki-snapshot:{0}', inputs.image_label) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: KernelSU
+          fetch-depth: 0
+
+      - name: Restore outer cache image
+        id: outer_cache_restore
+        uses: actions/cache/restore@v4
+        with:
+          path: .outer-cache
+          key: gki-outer-cache-${{ runner.os }}-${{ inputs.image_label }}-${{ github.run_id }}
+          restore-keys: |
+            gki-outer-cache-${{ runner.os }}-${{ inputs.image_label }}-
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute KernelSU version
+        run: |
+          echo "ksu_version=$(($(git -C "$GITHUB_WORKSPACE/KernelSU" rev-list --count HEAD) + 30000))" >> "$GITHUB_ENV"
+
+      - name: Build AVD kernel in Docker workspace
+        run: |
+          chmod +x "$GITHUB_WORKSPACE/KernelSU/.github/scripts/build_gki_with_docker.sh"
+          GKI_DOCKER_IMAGE="$GKI_DOCKER_IMAGE" \
+          KSU_IMAGE_LABEL="${{ inputs.image_label }}" \
+          KSU_DEBUG="${{ inputs.debug }}" \
+          "$GITHUB_WORKSPACE/KernelSU/.github/scripts/build_gki_with_docker.sh"
+
+      - name: Save next outer cache image
+        if: hashFiles('.outer-cache/next-outer-cache.img', '.outer-cache/next-outer-cache.json') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: .outer-cache
+          key: ${{ steps.outer_cache_restore.outputs.cache-primary-key }}
+
+      - name: Upload Kernel
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel-avd-${{ inputs.image_label }}-${{ env.ksu_version }}
+          path: ./KernelSUbuild/*Image*
