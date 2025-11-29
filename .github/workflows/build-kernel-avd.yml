@@ -1,0 +1,43 @@
+name: AVD - Build Kernel / LKM
+on:
+  push:
+    branches: ["main", "ci", "checkci", "dev"]
+    paths:
+      - ".github/workflows/build-kernel-avd.yml"
+      - ".github/workflows/kernel-lkm-avd.yml"
+      - ".github/manifests/*xml"
+      - "kernel/**"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/build-kernel-avd.yml"
+      - ".github/workflows/kernel-lkm-avd.yml"
+      - ".github/manifests/*.xml"
+      - "kernel/**"
+  workflow_call:
+  workflow_dispatch:
+jobs:
+  build-kernel:
+    if: github.event_name != 'pull_request' && github.ref != 'refs/heads/checkci'
+    uses: ./.github/workflows/kernel-lkm-avd.yml
+    secrets: inherit
+    strategy:
+      matrix:
+        include:
+          - version: "android-14-6.1"
+            manifest: "android-14-6.1-avd_x64.xml"
+            arch: "x86_64"
+          - version: "android-15-6.6-a64"
+            manifest: "android-15-6.6-avd_arm64.xml"
+            arch: "aarch64"
+          - version: "android-15-6.6-x64"
+            manifest: "android-15-6.6-avd_x64.xml"
+            arch: "x86_64"
+          - version: "android-16.1-6.12"
+            manifest: "android-16.1-6.12-avd_x64.xml"
+            arch: "x86_64"
+    with:
+      version_name: ${{ matrix.version }}
+      manifest_name: ${{ matrix.manifest }}
+      arch: ${{ matrix.arch }}
+      debug: true
