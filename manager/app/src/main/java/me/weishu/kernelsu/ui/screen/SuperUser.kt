@@ -68,6 +68,7 @@ import com.ramcosta.composedestinations.generated.destinations.AppProfileScreenD
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ksuApp
 import me.weishu.kernelsu.ui.component.SearchAppBar
 import me.weishu.kernelsu.ui.component.SearchStatus
 import me.weishu.kernelsu.ui.util.ownerNameForUid
@@ -101,70 +102,66 @@ fun SuperUserScreen(navigator: DestinationsNavigator) {
             var showDropdown by remember { mutableStateOf(false) }
             SearchAppBar(
                 title = { Text(stringResource(R.string.superuser)) }, searchStatus = searchStatus, dropdownContent = {
-                    IconButton(
-                        onClick = { showDropdown = true },
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.MoreVert, contentDescription = stringResource(id = R.string.settings)
-                        )
-                        DropdownMenu(expanded = showDropdown, onDismissRequest = {
+                IconButton(
+                    onClick = { showDropdown = true },
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.MoreVert, contentDescription = stringResource(id = R.string.settings)
+                    )
+                    DropdownMenu(expanded = showDropdown, onDismissRequest = {
+                        showDropdown = false
+                    }) {
+                        DropdownMenuItem(text = {
+                            Text(stringResource(R.string.refresh))
+                        }, onClick = {
+                            viewModel.loadAppList()
                             showDropdown = false
-                        }) {
-                            DropdownMenuItem(text = {
-                                Text(stringResource(R.string.refresh))
-                            }, onClick = {
-                                viewModel.loadAppList()
-                                showDropdown = false
-                            })
-                            DropdownMenuItem(text = {
-                                Text(
-                                    if (viewModel.showSystemApps) {
-                                        stringResource(R.string.hide_system_apps)
-                                    } else {
-                                        stringResource(R.string.show_system_apps)
-                                    }
-                                )
-                            }, onClick = {
-                                viewModel.showSystemApps = !viewModel.showSystemApps
-                                prefs.edit {
-                                    putBoolean("show_system_apps", viewModel.showSystemApps)
+                        })
+                        DropdownMenuItem(text = {
+                            Text(
+                                if (viewModel.showSystemApps) {
+                                    stringResource(R.string.hide_system_apps)
+                                } else {
+                                    stringResource(R.string.show_system_apps)
                                 }
-                                viewModel.loadAppList()
-                                showDropdown = false
-                            })
-                        }
+                            )
+                        }, onClick = {
+                            viewModel.showSystemApps = !viewModel.showSystemApps
+                            prefs.edit {
+                                putBoolean("show_system_apps", viewModel.showSystemApps)
+                            }
+                            viewModel.loadAppList()
+                            showDropdown = false
+                        })
                     }
-                }, scrollBehavior = scrollBehavior
+                }
+            }, scrollBehavior = scrollBehavior
             )
         }, contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     ) { innerPadding ->
         val displayAppList = when (viewModel.searchStatus.value.resultStatus) {
-            SearchStatus.ResultStatus.SHOW,
-            SearchStatus.ResultStatus.EMPTY -> viewModel.searchResults.value
-
-            else -> viewModel.appList.value
+            SearchStatus.ResultStatus.SHOW, SearchStatus.ResultStatus.EMPTY -> viewModel.searchResults.value.filter { it.packageName != ksuApp.packageName }
+            else -> viewModel.appList.value.filter { it.packageName != ksuApp.packageName }
         }
         val groups = remember(displayAppList) {
             buildGroups(displayAppList)
         }
-        val expandedUids = rememberSaveable() { mutableStateOf(setOf<Int>()) }
+        val expandedUids = rememberSaveable { mutableStateOf(setOf<Int>()) }
 
         LaunchedEffect(viewModel.searchStatus.value.resultStatus, viewModel.searchResults.value) {
             when (viewModel.searchStatus.value.resultStatus) {
                 SearchStatus.ResultStatus.SHOW -> {
                     // 搜索状态下，默认展开有多个应用的搜索结果组
                     val searchResultsByUid = viewModel.searchResults.value.groupBy { it.uid }
-                    expandedUids.value = groups
-                        .filter { group ->
+                    expandedUids.value = groups.filter { group ->
                             // 只展开有多个应用且出现在搜索结果中的组
                             val appsInGroup = searchResultsByUid[group.uid] ?: emptyList()
                             appsInGroup.size > 1
-                        }
-                        .map { it.uid }
-                        .toSet()
+                        }.map { it.uid }.toSet()
                 }
-                SearchStatus.ResultStatus.EMPTY,
-                SearchStatus.ResultStatus.DEFAULT -> expandedUids.value = emptySet()
+
+                SearchStatus.ResultStatus.EMPTY, SearchStatus.ResultStatus.DEFAULT -> expandedUids.value = emptySet()
+
                 SearchStatus.ResultStatus.LOAD -> {}
             }
         }
@@ -337,8 +334,7 @@ fun StatusTag(
     Box(
         modifier = Modifier.background(
             color = backgroundColor, shape = RoundedCornerShape(6.dp)
-        ),
-        propagateMinConstraints = true
+        ), propagateMinConstraints = true
     ) {
         Text(
             modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
