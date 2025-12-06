@@ -134,7 +134,6 @@ dependencies {
     implementation(libs.sheet.compose.dialogs.input)
 
     implementation(libs.markdown)
-    implementation(libs.markdown.ext.tables)
 
     implementation(libs.androidx.webkit)
 
