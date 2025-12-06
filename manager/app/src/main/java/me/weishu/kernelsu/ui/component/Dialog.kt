@@ -378,8 +378,8 @@ private fun ConfirmDialog(visuals: ConfirmDialogVisuals, confirm: () -> Unit, di
         text = {
             visuals.content.let { content ->
                 when {
-                    visuals.isMarkdown -> MarkdownContent(content = content)
-                    visuals.isHtml -> GithubMarkdownContent(content = content)
+                    visuals.isMarkdown -> Markdown(content = content)
+                    visuals.isHtml -> GithubMarkdown(content = content)
                     else -> Text(text = content)
                 }
             }
