@@ -1,6 +1,5 @@
 package me.weishu.kernelsu.ui.component
 
-import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.util.Log
@@ -9,6 +8,7 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.FrameLayout
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -17,7 +17,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.viewinterop.AndroidView
@@ -38,9 +37,6 @@ import java.nio.charset.StandardCharsets
 
 @Composable
 fun GithubMarkdown(content: String) {
-    val context = LocalContext.current
-    val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
-    val themeMode = prefs.getInt("color_mode", 0)
     val isDark = isSystemInDarkTheme()
     val dir = if (LocalLayoutDirection.current == LayoutDirection.Rtl) "rtl" else "ltr"
 
@@ -88,7 +84,8 @@ fun GithubMarkdown(content: String) {
 
     AndroidView(
         factory = { context ->
-            WebView(context).apply {
+            val frameLayout = FrameLayout(context)
+            val webView = WebView(context).apply {
                 try {
                     setBackgroundColor(Color.TRANSPARENT)
                     isVerticalScrollBarEnabled = false
@@ -106,9 +103,7 @@ fun GithubMarkdown(content: String) {
                         setGeolocationEnabled(false)
                     }
                     webViewClient = object : WebViewClient() {
-                        private val assetLoader = WebViewAssetLoader.Builder()
-                            .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(context))
-                            .build()
+                        private val assetLoader = WebViewAssetLoader.Builder().addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(context)).build()
 
                         override fun shouldOverrideUrlLoading(
                             view: WebView, request: WebResourceRequest
@@ -128,11 +123,7 @@ fun GithubMarkdown(content: String) {
                             if (!scheme.startsWith("http")) return null
                             val client: OkHttpClient = ksuApp.okhttpClient
                             val call = client.newCall(
-                                Request.Builder()
-                                    .url(request.url.toString())
-                                    .method(request.method, null)
-                                    .headers(request.requestHeaders.toHeaders())
-                                    .build()
+                                Request.Builder().url(request.url.toString()).method(request.method, null).headers(request.requestHeaders.toHeaders()).build()
                             )
                             return try {
                                 val reply: Response = call.execute()
@@ -143,21 +134,21 @@ fun GithubMarkdown(content: String) {
                                 val body = reply.body ?: return null
                                 WebResourceResponse(mimeType, charset, body.byteStream())
                             } catch (e: IOException) {
-                                return WebResourceResponse(
-                                    "text/html", "utf-8",
-                                    ByteArrayInputStream(Log.getStackTraceString(e).toByteArray(StandardCharsets.UTF_8))
+                                WebResourceResponse(
+                                    "text/html", "utf-8", ByteArrayInputStream(Log.getStackTraceString(e).toByteArray(StandardCharsets.UTF_8))
                                 )
                             }
                         }
                     }
                     loadDataWithBaseURL(
-                        "https://appassets.androidplatform.net", html,
-                        "text/html", StandardCharsets.UTF_8.name(), null
+                        "https://appassets.androidplatform.net", html, "text/html", StandardCharsets.UTF_8.name(), null
                     )
                 } catch (e: Throwable) {
                     Log.e("GithubMarkdown", "WebView setup failed", e)
                 }
             }
+            frameLayout.addView(webView)
+            frameLayout
         },
         modifier = Modifier
             .fillMaxWidth()
