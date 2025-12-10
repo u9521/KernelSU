@@ -25,6 +25,7 @@ import me.weishu.kernelsu.ui.component.SearchStatus
 import me.weishu.kernelsu.ui.util.HanziToPinyin
 import me.weishu.kernelsu.ui.util.isNetworkAvailable
 import me.weishu.kernelsu.ui.util.listModules
+import me.weishu.kernelsu.ui.util.module.sanitizeVersionString
 import org.json.JSONArray
 import org.json.JSONObject
 import java.text.Collator
@@ -227,9 +228,6 @@ class ModuleViewModel : ViewModel() {
         }
     }
 
-    private fun sanitizeVersionString(version: String): String {
-        return version.replace(Regex("[^a-zA-Z0-9.\\-_]"), "_")
-    }
 
     private fun ModuleInfo.toSignature(): ModuleUpdateSignature {
         return ModuleUpdateSignature(
