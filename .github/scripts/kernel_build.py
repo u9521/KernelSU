@@ -13,6 +13,18 @@ BUILD_TYPES = ['gki', 'avd']
 BUILD_MODES = ['gki', 'lkm', 'lkm-gki']
 ARCHITECTURES = ['aarch64', 'x86_64']
 
+# Clang version mapping for kernel versions
+# Key: kernel_ver (as provided in --kernel-version argument)
+# Value: clang version string used in prebuilts path
+CLANG_VERSION_MAP = {
+    "android-14-6.1": "r487747",
+    "android-15-6.6-a64": "r510928",
+    "android-15-6.6-x64": "r510928",
+    "android-16.1-6.12": "r536225",
+    # Add more mappings as needed
+    # You can find this at build.config.constants
+}
+
 # Path constants
 KERNEL_DRIVERS_REL_PATH = "common/drivers"
 KERNEL_KSU_DRIVER_REL_PATH = f"{KERNEL_DRIVERS_REL_PATH}/kernelsu"
@@ -269,6 +281,66 @@ class KernelBuilder:
     def __init__(self, config: KsuBuildConfig):
         self.config = config
 
+    def _patch_makefile_lkm(self, ksu_kernel_dir: str) -> bool:
+        """
+        Patch Makefile to skip check_symbol check.
+        
+        Args:
+            ksu_kernel_dir: Path to KernelSU kernel source directory
+            
+        Returns:
+            True if patching was successful, False otherwise
+        """
+        makefile_path = os.path.join(ksu_kernel_dir, 'Makefile')
+        if not os.path.exists(makefile_path):
+            print(f"[!] Makefile not found at {makefile_path}")
+            return False
+
+        try:
+            print(f"[+] Patching Makefile to skip check_symbol check")
+            # Backup original Makefile content
+            with open(makefile_path, 'r') as f:
+                original_makefile = f.read()
+
+            # Remove check_symbol dependency and command
+            # Replace "all: check_symbol" with "all:"
+            # Also remove the "./check_symbol kernelsu.ko $(KDIR)/vmlinux" line
+            patched_makefile = re.sub(r'^all:\s*check_symbol',
+                                      'all:',
+                                      original_makefile,
+                                      flags=re.MULTILINE)
+            patched_makefile = re.sub(
+                r'^[ \t]*\./check_symbol kernelsu\.ko \$\(KDIR\)/vmlinux[ \t]*\n?',
+                '',
+                patched_makefile,
+                flags=re.MULTILINE)
+            patched_makefile = re.sub(r'\trm check_symbol\n',
+                                      '',
+                                      patched_makefile,
+                                      flags=re.MULTILINE)
+
+            # Write patched Makefile
+            with open(makefile_path, 'w') as f:
+                f.write(patched_makefile)
+
+            print(f"[+] Makefile patched successfully")
+            return True
+        except Exception as e:
+            print(f"[!] Failed to patch Makefile: {e}")
+            return False
+
+    def _restore_makefile(self, ksu_kernel_dir: str) -> None:
+        """
+        Restore original Makefile using git checkout.
+        
+        Args:
+            ksu_kernel_dir: Path to KernelSU kernel source directory
+        """
+        print(f"[+] Restoring original Makefile")
+        run_command(['git', 'checkout', '--', 'Makefile'],
+                    cwd=ksu_kernel_dir,
+                    check=False)
+
     def setup_kernelsu(self) -> None:
         """Integrate KernelSU source into the Android kernel source."""
         print()
@@ -324,28 +396,28 @@ class KernelBuilder:
         print("[+] Apply Compilation Patches")
         build_sh_path = os.path.join(self.config.kernel_source_path,
                                      'build/build.sh')
-        if not os.path.exists(build_sh_path):
-            try:
-                ldd_result = run_command(['ldd', '--version'], check=False)
-                ldd_output = ldd_result.stdout or ''
-                if ldd_output:
-                    glibc_version_line = ldd_output.splitlines()[0]
-                    glibc_version = glibc_version_line.split()[-1]
-                    print(f"GLIBCVERSION: {glibc_version}")
-                    if float(glibc_version) >= 2.38:
-                        print("Patching resolveBtfids/Makefile")
-                        makefile_path = os.path.join(
-                            self.config.kernel_source_path,
-                            'common/tools/bpf/resolveBtfids/Makefile')
-                        if os.path.exists(makefile_path):
-                            run_command([
-                                'sed', '-i',
-                                r'/\$(Q)\$(MAKE) -C \$(SUBCMDSRC) OUTPUT=\$(abspath \$(dir \$@))\/ \$(abspath \$@)/s//$(Q)$(MAKE) -C $(SUBCMDSRC) EXTRACFLAGS="$(CFLAGS)" OUTPUT=$(abspath $(dir $@))\/ $(abspath $@)/',
-                                makefile_path
-                            ],
-                                        check=False)
-            except Exception as e:
-                print(f"Could not check GLIBC version or patch: {e}")
+        # if not os.path.exists(build_sh_path):
+        #     try:
+        #         ldd_result = run_command(['ldd', '--version'], check=False)
+        #         ldd_output = ldd_result.stdout or ''
+        #         if ldd_output:
+        #             glibc_version_line = ldd_output.splitlines()[0]
+        #             glibc_version = glibc_version_line.split()[-1]
+        #             print(f"GLIBCVERSION: {glibc_version}")
+        #             if float(glibc_version) >= 2.38:
+        #                 print("Patching resolveBtfids/Makefile")
+        #                 makefile_path = os.path.join(
+        #                     self.config.kernel_source_path,
+        #                     'common/tools/bpf/resolveBtfids/Makefile')
+        #                 if os.path.exists(makefile_path):
+        #                     run_command([
+        #                         'sed', '-i',
+        #                         r'/\$(Q)\$(MAKE) -C \$(SUBCMDSRC) OUTPUT=\$(abspath \$(dir \$@))\/ \$(abspath \$@)/s//$(Q)$(MAKE) -C $(SUBCMDSRC) EXTRACFLAGS="$(CFLAGS)" OUTPUT=$(abspath $(dir $@))\/ $(abspath $@)/',
+        #                         makefile_path
+        #                     ],
+        #                                 check=False)
+        #     except Exception as e:
+        #         print(f"Could not check GLIBC version or patch: {e}")
 
         run_command(["repo", "status"], cwd=self.config.kernel_source_path)
         print("[+] KernelSU setup done.")
@@ -401,6 +473,149 @@ class KernelBuilder:
         else:
             self._build_modern_kernel()
 
+    def _find_prebuilt_clang(self) -> str:
+        """
+        查找预构建的clang工具链路径。
+        
+        返回:
+            clang预构建二进制目录的路径。
+            
+        如果找不到对应的clang版本或路径不存在，则报错退出脚本。
+        """
+        kernel_ver = self.config.kernel_ver
+
+        # Look up clang version directly by kernel_ver
+        clang_version = CLANG_VERSION_MAP.get(kernel_ver)
+        if not clang_version:
+            print(
+                f"[!] ERROR: No clang version mapping found for kernel version: {kernel_ver}"
+            )
+            print(f"[!] Available mappings: {list(CLANG_VERSION_MAP.keys())}")
+            sys.exit(1)
+
+        print(
+            f"[+] Kernel version {kernel_ver} mapped to clang version: {clang_version}"
+        )
+
+        # Try different base directories
+        base_dirs = ["prebuilts", "prebuilts-master"]
+        for base_dir in base_dirs:
+            clang_path = os.path.join(self.config.kernel_source_path, base_dir,
+                                      "clang", "host", "linux-x86",
+                                      f"clang-{clang_version}", "bin")
+            if os.path.exists(clang_path):
+                # Verify that clang binary exists in the path
+                clang_binary = os.path.join(clang_path, "clang")
+                if os.path.exists(clang_binary) or os.path.exists(
+                        clang_binary + ".exe"):
+                    print(f"[+] Found prebuilt clang at: {clang_path}")
+                    return os.path.abspath(clang_path)
+                else:
+                    print(f"[!] Clang binary not found in: {clang_path}")
+            else:
+                print(f"[!] Clang path does not exist: {clang_path}")
+
+        # If we reach here, no valid path found
+        print(
+            f"[!] ERROR: Could not find valid prebuilt clang for version {clang_version}"
+        )
+        print(f"[!] Checked base directories: {base_dirs}")
+        sys.exit(1)
+
+    def build_lkm(self) -> None:
+        """Build standalone KernelSU kernel module (kernelsu.ko)."""
+        print()
+        print("=" * 50)
+        print("Build KernelSU LKM")
+        print("=" * 50)
+
+        # Change to KernelSU kernel source directory
+        ksu_kernel_dir = os.path.join(self.config.ksu_source_path, "kernel")
+        print(f"[+] Building LKM in {ksu_kernel_dir}")
+        kdir = os.path.join(self.config.kernel_source_path, "common")
+        # Prepare environment variables
+        build_env = os.environ.copy()
+        build_env['CONFIG_KSU'] = 'm'
+        build_env['CC'] = 'clang'
+        build_env['KDIR'] = kdir
+        build_env['LLVM'] = '1'
+        build_env['LLVM_IAS'] = '1'
+
+        # 查找预构建的clang路径，并添加到PATH最前面
+        clang_prebuilt_bin = self._find_prebuilt_clang()
+        if clang_prebuilt_bin:
+            # 将CLANG_PREBUILT_BIN添加到PATH最前面
+            old_path = build_env.get('PATH', '')
+            new_path = f"{clang_prebuilt_bin}:{old_path}" if old_path else clang_prebuilt_bin
+            build_env['PATH'] = new_path
+            build_env['CLANG_PREBUILT_BIN'] = clang_prebuilt_bin
+            print(
+                f"[+] Added CLANG_PREBUILT_BIN to PATH: {clang_prebuilt_bin}")
+
+        # Set architecture-specific variables
+        if self.config.build_arch == 'aarch64':
+            build_env['ARCH'] = 'arm64'
+            build_env['CROSS_COMPILE'] = 'aarch64-linux-gnu-'
+        elif self.config.build_arch == 'x86_64':
+            build_env['ARCH'] = 'x86_64'
+            build_env['CROSS_COMPILE'] = 'x86_64-linux-gnu-'
+        else:
+            raise ValueError(
+                f"Unsupported architecture: {self.config.build_arch}")
+
+        print(f"[+] Setting KDIR to: {kdir}")
+        print(f"[+] Setting ARCH to: {build_env.get('ARCH')}")
+        print(
+            f"[+] Setting CROSS_COMPILE to: {build_env.get('CROSS_COMPILE', 'not set')}"
+        )
+
+        # Generate kernel config using gki_defconfig before building LKM
+        print(f"[+] Generating kernel config with gki_defconfig in {kdir}")
+        run_command(['make', 'gki_defconfig'],
+                    cwd=kdir,
+                    env=build_env,
+                    check=True)
+
+        # Patch Makefile to skip check_symbol (since we don't have vmlinux in source directory)
+        makefile_patched = self._patch_makefile_lkm(ksu_kernel_dir)
+
+        try:
+            # Run make to build the module
+            # run_command(['make', 'clean'],
+            #             cwd=ksu_kernel_dir,
+            #             env=build_env,
+            #             check=False)
+            run_command(['make', 'scripts'], cwd=ksu_kernel_dir, env=build_env)
+            run_command(['make'], cwd=ksu_kernel_dir, env=build_env)
+        finally:
+            # Restore original Makefile using git checkout if we patched it
+            if makefile_patched:
+                self._restore_makefile(ksu_kernel_dir)
+
+        # Verify the built module
+        ko_path = os.path.join(ksu_kernel_dir, 'kernelsu.ko')
+        if not os.path.exists(ko_path):
+            raise FileNotFoundError(f"LKM build failed: {ko_path} not found")
+
+        print(f"[+] LKM built successfully: {ko_path}")
+
+        # Copy to output directory with appropriate naming
+        lkm_out_dir = os.path.join(self.config.output_path, 'lkm')
+        os.makedirs(lkm_out_dir, exist_ok=True)
+
+        # Use kernel version as part of filename
+        safe_kernel_ver = self.config.kernel_ver.replace('/', '_')
+        output_name = f"{safe_kernel_ver}_kernelsu.ko"
+        output_path = os.path.join(lkm_out_dir, output_name)
+        shutil.copy2(ko_path, output_path)
+
+        # Strip debug symbols
+        print(f"[+] Stripping debug symbols from {output_path}")
+        run_command(['llvm-strip', '-d', output_path])
+
+        print(f"[+] LKM copied to: {output_path}")
+        print(f"[+] Size: {os.path.getsize(output_path)} bytes")
+
 
 def main(args: argparse.Namespace) -> None:
     """Main entry point for the build script."""
@@ -452,10 +667,25 @@ def main(args: argparse.Namespace) -> None:
 
     # --- Build Stages ---
     builder.setup_kernelsu()
-    clean_workspace(kernel_source_path)
-    builder.build_kernel()
-    if args.buildtype == 'gki':
-        prepare_gki_artifacts(buildout)
+
+    if args.buildmode == 'lkm':
+        # 只构建LKM
+        builder.build_lkm()
+    elif args.buildmode == 'gki':
+        # 构建内核（GKI或AVD）
+        clean_workspace(kernel_source_path)
+        builder.build_kernel()
+        if args.buildtype == 'gki':
+            prepare_gki_artifacts(buildout)
+    elif args.buildmode == 'lkm-gki':
+        # 先构建LKM，然后构建内核
+        builder.build_lkm()
+        clean_workspace(kernel_source_path)
+        builder.build_kernel()
+        if args.buildtype == 'gki':
+            prepare_gki_artifacts(buildout)
+    else:
+        raise ValueError(f"Invalid build mode: {args.buildmode}")
     print("outpath tree below:")
     run_command(["tree", "-h"], cwd=outpath)
 
