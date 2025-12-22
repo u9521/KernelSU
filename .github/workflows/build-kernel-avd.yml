@@ -18,7 +18,7 @@ on:
   workflow_dispatch:
 jobs:
   build-kernel:
-    if: github.event_name != 'pull_request' && github.ref != 'refs/heads/checkci'
+    if: github.event_name != 'pull_request'
     uses: ./.github/workflows/kernel-lkm-avd.yml
     secrets: inherit
     strategy:

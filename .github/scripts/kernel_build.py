@@ -658,8 +658,19 @@ class KernelBuilder:
                         cwd=ksu_kernel_dir,
                         env=build_env,
                         check=False)
-            run_command(['make'], cwd=kdir, env=build_env)
-            # run_command(['make', 'modules_prepare'], cwd=kdir, env=build_env)
+            run_command(['make', 'modules_prepare'], cwd=kdir, env=build_env)
+            run_command(['make', 'scripts'],
+                        cwd=kdir,
+                        env=build_env)
+            run_command([
+                'genheaders',
+                os.path.join(kdir, 'security', 'selinux', 'include',
+                             'flask.h'),
+                os.path.join(kdir, 'security', 'selinux', 'include',
+                             'av_permissions.h'),
+            ],
+                        cwd=kdir,
+                        env=build_env)
             run_command(['make'], cwd=ksu_kernel_dir, env=build_env)
             run_command(['ls', '-al'], cwd=ksu_kernel_dir, env=build_env)
         finally:
@@ -744,13 +755,13 @@ def main(args: argparse.Namespace) -> None:
     write_github_env("ksu_version", kernelsu_version)
 
     # --- Build Stages ---
-    builder.setup_kernelsu()
 
     if args.buildmode == 'lkm':
         # 只构建LKM
         builder.build_lkm()
     elif args.buildmode == 'gki':
         # 构建内核（GKI或AVD）
+        builder.setup_kernelsu()
         clean_workspace(kernel_source_path)
         builder.build_kernel()
         if args.buildtype == 'gki':
@@ -758,6 +769,7 @@ def main(args: argparse.Namespace) -> None:
     elif args.buildmode == 'lkm-gki':
         # 先构建LKM，然后构建内核
         builder.build_lkm()
+        builder.setup_kernelsu()
         clean_workspace(kernel_source_path)
         builder.build_kernel()
         if args.buildtype == 'gki':
