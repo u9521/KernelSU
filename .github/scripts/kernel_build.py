@@ -269,6 +269,63 @@ class KernelBuilder:
     def __init__(self, config: KsuBuildConfig):
         self.config = config
 
+    def _patch_makefile_to_skip_check_symbol(self,
+                                             ksu_kernel_dir: str) -> bool:
+        """
+        Patch Makefile to skip check_symbol check.
+        
+        Args:
+            ksu_kernel_dir: Path to KernelSU kernel source directory
+            
+        Returns:
+            True if patching was successful, False otherwise
+        """
+        makefile_path = os.path.join(ksu_kernel_dir, 'Makefile')
+        if not os.path.exists(makefile_path):
+            print(f"[!] Makefile not found at {makefile_path}")
+            return False
+
+        try:
+            print(f"[+] Patching Makefile to skip check_symbol check")
+            # Backup original Makefile content
+            with open(makefile_path, 'r') as f:
+                original_makefile = f.read()
+
+            # Remove check_symbol dependency and command
+            # Replace "all: check_symbol" with "all:"
+            # Also remove the "./check_symbol kernelsu.ko $(KDIR)/vmlinux" line
+            patched_makefile = re.sub(r'^all:\s*check_symbol',
+                                      'all:',
+                                      original_makefile,
+                                      flags=re.MULTILINE)
+            patched_makefile = re.sub(
+                r'^[ \t]*\./check_symbol kernelsu\.ko \$(KDIR)/vmlinux[ \t]*\n?',
+                '',
+                patched_makefile,
+                flags=re.MULTILINE)
+
+            # Write patched Makefile
+            with open(makefile_path, 'w') as f:
+                f.write(patched_makefile)
+
+            print(f"[+] Makefile patched successfully")
+            return True
+        except Exception as e:
+            print(f"[!] Failed to patch Makefile: {e}")
+            return False
+
+    def _restore_makefile(self, ksu_kernel_dir: str) -> None:
+        """
+        Restore original Makefile using git checkout.
+        
+        Args:
+            ksu_kernel_dir: Path to KernelSU kernel source directory
+        """
+        print(f"[+] Restoring original Makefile")
+        run_command(['git', 'checkout', '--', 'Makefile'],
+                    cwd=ksu_kernel_dir,
+                    check=False)
+
     def setup_kernelsu(self) -> None:
         """Integrate KernelSU source into the Android kernel source."""
         print()
@@ -401,6 +458,86 @@ class KernelBuilder:
         else:
             self._build_modern_kernel()
 
+    def build_lkm(self) -> None:
+        """Build standalone KernelSU kernel module (kernelsu.ko)."""
+        print()
+        print("=" * 50)
+        print("Build KernelSU LKM")
+        print("=" * 50)
+
+        # Change to KernelSU kernel source directory
+        ksu_kernel_dir = os.path.join(self.config.ksu_source_path, "kernel")
+        print(f"[+] Building LKM in {ksu_kernel_dir}")
+        kdir = os.path.join(self.config.kernel_source_path, "common")
+        # Prepare environment variables
+        build_env = os.environ.copy()
+        build_env['CONFIG_KSU'] = 'm'
+        build_env['CC'] = 'clang'
+        build_env['KDIR'] = kdir
+        build_env['LLVM'] = '1'
+        build_env['LLVM_IAS'] = '1'
+
+        # Set architecture-specific variables
+        if self.config.build_arch == 'aarch64':
+            build_env['ARCH'] = 'arm64'
+            build_env['CROSS_COMPILE'] = 'aarch64-linux-gnu-'
+        elif self.config.build_arch == 'x86_64':
+            build_env['ARCH'] = 'x86_64'
+            build_env['CROSS_COMPILE'] = 'x86_64-linux-gnu-'
+        else:
+            raise ValueError(
+                f"Unsupported architecture: {self.config.build_arch}")
+
+        print(f"[+] Setting KDIR to: {kdir}")
+        print(f"[+] Setting ARCH to: {build_env.get('ARCH')}")
+        print(
+            f"[+] Setting CROSS_COMPILE to: {build_env.get('CROSS_COMPILE', 'not set')}"
+        )
+
+        # Generate kernel config using gki_defconfig before building LKM
+        print(f"[+] Generating kernel config with gki_defconfig in {kdir}")
+        run_command(['make', 'gki_defconfig'], cwd=kdir, env=build_env, check=True)
+
+        # Patch Makefile to skip check_symbol (since we don't have vmlinux in source directory)
+        makefile_patched = self._patch_makefile_to_skip_check_symbol(
+            ksu_kernel_dir)
+
+        try:
+            # Run make to build the module
+            run_command(['make', 'clean'],
+                        cwd=ksu_kernel_dir,
+                        env=build_env,
+                        check=False)
+            run_command(['make'], cwd=ksu_kernel_dir, env=build_env)
+        finally:
+            # Restore original Makefile using git checkout if we patched it
+            if makefile_patched:
+                self._restore_makefile(ksu_kernel_dir)
+
+        # Verify the built module
+        ko_path = os.path.join(ksu_kernel_dir, 'kernelsu.ko')
+        if not os.path.exists(ko_path):
+            raise FileNotFoundError(f"LKM build failed: {ko_path} not found")
+
+        print(f"[+] LKM built successfully: {ko_path}")
+
+        # Copy to output directory with appropriate naming
+        lkm_out_dir = os.path.join(self.config.output_path, 'lkm')
+        os.makedirs(lkm_out_dir, exist_ok=True)
+
+        # Use kernel version as part of filename
+        safe_kernel_ver = self.config.kernel_ver.replace('/', '_')
+        output_name = f"{safe_kernel_ver}_kernelsu.ko"
+        output_path = os.path.join(lkm_out_dir, output_name)
+        shutil.copy2(ko_path, output_path)
+
+        # Strip debug symbols
+        print(f"[+] Stripping debug symbols from {output_path}")
+        run_command(['llvm-strip', '-d', output_path])
+
+        print(f"[+] LKM copied to: {output_path}")
+        print(f"[+] Size: {os.path.getsize(output_path)} bytes")
+
 
 def main(args: argparse.Namespace) -> None:
     """Main entry point for the build script."""
@@ -452,10 +589,25 @@ def main(args: argparse.Namespace) -> None:
 
     # --- Build Stages ---
     builder.setup_kernelsu()
-    clean_workspace(kernel_source_path)
-    builder.build_kernel()
-    if args.buildtype == 'gki':
-        prepare_gki_artifacts(buildout)
+
+    if args.buildmode == 'lkm':
+        # 只构建LKM
+        builder.build_lkm()
+    elif args.buildmode == 'gki':
+        # 构建内核（GKI或AVD）
+        clean_workspace(kernel_source_path)
+        builder.build_kernel()
+        if args.buildtype == 'gki':
+            prepare_gki_artifacts(buildout)
+    elif args.buildmode == 'lkm-gki':
+        # 先构建LKM，然后构建内核
+        builder.build_lkm()
+        clean_workspace(kernel_source_path)
+        builder.build_kernel()
+        if args.buildtype == 'gki':
+            prepare_gki_artifacts(buildout)
+    else:
+        raise ValueError(f"Invalid build mode: {args.buildmode}")
     print("outpath tree below:")
     run_command(["tree", "-h"], cwd=outpath)
 

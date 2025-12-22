@@ -3,11 +3,6 @@ name: Build Kernel / LKM For AVD
 on:
   workflow_dispatch:
     inputs:
-      version_name:
-        required: true
-        type: string
-        description: >
-          With PATCHLEVEL of kernel,eg. android12-5.10
       arch:
         required: true
         type: string
@@ -19,6 +14,20 @@ on:
         default: true
         description: >
           Enable ksu debug feature
+      buildmode:
+        description: 'build <gki|lkm|lkm-gki> mode'
+        required: false
+        default: 'lkm-gki'
+        type: choice
+        options:
+          - gki
+          - lkm
+          - lkm-gki
+      version_name:
+        required: true
+        type: string
+        description: >
+          With PATCHLEVEL of kernel,eg. android12-5.10
       manifest_name:
         required: true
         type: string
@@ -26,6 +35,11 @@ on:
           repo manifest xml name eg. android-14-6.1-avd_x64
   workflow_call:
     inputs:
+      buildmode:
+        description: 'build <gki|lkm|lkm-gki> mode'
+        required: false
+        default: 'lkm-gki'
+        type: string
       version_name:
         required: true
         type: string
@@ -90,7 +104,7 @@ jobs:
           python3 $GITHUB_WORKSPACE/KernelSU/.github/scripts/kernel_build.py \
             --arch "${{ inputs.arch }}" \
             --buildtype avd \
-            --buildmode lkm-gki \
+            --buildmode ${{ inputs.buildmode }} \
             $([[ ${{ inputs.debug }} == 'true' ]] && echo '--debug') \
             --github-env-file "$GITHUB_ENV" \
             --kernel-source-path "$GITHUB_WORKSPACE/android-kernel" \
