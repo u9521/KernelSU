@@ -458,11 +458,11 @@ class KernelBuilder:
         else:
             self._build_modern_kernel()
 
-    def build_lkm(self) -> None:
-        """Build standalone KernelSU kernel module (kernelsu.ko)."""
+    def _build_lkm_legacy(self) -> None:
+        """Build standalone KernelSU kernel module (kernelsu.ko) using legacy build system."""
         print()
         print("=" * 50)
-        print("Build KernelSU LKM")
+        print("Build KernelSU LKM (Legacy)")
         print("=" * 50)
 
         # Change to KernelSU kernel source directory
@@ -496,7 +496,10 @@ class KernelBuilder:
 
         # Generate kernel config using gki_defconfig before building LKM
         print(f"[+] Generating kernel config with gki_defconfig in {kdir}")
-        run_command(['make', 'gki_defconfig'], cwd=kdir, env=build_env, check=True)
+        run_command(['make', 'gki_defconfig'],
+                    cwd=kdir,
+                    env=build_env,
+                    check=True)
 
         # Patch Makefile to skip check_symbol (since we don't have vmlinux in source directory)
         makefile_patched = self._patch_makefile_to_skip_check_symbol(
@@ -537,6 +540,55 @@ class KernelBuilder:
 
         print(f"[+] LKM copied to: {output_path}")
         print(f"[+] Size: {os.path.getsize(output_path)} bytes")
+
+    def _build_lkm_bazel(self) -> None:
+        """Build standalone KernelSU kernel module (kernelsu.ko) using Bazel build system."""
+        print()
+        print("=" * 50)
+        print("Build KernelSU LKM (Bazel)")
+        print("=" * 50)
+        print("[+] Bazel build for LKM is not yet implemented.")
+
+        build_env = os.environ.copy()
+        base_cmd = [
+            'tools/bazel', 'build', '--disk_cache=/home/runner/.cache/bazel',
+            '--config=fast', '--config=stamp', '--verbose_failures'
+        ]
+        # Determine LTO settings based on kernel version
+        if compare_kernel_versions(self.config.kernel_ver, "6.12") >= 0:
+            # Disable LTO for kernel >= 6.12
+            base_cmd.append('--lto=none')
+        else:
+            base_cmd.append('--lto=thin')
+
+        # Determine build target
+
+        run_target = [
+            f'//{KERNEL_KSU_DRIVER_REL_PATH}:kernelsu_{self.config.build_arch}'
+        ]
+
+        cmd = base_cmd + run_target
+        run_command(cmd, cwd=self.config.kernel_source_path, env=build_env)
+
+        # TODO: Implement Bazel build for LKM
+        # raise NotImplementedError("Bazel build for LKM is not yet implemented")
+
+    def build_lkm(self) -> None:
+        """Build standalone KernelSU kernel module (kernelsu.ko) - automatically selects legacy or Bazel build."""
+        print()
+        print("=" * 50)
+        print("Build KernelSU LKM")
+        print("=" * 50)
+
+        # Determine build system based on kernel source
+        build_sh_path = os.path.join(self.config.kernel_source_path,
+                                     'build/build.sh')
+        if os.path.exists(build_sh_path):
+            print("[+] Using legacy build system for LKM")
+            self._build_lkm_legacy()
+        else:
+            print("[+] Using Bazel build system for LKM")
+            self._build_lkm_bazel()
 
 
 def main(args: argparse.Namespace) -> None:

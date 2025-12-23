@@ -1,0 +1,36 @@
+load("//build/kernel/kleaf:kernel.bzl", "kernel_module")
+
+# aarch64 kernel module
+kernel_module(
+    name = "kernelsu_aarch64",
+    srcs = glob([
+        "**/*.c",
+        "**/*.h",
+        "**/Kbuild",
+        "**/Makefile",
+    ]),
+    outs = ["kernelsu.ko"],
+    kernel_build = "//common:kernel_aarch64",
+    visibility = ["//visibility:public"],
+)
+
+# x86_64 kernel module
+kernel_module(
+    name = "kernelsu_x86_64",
+    srcs = glob([
+        "**/*.c",
+        "**/*.h",
+        "**/Kbuild",
+        "**/Makefile",
+    ]),
+    outs = ["kernelsu.ko"],
+    kernel_build = "//common:kernel_x86_64",
+    visibility = ["//visibility:public"],
+)
+
+# alias for default (aarch64)
+alias(
+    name = "kernelsu",
+    actual = ":kernelsu_aarch64",
+    visibility = ["//visibility:public"],
+)
