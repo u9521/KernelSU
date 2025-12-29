@@ -17,6 +17,7 @@ ARCHITECTURES = ['aarch64', 'x86_64']
 # Key: kernel_ver (as provided in --kernel-version argument)
 # Value: clang version string used in prebuilts path
 CLANG_VERSION_MAP = {
+    "android12-5.10": "r416183b",
     "android-14-6.1": "r487747",
     "android-15-6.6-a64": "r510928",
     "android-15-6.6-x64": "r510928",
@@ -341,6 +342,69 @@ class KernelBuilder:
                     cwd=ksu_kernel_dir,
                     check=False)
 
+    def _patch_modpost_c(self, kdir: str) -> bool:
+        """
+        注释掉内核源码中 scripts/mod/modpost.c 中的 check_exports(mod) 调用，
+        以避免编译LKM时检查导出符号。
+        
+        Args:
+            kdir: 内核源码目录（通常是 common 目录）
+            
+        Returns:
+            True if patching was successful, False otherwise
+        """
+        modpost_path = os.path.join(kdir, 'scripts', 'mod', 'modpost.c')
+        if not os.path.exists(modpost_path):
+            print(f"[!] modpost.c not found at {modpost_path}")
+            return False
+
+        try:
+            print(f"[+] Patching modpost.c to skip check_exports check")
+            # 使用正则表达式替换，注释掉 check_exports(mod); 这一行
+            with open(modpost_path, 'r') as f:
+                content = f.read()
+            
+            # 使用正则表达式查找 check_exports(mod); 并注释掉
+            # 匹配模式：可能前面有空格，后面可能有分号，注意行中可能有其他内容
+            pattern = r'^(\s*)check_exports\(mod\);'
+            replacement = r'\1//check_exports(mod);'
+            new_content, count = re.subn(pattern, replacement, content, flags=re.MULTILINE)
+            
+            if count == 0:
+                # 如果没匹配到，尝试另一种模式（可能在同一行有其他代码）
+                pattern2 = r'(check_exports\(mod\);)'
+                replacement2 = r'//\1'
+                new_content, count = re.subn(pattern2, replacement2, content)
+                if count == 0:
+                    print(f"[!] Could not find check_exports(mod); in {modpost_path}")
+                    return False
+            
+            # 写回文件
+            with open(modpost_path, 'w') as f:
+                f.write(new_content)
+                
+            print(f"[+] modpost.c patched successfully, commented {count} occurrence(s)")
+            return True
+        except Exception as e:
+            print(f"[!] Failed to patch modpost.c: {e}")
+            return False
+
+    def _restore_modpost_c(self, kdir: str) -> None:
+        """
+        恢复 modpost.c 的原始内容（使用 git checkout）。
+        
+        Args:
+            kdir: 内核源码目录
+        """
+        modpost_path = os.path.join(kdir, 'scripts', 'mod', 'modpost.c')
+        if not os.path.exists(modpost_path):
+            return
+            
+        print(f"[+] Restoring original modpost.c")
+        run_command(['git', 'checkout', '--', modpost_path],
+                    cwd=kdir,
+                    check=False)
+
     def setup_kernelsu(self) -> None:
         """Integrate KernelSU source into the Android kernel source."""
         print()
@@ -578,19 +642,25 @@ class KernelBuilder:
 
         # Patch Makefile to skip check_symbol (since we don't have vmlinux in source directory)
         makefile_patched = self._patch_makefile_lkm(ksu_kernel_dir)
+        # Patch modpost.c to skip check_exports check
+        modpost_patched = self._patch_modpost_c(kdir)
 
         try:
             # Run make to build the module
-            # run_command(['make', 'clean'],
-            #             cwd=ksu_kernel_dir,
-            #             env=build_env,
-            #             check=False)
-            run_command(['make', 'scripts'], cwd=ksu_kernel_dir, env=build_env)
+            run_command(['make', 'clean'],
+                        cwd=ksu_kernel_dir,
+                        env=build_env,
+                        check=False)
+            run_command(['make', 'modules_prepare'], cwd=kdir, env=build_env)
             run_command(['make'], cwd=ksu_kernel_dir, env=build_env)
+            run_command(['ls', '-al'], cwd=ksu_kernel_dir, env=build_env)
         finally:
             # Restore original Makefile using git checkout if we patched it
             if makefile_patched:
                 self._restore_makefile(ksu_kernel_dir)
+            # Restore original modpost.c if we patched it
+            if modpost_patched:
+                self._restore_modpost_c(kdir)
 
         # Verify the built module
         ko_path = os.path.join(ksu_kernel_dir, 'kernelsu.ko')
