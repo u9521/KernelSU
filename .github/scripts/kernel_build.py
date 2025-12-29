@@ -363,27 +363,34 @@ class KernelBuilder:
             # 使用正则表达式替换，注释掉 check_exports(mod); 这一行
             with open(modpost_path, 'r') as f:
                 content = f.read()
-            
+
             # 使用正则表达式查找 check_exports(mod); 并注释掉
             # 匹配模式：可能前面有空格，后面可能有分号，注意行中可能有其他内容
             pattern = r'^(\s*)check_exports\(mod\);'
             replacement = r'\1//check_exports(mod);'
-            new_content, count = re.subn(pattern, replacement, content, flags=re.MULTILINE)
-            
+            new_content, count = re.subn(pattern,
+                                         replacement,
+                                         content,
+                                         flags=re.MULTILINE)
+
             if count == 0:
                 # 如果没匹配到，尝试另一种模式（可能在同一行有其他代码）
                 pattern2 = r'(check_exports\(mod\);)'
                 replacement2 = r'//\1'
                 new_content, count = re.subn(pattern2, replacement2, content)
                 if count == 0:
-                    print(f"[!] Could not find check_exports(mod); in {modpost_path}")
+                    print(
+                        f"[!] Could not find check_exports(mod); in {modpost_path}"
+                    )
                     return False
-            
+
             # 写回文件
             with open(modpost_path, 'w') as f:
                 f.write(new_content)
-                
-            print(f"[+] modpost.c patched successfully, commented {count} occurrence(s)")
+
+            print(
+                f"[+] modpost.c patched successfully, commented {count} occurrence(s)"
+            )
             return True
         except Exception as e:
             print(f"[!] Failed to patch modpost.c: {e}")
@@ -399,7 +406,7 @@ class KernelBuilder:
         modpost_path = os.path.join(kdir, 'scripts', 'mod', 'modpost.c')
         if not os.path.exists(modpost_path):
             return
-            
+
         print(f"[+] Restoring original modpost.c")
         run_command(['git', 'checkout', '--', modpost_path],
                     cwd=kdir,
@@ -651,7 +658,8 @@ class KernelBuilder:
                         cwd=ksu_kernel_dir,
                         env=build_env,
                         check=False)
-            run_command(['make', 'modules_prepare'], cwd=kdir, env=build_env)
+            run_command(['make'], cwd=kdir, env=build_env)
+            # run_command(['make', 'modules_prepare'], cwd=kdir, env=build_env)
             run_command(['make'], cwd=ksu_kernel_dir, env=build_env)
             run_command(['ls', '-al'], cwd=ksu_kernel_dir, env=build_env)
         finally:
