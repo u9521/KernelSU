@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.RemoveModerator
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Update
+import androidx.compose.material.icons.rounded.FolderDelete
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -194,6 +195,23 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                         if (Natives.setSuEnabled(shouldEnable)) {
                             isSuDisabled = !shouldEnable
                         }
+                    }
+                }
+            }
+
+            KsuIsValid() {
+                var isKernelUmountDisabled by rememberSaveable {
+                    mutableStateOf(!Natives.isKernelUmountEnabled())
+                }
+                SwitchItem(
+                    icon = Icons.Filled.FolderDelete,
+                    title = stringResource(id = R.string.settings_disable_kernel_umount),
+                    summary = stringResource(id = R.string.settings_disable_kernel_umount_summary),
+                    checked = isKernelUmountDisabled,
+                ) { checked ->
+                    val shouldEnable = !checked
+                    if (Natives.setKernelUmountEnabled(shouldEnable)) {
+                        isKernelUmountDisabled = !shouldEnable
                     }
                 }
             }
