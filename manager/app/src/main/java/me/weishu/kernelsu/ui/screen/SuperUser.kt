@@ -87,9 +87,15 @@ fun SuperUserScreen(navigator: DestinationsNavigator) {
     val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
     LaunchedEffect(key1 = Unit) {
-        if (viewModel.appList.value.isEmpty() || viewModel.isRefreshing) {
-            viewModel.showSystemApps = prefs.getBoolean("show_system_apps", false)
-            viewModel.loadAppList()
+        when {
+            viewModel.appList.value.isEmpty() -> {
+                viewModel.showSystemApps = prefs.getBoolean("show_system_apps", false)
+                viewModel.loadAppList()
+            }
+
+            viewModel.isNeedRefresh -> {
+                viewModel.loadAppList()
+            }
         }
     }
 
@@ -184,6 +190,7 @@ fun SuperUserScreen(navigator: DestinationsNavigator) {
                             }
                         }) {
                         navigator.navigate(AppProfileScreenDestination(group.primary))
+                        viewModel.markNeedRefresh()
                     }
                     AnimatedVisibility(
                         visible = expanded && group.apps.size > 1, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()
