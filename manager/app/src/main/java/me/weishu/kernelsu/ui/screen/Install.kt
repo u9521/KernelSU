@@ -9,6 +9,9 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
@@ -22,9 +25,11 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,6 +43,7 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -62,21 +68,25 @@ import com.ramcosta.composedestinations.generated.destinations.FlashScreenDestin
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.navigation.EmptyDestinationsNavigator
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ui.component.BrDropdownMenuItem
 import me.weishu.kernelsu.ui.component.DialogHandle
 import me.weishu.kernelsu.ui.component.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.rememberCustomDialog
 import me.weishu.kernelsu.ui.util.LkmSelection
+import me.weishu.kernelsu.ui.util.getAvailablePartitions
 import me.weishu.kernelsu.ui.util.getCurrentKmi
+import me.weishu.kernelsu.ui.util.getDefaultBootDevice
+import me.weishu.kernelsu.ui.util.getDefaultPartitionName
+import me.weishu.kernelsu.ui.util.getSlotSuffix
 import me.weishu.kernelsu.ui.util.getSupportedKmis
 import me.weishu.kernelsu.ui.util.isAbDevice
-import me.weishu.kernelsu.ui.util.isInitBoot
 import me.weishu.kernelsu.ui.util.rootAvailable
 
 /**
  * @author weishu
  * @date 2024/3/12.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Destination<RootGraph>
 @Composable
 fun InstallScreen(navigator: DestinationsNavigator) {
@@ -89,12 +99,18 @@ fun InstallScreen(navigator: DestinationsNavigator) {
         mutableStateOf<LkmSelection>(LkmSelection.KmiNone)
     }
 
+    var partitionSelectionIndex by remember { mutableIntStateOf(0) }
+    var partitionsState by remember { mutableStateOf<List<String>>(emptyList()) }
+
     val onInstall = {
         installMethod?.let { method ->
+            val isOta = method is InstallMethod.DirectInstallToInactiveSlot
+            val partitionSelection = partitionsState.getOrNull(partitionSelectionIndex)
             val flashIt = FlashIt.FlashBoot(
                 boot = if (method is InstallMethod.SelectFile) method.uri else null,
                 lkm = lkmSelection,
-                ota = method is InstallMethod.DirectInstallToInactiveSlot
+                ota = isOta,
+                partition = partitionSelection
             )
             navigator.navigate(FlashScreenDestination(flashIt))
         }
@@ -177,6 +193,42 @@ fun InstallScreen(navigator: DestinationsNavigator) {
                         )
                     )
                 }
+                AnimatedVisibility(
+                    visible = installMethod is InstallMethod.DirectInstall || installMethod is InstallMethod.DirectInstallToInactiveSlot,
+                    enter = expandVertically(),
+                    exit = shrinkVertically()
+                ) {
+                    val isOta = installMethod is InstallMethod.DirectInstallToInactiveSlot
+                    val suffix = produceState(initialValue = "", isOta) {
+                        value = getSlotSuffix(isOta)
+                    }.value
+                    val partitions = produceState(initialValue = emptyList(), isOta) {
+                        value = getAvailablePartitions(isOta)
+                    }.value
+                    val defaultDevice = produceState(initialValue = "", isOta) {
+                        value = getDefaultBootDevice(isOta)
+                    }.value
+                    val displayPartitions = partitions.map { name ->
+                        val path = "/dev/block/by-name/${name}${suffix}"
+                        if (defaultDevice.isNotBlank() && defaultDevice == path) "$name (default)" else name
+                    }
+                    partitionsState = partitions
+                    if (partitionSelectionIndex >= partitions.size) partitionSelectionIndex = 0
+                    BrDropdownMenuItem(
+                        title = "${stringResource(R.string.install_select_partition)} (${suffix})",
+                        selected = displayPartitions.getOrNull(partitionSelectionIndex)
+                    ) { dismissMenu ->
+                        displayPartitions.forEachIndexed { index,name ->
+                            DropdownMenuItem(
+                                text = { Text(name) },
+                                onClick = {
+                                    partitionSelectionIndex = index
+                                    dismissMenu()
+                                },
+                            )
+                        }
+                    }
+                }
                 Button(
                     modifier = Modifier.fillMaxWidth(),
                     enabled = installMethod != null,
@@ -228,9 +280,14 @@ sealed class InstallMethod {
 @Composable
 private fun SelectInstallMethod(onSelected: (InstallMethod) -> Unit = {}) {
     val rootAvailable = rootAvailable()
-    val isAbDevice = isAbDevice()
+    val isAbDevice = produceState(initialValue = false) {
+        value = isAbDevice()
+    }.value
+    val defaultPartitionName = produceState(initialValue = "boot") {
+        value = getDefaultPartitionName(false)
+    }.value
     val selectFileTip = stringResource(
-        id = R.string.select_file_tip, if (isInitBoot()) "init_boot" else "boot"
+        id = R.string.select_file_tip, defaultPartitionName
     )
     val radioOptions =
         mutableListOf<InstallMethod>(InstallMethod.SelectFile(summary = selectFileTip))

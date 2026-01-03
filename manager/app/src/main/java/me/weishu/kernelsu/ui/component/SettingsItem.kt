@@ -1,14 +1,21 @@
 package me.weishu.kernelsu.ui.component
 
 import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.ButtonGroupDefaults
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -19,16 +26,30 @@ import androidx.compose.material3.ToggleButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.NativeKeyEvent
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import me.weishu.kernelsu.R
+
 
 @Composable
 fun SwitchItem(
@@ -141,4 +162,94 @@ fun FeatureItem(
             }
         }
     }
+}
+
+@Composable
+fun BrDropdownMenuItem(
+    icon: ImageVector? = null,
+    title: String,
+    summary: String? = null,
+    selected: String? = null,
+    menuContent: @Composable ColumnScope.(dismissMenu: () -> Unit) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var touchPoint: Offset by remember { mutableStateOf(Offset.Zero) }
+    val density = LocalDensity.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val dismissMenu = { expanded = false }
+    var itemHeightPx by remember { mutableIntStateOf(0) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .indication(interactionSource, LocalIndication.current)
+            .focusable(interactionSource = interactionSource)
+            .onSizeChanged { size ->
+                itemHeightPx = size.height
+            }
+            .semantics {
+                role = Role.Button
+                onClick(label = title) {
+                    touchPoint = Offset.Zero
+                    expanded = true
+                    true
+                }
+            }
+            .onKeyEvent { event ->
+                if (event.type == KeyEventType.KeyUp &&
+                    (event.key == Key.Enter || event.key == Key.NumPadEnter ||
+                            event.nativeKeyEvent.keyCode == NativeKeyEvent.KEYCODE_DPAD_CENTER)
+                ) {
+                    touchPoint = Offset.Zero
+                    expanded = true
+                    return@onKeyEvent true
+                }
+                false
+            }
+            .pointerInput(Unit) {
+                detectTapGestures(onPress = { offset ->
+                    val press = PressInteraction.Press(offset)
+                    interactionSource.emit(press)
+                    val isReleased = tryAwaitRelease()
+                    if (isReleased) {
+                        interactionSource.emit(PressInteraction.Release(press))
+                    } else {
+                        interactionSource.emit(PressInteraction.Cancel(press))
+                    }
+                }, onTap = { offset ->
+                    touchPoint = offset
+                    expanded = true
+                })
+            }) {
+        val (offsetX, offsetY) = with(density) {
+            (touchPoint.x.toDp()) to ((touchPoint.y - itemHeightPx).toDp())
+        }
+        ListItem(
+            headlineContent = { Text(title) },
+            supportingContent = {
+                if (summary != null) {
+                    Text(summary)
+                }
+            },
+            leadingContent = {
+                icon?.let {
+                    Icon(icon, title)
+                }
+            },
+            trailingContent = {
+                selected?.let {
+                    Text(selected)
+                }
+            }
+
+        )
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = dismissMenu,
+            offset = DpOffset(offsetX, offsetY),
+        ) {
+            menuContent(dismissMenu)
+        }
+    }
+
 }
