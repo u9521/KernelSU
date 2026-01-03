@@ -167,10 +167,11 @@ fun SettingScreen(navigator: DestinationsNavigator) {
 
             var enhancedSecurityMode by rememberSaveable {
                 mutableIntStateOf(
-                    prefs.getInt(
-                        "enhanced_security_mode", if (Natives.isEnhancedSecurityEnabled()) 1 else 0
-                    )
-                )
+                    run {
+                        val currentEnabled = Natives.isEnhancedSecurityEnabled()
+                        val savedPersist = prefs.getInt("enhanced_security_mode", 0)
+                        if (savedPersist == 2) 2 else if (currentEnabled) 1 else 0
+                    })
             }
             KsuIsValid {
                 FeatureItem(
@@ -191,7 +192,7 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                         1 -> if (Natives.setEnhancedSecurityEnabled(false)) {
                             execKsud("feature save", true)
                             if (Natives.setEnhancedSecurityEnabled(true)) {
-                                prefs.edit { putInt("enhanced_security_mode", 1) }
+                                prefs.edit { putInt("enhanced_security_mode", 0) }
                                 enhancedSecurityMode = 1
                             }
                         }
@@ -209,10 +210,11 @@ fun SettingScreen(navigator: DestinationsNavigator) {
 
             var suCompatMode by rememberSaveable {
                 mutableIntStateOf(
-                    prefs.getInt(
-                        "su_compat_mode", if (!Natives.isSuEnabled()) 1 else 0
-                    )
-                )
+                    run {
+                        val currentEnabled = Natives.isSuEnabled()
+                        val savedPersist = prefs.getInt("su_compat_mode", 0)
+                        if (savedPersist == 2) 2 else if (!currentEnabled) 1 else 0
+                    })
             }
 
             KsuIsValid {
@@ -234,7 +236,7 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                         1 -> if (Natives.setSuEnabled(true)) {
                             execKsud("feature save", true)
                             if (Natives.setSuEnabled(false)) {
-                                prefs.edit { putInt("su_compat_mode", 1) }
+                                prefs.edit { putInt("su_compat_mode", 0) }
                                 suCompatMode = 1
                             }
                         }
@@ -251,10 +253,11 @@ fun SettingScreen(navigator: DestinationsNavigator) {
 
             var kernelUmountMode by rememberSaveable {
                 mutableIntStateOf(
-                    prefs.getInt(
-                        "kernel_umount_mode", if (!Natives.isKernelUmountEnabled()) 1 else 0
-                    )
-                )
+                    run {
+                        val currentEnabled = Natives.isKernelUmountEnabled()
+                        val savedPersist = prefs.getInt("kernel_umount_mode", 0)
+                        if (savedPersist == 2) 2 else if (!currentEnabled) 1 else 0
+                    })
             }
 
             KsuIsValid {
@@ -276,7 +279,7 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                         1 -> if (Natives.setKernelUmountEnabled(true)) {
                             execKsud("feature save", true)
                             if (Natives.setKernelUmountEnabled(false)) {
-                                prefs.edit { putInt("kernel_umount_mode", 1) }
+                                prefs.edit { putInt("kernel_umount_mode", 0) }
                                 kernelUmountMode = 1
                             }
                         }
