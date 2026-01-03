@@ -1,15 +1,15 @@
 package me.weishu.kernelsu.ui.screen
 
+import android.os.Build
 import androidx.annotation.StringRes
 import androidx.compose.animation.Crossfade
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
@@ -23,7 +23,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.Security
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -31,6 +30,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
@@ -45,16 +45,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.dropUnlessResumed
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -66,11 +65,14 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import kotlinx.coroutines.launch
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ui.component.BrMenuBox
 import me.weishu.kernelsu.ui.component.SwitchItem
 import me.weishu.kernelsu.ui.component.profile.AppProfileConfig
 import me.weishu.kernelsu.ui.component.profile.RootProfileConfig
 import me.weishu.kernelsu.ui.component.profile.TemplateConfig
 import me.weishu.kernelsu.ui.util.LocalSnackbarHost
+import me.weishu.kernelsu.ui.util.UidGroupUtils
+import me.weishu.kernelsu.ui.util.UidGroupUtils.ownerNameForUid
 import me.weishu.kernelsu.ui.util.forceStopApp
 import me.weishu.kernelsu.ui.util.getSepolicy
 import me.weishu.kernelsu.ui.util.launchApp
@@ -99,6 +101,13 @@ fun AppProfileScreen(
     val suNotAllowed = stringResource(R.string.su_not_allowed).format(appInfo.label)
 
     val packageName = appInfo.packageName
+    val sameUidApps = remember(appInfo.uid) {
+        SuperUserViewModel.apps.filter { it.uid == appInfo.uid }
+    }
+    val isUidGroup = sameUidApps.size > 1
+    val primaryForIcon = remember(appInfo.uid, sameUidApps) {
+        runCatching { UidGroupUtils.pickPrimary(sameUidApps) }.getOrNull() ?: appInfo
+    }
     val initialProfile = Natives.getAppProfile(packageName, appInfo.uid)
     if (initialProfile.allowSu) {
         initialProfile.rules = getSepolicy(packageName)
@@ -122,12 +131,13 @@ fun AppProfileScreen(
                 .padding(paddingValues)
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
                 .verticalScroll(rememberScrollState()),
-            packageName = appInfo.packageName,
-            appLabel = appInfo.label,
+            packageName = if (isUidGroup) "" else appInfo.packageName,
+            appLabel = if (isUidGroup) ownerNameForUid(appInfo.uid) else appInfo.label,
             appIcon = {
+                val iconApp = if (isUidGroup) primaryForIcon else appInfo
                 AsyncImage(
-                    model = ImageRequest.Builder(context).data(appInfo.packageInfo).crossfade(true).build(),
-                    contentDescription = appInfo.label,
+                    model = ImageRequest.Builder(context).data(iconApp.packageInfo).crossfade(true).build(),
+                    contentDescription = iconApp.label,
                     modifier = Modifier
                         .padding(4.dp)
                         .width(48.dp)
@@ -135,9 +145,16 @@ fun AppProfileScreen(
                 )
             },
             appUid = appInfo.uid,
-            appVersionCode = appInfo.packageInfo.versionCode.toLong(),
-            appVersionName = appInfo.packageInfo.versionName ?: "null",
+            appVersionName = if (isUidGroup) "" else (appInfo.packageInfo.versionName ?: ""),
+            appVersionCode = if (isUidGroup) 0L else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                appInfo.packageInfo.longVersionCode
+            } else {
+                @Suppress("DEPRECATION")
+                appInfo.packageInfo.versionCode.toLong()
+            },
             profile = profile,
+            isUidGroup = isUidGroup,
+            affectedApps = sameUidApps,
             onViewTemplate = {
                 getTemplateInfoById(it)?.let { info ->
                     navigator.navigate(TemplateEditorScreenDestination(info))
@@ -149,7 +166,6 @@ fun AppProfileScreen(
             onProfileChange = {
                 scope.launch {
                     if (it.allowSu) {
-                        // sync with allowlist.c - forbid_system_uid
                         if (appInfo.uid < 2000 && appInfo.uid != 1000) {
                             snackBarHost.showSnackbar(suNotAllowed)
                             return@launch
@@ -180,22 +196,38 @@ private fun AppProfileInner(
     appVersionName: String,
     appVersionCode: Long,
     profile: Natives.Profile,
+    isUidGroup: Boolean = false,
+    affectedApps: List<SuperUserViewModel.AppInfo> = emptyList(),
     onViewTemplate: (id: String) -> Unit = {},
     onManageTemplate: () -> Unit = {},
     onProfileChange: (Natives.Profile) -> Unit,
 ) {
     val isRootGranted = profile.allowSu
+    val context = LocalContext.current
 
     Column(modifier = modifier) {
-        AppMenuBox(packageName) {
+        AppMenuBox(packageName, isUidGroup) {
             ListItem(
                 headlineContent = { Text(appLabel) },
                 supportingContent = {
-                    Text("$appVersionName ($appVersionCode)")
-                    Text(packageName)
+                    if (!isUidGroup) {
+                        Text("$appVersionName ($appVersionCode)")
+                        Text(packageName)
+                    } else {
+                        Text(
+                            text = stringResource(R.string.group_contains_apps, affectedApps.size),
+                            fontSize = 14.sp,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Clip,
+                            modifier = Modifier
+                                .horizontalScroll(rememberScrollState())
+                                .clipToBounds()
+                        )
+                    }
                 },
                 trailingContent = {
-                    LabelText("UID $appUid")
+                    StatusTag("UID $appUid",colorScheme.primary, colorScheme.onPrimary)
                 },
                 leadingContent = appIcon,
             )
@@ -260,6 +292,34 @@ private fun AppProfileInner(
                             onProfileChange = onProfileChange
                         )
                     }
+                }
+            }
+        }
+        if (isUidGroup) {
+            Text(
+                color = colorScheme.primary,
+                modifier = Modifier.padding(16.dp),
+                text = stringResource(R.string.app_profile_affects_following_apps)
+            )
+            affectedApps.forEach { app ->
+                AppMenuBox(app.packageName, false) {
+                    ListItem(
+                        headlineContent = { Text(app.label) },
+                        supportingContent = {
+                            Text("${app.packageInfo.versionName} (${app.packageInfo.longVersionCode})")
+                            Text(app.packageName)
+                        },
+                        leadingContent = {
+                            AsyncImage(
+                                model = ImageRequest.Builder(context).data(app.packageInfo).crossfade(true).build(),
+                                contentDescription = app.label,
+                                modifier = Modifier
+                                    .padding(4.dp)
+                                    .width(48.dp)
+                                    .height(48.dp)
+                            )
+                        },
+                    )
                 }
             }
         }
@@ -331,61 +391,42 @@ private fun ProfileBox(
 }
 
 @Composable
-private fun AppMenuBox(packageName: String, content: @Composable () -> Unit) {
-
-    var expanded by remember { mutableStateOf(false) }
-    var touchPoint: Offset by remember { mutableStateOf(Offset.Zero) }
-    val density = LocalDensity.current
-
-    BoxWithConstraints(
-        Modifier
-            .fillMaxSize()
-            .pointerInput(Unit) {
-                detectTapGestures {
-                    touchPoint = it
-                    expanded = true
-                }
-            }
-    ) {
-
-        content()
-
-        val (offsetX, offsetY) = with(density) {
-            (touchPoint.x.toDp()) to (touchPoint.y.toDp())
-        }
-
-        DropdownMenu(
-            expanded = expanded,
-            offset = DpOffset(offsetX, -offsetY),
-            onDismissRequest = {
-                expanded = false
-            },
+private fun AppMenuBox(packageName: String, isUidGroup: Boolean, content: @Composable () -> Unit) {
+    if (isUidGroup) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
         ) {
+            content()
+        }
+        return
+    }
+    BrMenuBox(
+        content = content, menuContent = { dismissMenu ->
             DropdownMenuItem(
                 text = { Text(stringResource(id = R.string.launch_app)) },
                 onClick = {
-                    expanded = false
+                    dismissMenu()
                     launchApp(packageName)
                 },
             )
             DropdownMenuItem(
                 text = { Text(stringResource(id = R.string.force_stop_app)) },
                 onClick = {
-                    expanded = false
+                    dismissMenu()
                     forceStopApp(packageName)
                 },
             )
             DropdownMenuItem(
                 text = { Text(stringResource(id = R.string.restart_app)) },
                 onClick = {
-                    expanded = false
+                    dismissMenu()
                     restartApp(packageName)
                 },
             )
-        }
-    }
-
-
+        },
+        description = null
+    )
 }
 
 @Preview

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.ButtonGroupDefaults
@@ -47,8 +48,10 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import me.weishu.kernelsu.R
+import kotlin.math.min
 
 
 @Composable
@@ -165,41 +168,28 @@ fun FeatureItem(
 }
 
 @Composable
-fun BrDropdownMenuItem(
-    icon: ImageVector? = null,
-    title: String,
-    summary: String? = null,
-    selected: String? = null,
-    menuContent: @Composable ColumnScope.(dismissMenu: () -> Unit) -> Unit
+fun BrMenuBox(
+    description: String?, menuContent: @Composable ColumnScope.(dismissMenu: () -> Unit) -> Unit, content: @Composable () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
     var touchPoint: Offset by remember { mutableStateOf(Offset.Zero) }
-    val density = LocalDensity.current
     val interactionSource = remember { MutableInteractionSource() }
     val dismissMenu = { expanded = false }
-    var itemHeightPx by remember { mutableIntStateOf(0) }
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .indication(interactionSource, LocalIndication.current)
             .focusable(interactionSource = interactionSource)
-            .onSizeChanged { size ->
-                itemHeightPx = size.height
-            }
             .semantics {
                 role = Role.Button
-                onClick(label = title) {
+                onClick(label = description) {
                     touchPoint = Offset.Zero
                     expanded = true
                     true
                 }
             }
             .onKeyEvent { event ->
-                if (event.type == KeyEventType.KeyUp &&
-                    (event.key == Key.Enter || event.key == Key.NumPadEnter ||
-                            event.nativeKeyEvent.keyCode == NativeKeyEvent.KEYCODE_DPAD_CENTER)
-                ) {
+                if (event.type == KeyEventType.KeyUp && (event.key == Key.Enter || event.key == Key.NumPadEnter || event.nativeKeyEvent.keyCode == NativeKeyEvent.KEYCODE_DPAD_CENTER)) {
                     touchPoint = Offset.Zero
                     expanded = true
                     return@onKeyEvent true
@@ -221,9 +211,31 @@ fun BrDropdownMenuItem(
                     expanded = true
                 })
             }) {
-        val (offsetX, offsetY) = with(density) {
-            (touchPoint.x.toDp()) to ((touchPoint.y - itemHeightPx).toDp())
+        content()
+        Box(
+            modifier = Modifier
+                .offset { IntOffset(touchPoint.x.toInt(), touchPoint.y.toInt()) }
+        ) {
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = dismissMenu,
+                offset = DpOffset.Zero,
+            ) {
+                menuContent(dismissMenu)
+            }
         }
+    }
+}
+
+@Composable
+fun BrDropdownMenuItem(
+    icon: ImageVector? = null,
+    title: String,
+    summary: String? = null,
+    selected: String? = null,
+    menuContent: @Composable ColumnScope.(dismissMenu: () -> Unit) -> Unit
+) {
+    BrMenuBox(title, menuContent = menuContent, content = {
         ListItem(
             headlineContent = { Text(title) },
             supportingContent = {
@@ -241,15 +253,6 @@ fun BrDropdownMenuItem(
                     Text(selected)
                 }
             }
-
         )
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = dismissMenu,
-            offset = DpOffset(offsetX, offsetY),
-        ) {
-            menuContent(dismissMenu)
-        }
-    }
-
+    })
 }

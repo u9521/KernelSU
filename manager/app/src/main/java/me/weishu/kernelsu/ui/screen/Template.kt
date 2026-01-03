@@ -2,6 +2,7 @@ package me.weishu.kernelsu.ui.screen
 
 import android.widget.Toast
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -28,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -195,14 +197,14 @@ private fun TemplateItem(
                     fontSize = MaterialTheme.typography.bodySmall.fontSize,
                 )
                 Text(template.description)
-                FlowRow {
-                    LabelText(label = "UID: ${template.uid}")
-                    LabelText(label = "GID: ${template.gid}")
-                    LabelText(label = template.context)
+                FlowRow (horizontalArrangement = Arrangement.spacedBy(5.dp)){
+                    StatusTag(label = "UID: ${template.uid}",colorScheme.primary, colorScheme.onPrimary)
+                    StatusTag(label = "GID: ${template.gid}", colorScheme.secondaryContainer, colorScheme.onSecondaryContainer)
+                    StatusTag(label = template.context, colorScheme.tertiaryContainer, colorScheme.onTertiaryContainer)
                     if (template.local) {
-                        LabelText(label = "local")
+                        StatusTag(label = "local",colorScheme.primary, colorScheme.onPrimary)
                     } else {
-                        LabelText(label = "remote")
+                        StatusTag(label = "remote",colorScheme.primary, colorScheme.onPrimary)
                     }
                 }
             }
