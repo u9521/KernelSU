@@ -29,6 +29,7 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            vcsInfo.include = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
@@ -40,8 +41,8 @@ android {
         prefab = true
     }
 
-    kotlinOptions {
-        jvmTarget = "21"
+    kotlin {
+        jvmToolchain(21)
     }
 
     packaging {
