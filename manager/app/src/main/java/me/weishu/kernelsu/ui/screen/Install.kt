@@ -28,6 +28,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -179,6 +180,43 @@ fun InstallScreen(navigator: DestinationsNavigator) {
             SelectInstallMethod { method ->
                 installMethod = method
             }
+            AnimatedVisibility(
+                visible = installMethod is InstallMethod.DirectInstall || installMethod is InstallMethod.DirectInstallToInactiveSlot,
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                val isOta = installMethod is InstallMethod.DirectInstallToInactiveSlot
+                val suffix = produceState(initialValue = "", isOta) {
+                    value = getSlotSuffix(isOta)
+                }.value
+                val partitions = produceState(initialValue = emptyList(), isOta) {
+                    value = getAvailablePartitions(isOta)
+                }.value
+                val defaultDevice = produceState(initialValue = "", isOta) {
+                    value = getDefaultBootDevice(isOta)
+                }.value
+                val displayPartitions = partitions.map { name ->
+                    val path = "/dev/block/by-name/${name}${suffix}"
+                    if (defaultDevice.isNotBlank() && defaultDevice == path) "$name (default)" else name
+                }
+                partitionsState = partitions
+                if (partitionSelectionIndex >= partitions.size) partitionSelectionIndex = 0
+                BrDropdownMenuItem(
+                    title = "${stringResource(R.string.install_select_partition)} (${suffix})",
+                    selected = displayPartitions.getOrNull(partitionSelectionIndex),
+                    icon = Icons.Default.Edit
+                ) { dismissMenu ->
+                    displayPartitions.forEachIndexed { index, name ->
+                        DropdownMenuItem(
+                            text = { Text(name) },
+                            onClick = {
+                                partitionSelectionIndex = index
+                                dismissMenu()
+                            },
+                        )
+                    }
+                }
+            }
 
             Column(
                 modifier = Modifier
@@ -192,42 +230,6 @@ fun InstallScreen(navigator: DestinationsNavigator) {
                             it.uri.lastPathSegment ?: "(file)"
                         )
                     )
-                }
-                AnimatedVisibility(
-                    visible = installMethod is InstallMethod.DirectInstall || installMethod is InstallMethod.DirectInstallToInactiveSlot,
-                    enter = expandVertically(),
-                    exit = shrinkVertically()
-                ) {
-                    val isOta = installMethod is InstallMethod.DirectInstallToInactiveSlot
-                    val suffix = produceState(initialValue = "", isOta) {
-                        value = getSlotSuffix(isOta)
-                    }.value
-                    val partitions = produceState(initialValue = emptyList(), isOta) {
-                        value = getAvailablePartitions(isOta)
-                    }.value
-                    val defaultDevice = produceState(initialValue = "", isOta) {
-                        value = getDefaultBootDevice(isOta)
-                    }.value
-                    val displayPartitions = partitions.map { name ->
-                        val path = "/dev/block/by-name/${name}${suffix}"
-                        if (defaultDevice.isNotBlank() && defaultDevice == path) "$name (default)" else name
-                    }
-                    partitionsState = partitions
-                    if (partitionSelectionIndex >= partitions.size) partitionSelectionIndex = 0
-                    BrDropdownMenuItem(
-                        title = "${stringResource(R.string.install_select_partition)} (${suffix})",
-                        selected = displayPartitions.getOrNull(partitionSelectionIndex)
-                    ) { dismissMenu ->
-                        displayPartitions.forEachIndexed { index,name ->
-                            DropdownMenuItem(
-                                text = { Text(name) },
-                                onClick = {
-                                    partitionSelectionIndex = index
-                                    dismissMenu()
-                                },
-                            )
-                        }
-                    }
                 }
                 Button(
                     modifier = Modifier.fillMaxWidth(),
