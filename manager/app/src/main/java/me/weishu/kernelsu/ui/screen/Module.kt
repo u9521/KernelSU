@@ -94,6 +94,7 @@ import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ksuApp
 import me.weishu.kernelsu.ui.component.ConfirmResult
+import me.weishu.kernelsu.ui.component.RebootListPopup
 import me.weishu.kernelsu.ui.component.SearchAppBar
 import me.weishu.kernelsu.ui.component.SearchStatus
 import me.weishu.kernelsu.ui.component.rememberConfirmDialog
@@ -154,6 +155,7 @@ fun ModuleScreen(navigator: DestinationsNavigator) {
                 title = { Text(stringResource(R.string.module)) },
                 searchStatus = searchStatus,
                 dropdownContent = {
+                    RebootListPopup()
                     var showDropdown by remember { mutableStateOf(false) }
 
                     IconButton(
