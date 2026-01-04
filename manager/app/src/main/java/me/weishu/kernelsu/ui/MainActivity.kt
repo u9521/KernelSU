@@ -3,6 +3,7 @@ package me.weishu.kernelsu.ui
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContentTransitionScope
@@ -32,7 +33,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -43,15 +46,18 @@ import com.ramcosta.composedestinations.DestinationsNavHost
 import com.ramcosta.composedestinations.animations.NavHostAnimatedDestinationStyle
 import com.ramcosta.composedestinations.generated.NavGraphs
 import com.ramcosta.composedestinations.generated.destinations.FlashScreenDestination
-import com.ramcosta.composedestinations.generated.destinations.FlashScreenDestination.invoke
+import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.utils.isRouteOnBackStackAsState
 import com.ramcosta.composedestinations.utils.rememberDestinationsNavigator
 import kotlinx.coroutines.flow.MutableStateFlow
 import me.weishu.kernelsu.Natives
+import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ui.component.rememberConfirmDialog
 import me.weishu.kernelsu.ui.screen.BottomBarDestination
 import me.weishu.kernelsu.ui.screen.FlashIt
 import me.weishu.kernelsu.ui.theme.KernelSUTheme
 import me.weishu.kernelsu.ui.util.LocalSnackbarHost
+import me.weishu.kernelsu.ui.util.getFileName
 import me.weishu.kernelsu.ui.util.install
 import me.weishu.kernelsu.ui.util.rootAvailable
 
@@ -77,16 +83,13 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 val navigator = navController.rememberDestinationsNavigator()
 
-                // Navigate to FlashScreen if ZIP file is provided and isManager
-                // Collect intentState as Compose State for thread-safe observation
-                val intentStateValue by intentState.collectAsState()
-                LaunchedEffect(intentStateValue) {
-                    intent?.data
-                        ?.takeIf { isManager && it.scheme == "content" && intent.type == "application/zip" }
-                        ?.let {
-                            navigator.navigate(FlashScreenDestination(FlashIt.FlashModules(listOf(it))))
-                        }
-                }
+                // Handle ZIP file installation from external apps
+                ZipFileIntentHandler(
+                    intentState = intentState,
+                    intent = intent,
+                    isManager = isManager,
+                    navigator = navigator
+                )
 
                 val snackBarHostState = remember { SnackbarHostState() }
                 val bottomBarRoutes = remember {
@@ -150,6 +153,7 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
@@ -199,3 +203,43 @@ private fun BottomBar(navController: NavHostController) {
         }
     }
 }
+
+/**
+ * Handles ZIP file installation from external apps (e.g., file managers).
+ * Shows a confirmation dialog to prevent accidental installation.
+ */
+@Composable
+private fun ZipFileIntentHandler(
+    intentState: MutableStateFlow<Int>,
+    intent: android.content.Intent?,
+    isManager: Boolean,
+    navigator: DestinationsNavigator
+) {
+    val context = LocalActivity.current ?: return
+    var zipUri by remember { mutableStateOf<android.net.Uri?>(null) }
+
+    val confirmDialog = rememberConfirmDialog(
+        onConfirm = {
+            zipUri?.let { navigator.navigate(FlashScreenDestination(FlashIt.FlashModules(listOf(it)))) }
+            zipUri = null
+        },
+        onDismiss = { zipUri = null }
+    )
+
+    val intentStateValue by intentState.collectAsState()
+    LaunchedEffect(intentStateValue) {
+        intent?.data
+            ?.takeIf { isManager && it.scheme == "content" && intent.type == "application/zip" }
+            ?.also { zipUri = it }
+            ?.let {
+                confirmDialog.showConfirm(
+                    title = context.getString(R.string.module),
+                    content = context.getString(
+                        R.string.module_install_prompt_with_name,
+                        "\n${it.getFileName(context) ?: it.lastPathSegment ?: "Unknown"}"
+                    )
+                )
+            }
+    }
+}
+
