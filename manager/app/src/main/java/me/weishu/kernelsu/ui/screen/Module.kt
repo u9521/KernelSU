@@ -137,9 +137,10 @@ fun ModuleScreen(navigator: DestinationsNavigator) {
     }
 
     val isSafeMode = Natives.isSafeMode
-    val hasMagisk = hasMagisk()
-
-    val hideInstallButton = isSafeMode || hasMagisk
+    val magiskInstalled by produceState(initialValue = false) {
+        value = withContext(Dispatchers.IO) { hasMagisk() }
+    }
+    val hideInstallButton = isSafeMode || magiskInstalled
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
 
@@ -259,7 +260,7 @@ fun ModuleScreen(navigator: DestinationsNavigator) {
         snackbarHost = { SnackbarHost(hostState = snackBarHost) }) { innerPadding ->
 
         when {
-            hasMagisk -> {
+            magiskInstalled -> {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()

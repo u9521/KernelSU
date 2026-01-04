@@ -71,8 +71,8 @@ import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.SearchAppBar
 import me.weishu.kernelsu.ui.component.SearchStatus
-import me.weishu.kernelsu.ui.util.UidGroupUtils
-import me.weishu.kernelsu.ui.util.UidGroupUtils.ownerNameForUid
+import me.weishu.kernelsu.ui.util.ownerNameForUid
+import me.weishu.kernelsu.ui.util.pickPrimary
 import me.weishu.kernelsu.ui.viewmodel.SuperUserViewModel
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
@@ -222,8 +222,8 @@ private fun SimpleAppItem(
                 contentDescription = app.label,
                 modifier = Modifier
                     .padding(4.dp)
-                    .width(48.dp)
-                    .height(48.dp)
+                    .width(32.dp)
+                    .height(32.dp)
             )
         },
     )
@@ -248,7 +248,7 @@ private fun buildGroups(apps: List<SuperUserViewModel.AppInfo>): List<GroupedApp
     }.thenBy { it.label.lowercase() }
     val groups = apps.groupBy { it.uid }.map { (uid, list) ->
         val sorted = list.sortedWith(comparator)
-        val primary = UidGroupUtils.pickPrimary(sorted)
+        val primary = pickPrimary(sorted)
         GroupedApps(
             uid = uid,
             apps = sorted,
