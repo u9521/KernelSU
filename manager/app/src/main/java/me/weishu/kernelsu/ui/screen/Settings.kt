@@ -95,7 +95,6 @@ import me.weishu.kernelsu.ui.component.rememberLoadingDialog
 import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.util.execKsud
 import me.weishu.kernelsu.ui.util.getBugreportFile
-import me.weishu.kernelsu.ui.util.shrinkModules
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -123,7 +122,6 @@ fun SettingScreen(navigator: DestinationsNavigator) {
             AboutDialog(it)
         }
         val loadingDialog = rememberLoadingDialog()
-        val shrinkDialog = rememberConfirmDialog()
 
         Column(
             modifier = Modifier
@@ -435,25 +433,6 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                                             alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.None
                                         )
                                     })
-                            }
-                        }
-                    }
-                })
-            }
-
-            val shrink = stringResource(id = R.string.shrink_sparse_image)
-            val shrinkMessage = stringResource(id = R.string.shrink_sparse_image_message)
-            KsuIsValid {
-                ListItem(leadingContent = {
-                    Icon(
-                        Icons.Filled.Compress, shrink
-                    )
-                }, headlineContent = { Text(shrink) }, modifier = Modifier.clickable {
-                    scope.launch {
-                        val result = shrinkDialog.awaitConfirm(title = shrink, content = shrinkMessage)
-                        if (result == ConfirmResult.Confirmed) {
-                            loadingDialog.withLoading {
-                                shrinkModules()
                             }
                         }
                     }
