@@ -209,7 +209,6 @@ private fun SimpleAppItem(
     app: SuperUserViewModel.AppInfo
 ) {
     ListItem(
-        modifier = Modifier.clickable(onClick = { }),
         headlineContent = { Text(app.label) },
         supportingContent = {
             Column {
