@@ -206,7 +206,7 @@ fun SuperUserScreen(navigator: DestinationsNavigator) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SimpleAppItem(
-    app: SuperUserViewModel.AppInfo,
+    app: SuperUserViewModel.AppInfo
 ) {
     ListItem(
         modifier = Modifier.clickable(onClick = { }),
