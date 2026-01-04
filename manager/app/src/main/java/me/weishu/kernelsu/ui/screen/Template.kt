@@ -190,14 +190,14 @@ private fun TemplateItem(
             },
         headlineContent = { Text(template.name) },
         supportingContent = {
-            Column {
+            Column (){
                 Text(
                     text = "${template.id}${if (template.author.isEmpty()) "" else "@${template.author}"}",
                     style = MaterialTheme.typography.bodySmall,
                     fontSize = MaterialTheme.typography.bodySmall.fontSize,
                 )
                 Text(template.description)
-                FlowRow (horizontalArrangement = Arrangement.spacedBy(5.dp)){
+                FlowRow (horizontalArrangement = Arrangement.spacedBy(4.dp)){
                     StatusTag(label = "UID: ${template.uid}",colorScheme.primary, colorScheme.onPrimary)
                     StatusTag(label = "GID: ${template.gid}", colorScheme.secondaryContainer, colorScheme.onSecondaryContainer)
                     StatusTag(label = template.context, colorScheme.tertiaryContainer, colorScheme.onTertiaryContainer)

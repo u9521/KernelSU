@@ -7,7 +7,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -52,10 +51,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.modifier.modifierLocalConsumer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
@@ -319,7 +318,7 @@ private fun GroupItem(
         supportingContent = {
             Column {
                 Text(summaryText)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     tags.forEach { meta ->
                         StatusTag(
                             label = meta.label, backgroundColor = meta.bg, contentColor = meta.fg
@@ -332,21 +331,23 @@ private fun GroupItem(
 
 @Composable
 fun StatusTag(
-    label: String, backgroundColor: Color, contentColor: Color
+    label: String, backgroundColor: Color, contentColor: Color, textSize: TextUnit = 10.sp
 ) {
     Box(
         modifier = Modifier.background(
             color = backgroundColor, shape = RoundedCornerShape(6.dp)
-        )
+        ),
+        propagateMinConstraints = true
     ) {
         Text(
-            modifier = Modifier.padding(horizontal = 5.dp),
+            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
             text = label,
             color = contentColor,
-            fontSize = 10.sp,
+            fontSize = textSize,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
-            softWrap = false
+            softWrap = false,
+            lineHeight = textSize,
         )
     }
 }

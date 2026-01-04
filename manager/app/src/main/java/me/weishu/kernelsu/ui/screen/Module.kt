@@ -12,6 +12,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -48,6 +49,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -79,6 +81,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ramcosta.composedestinations.annotation.Destination
@@ -111,6 +114,7 @@ import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel
 import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel.ModuleInfo
 import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel.ModuleUpdateInfo
 import me.weishu.kernelsu.ui.webui.WebUIActivity
+import okhttp3.Request
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Destination<RootGraph>
@@ -151,59 +155,59 @@ fun ModuleScreen(navigator: DestinationsNavigator) {
 
     Scaffold(
         topBar = {
-            SearchAppBar(
-                title = { Text(stringResource(R.string.module)) },
-                searchStatus = searchStatus,
-                dropdownContent = {
-                    RebootListPopup()
-                    var showDropdown by remember { mutableStateOf(false) }
+        SearchAppBar(
+            title = { Text(stringResource(R.string.module)) },
+            searchStatus = searchStatus,
+            dropdownContent = {
+                RebootListPopup()
+                var showDropdown by remember { mutableStateOf(false) }
 
-                    IconButton(
-                        onClick = { showDropdown = true },
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.MoreVert, contentDescription = stringResource(id = R.string.settings)
-                        )
+                IconButton(
+                    onClick = { showDropdown = true },
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.MoreVert, contentDescription = stringResource(id = R.string.settings)
+                    )
 
-                        DropdownMenu(expanded = showDropdown, onDismissRequest = {
-                            showDropdown = false
-                        }) {
-                            DropdownMenuItem(text = {
-                                Text(stringResource(R.string.module_sort_action_first))
-                            }, trailingIcon = {
-                                Checkbox(viewModel.sortActionFirst, null)
-                            }, onClick = {
-                                viewModel.sortActionFirst = !viewModel.sortActionFirst
-                                prefs.edit {
-                                    putBoolean(
-                                        "module_sort_action_first", viewModel.sortActionFirst
-                                    )
-                                }
-                                scope.launch {
-                                    viewModel.fetchModuleList()
-                                }
-                            })
-                            DropdownMenuItem(text = {
-                                Text(stringResource(R.string.module_sort_enabled_first))
-                            }, trailingIcon = {
-                                Checkbox(viewModel.sortEnabledFirst, null)
-                            }, onClick = {
-                                viewModel.sortEnabledFirst = !viewModel.sortEnabledFirst
-                                prefs.edit {
-                                    putBoolean(
-                                        "module_sort_enabled_first", viewModel.sortEnabledFirst
-                                    )
-                                }
-                                scope.launch {
-                                    viewModel.fetchModuleList()
-                                }
-                            })
-                        }
+                    DropdownMenu(expanded = showDropdown, onDismissRequest = {
+                        showDropdown = false
+                    }) {
+                        DropdownMenuItem(text = {
+                            Text(stringResource(R.string.module_sort_action_first))
+                        }, trailingIcon = {
+                            Checkbox(viewModel.sortActionFirst, null)
+                        }, onClick = {
+                            viewModel.sortActionFirst = !viewModel.sortActionFirst
+                            prefs.edit {
+                                putBoolean(
+                                    "module_sort_action_first", viewModel.sortActionFirst
+                                )
+                            }
+                            scope.launch {
+                                viewModel.fetchModuleList()
+                            }
+                        })
+                        DropdownMenuItem(text = {
+                            Text(stringResource(R.string.module_sort_enabled_first))
+                        }, trailingIcon = {
+                            Checkbox(viewModel.sortEnabledFirst, null)
+                        }, onClick = {
+                            viewModel.sortEnabledFirst = !viewModel.sortEnabledFirst
+                            prefs.edit {
+                                putBoolean(
+                                    "module_sort_enabled_first", viewModel.sortEnabledFirst
+                                )
+                            }
+                            scope.launch {
+                                viewModel.fetchModuleList()
+                            }
+                        })
                     }
-                },
-                scrollBehavior = scrollBehavior,
-            )
-        },
+                }
+            },
+            scrollBehavior = scrollBehavior,
+        )
+    },
         floatingActionButton = {
             if (!hideInstallButton) {
                 val moduleInstall = stringResource(id = R.string.module_install)
@@ -321,6 +325,7 @@ private fun ModuleList(
     val uninstall = stringResource(R.string.uninstall)
     val cancel = stringResource(android.R.string.cancel)
     val moduleUninstallConfirm = stringResource(R.string.module_uninstall_confirm)
+    val metaModuleUninstallConfirm = stringResource(R.string.metamodule_uninstall_confirm)
     val updateText = stringResource(R.string.module_update)
     val changelogText = stringResource(R.string.module_changelog)
     val downloadingText = stringResource(R.string.module_downloading)
@@ -337,7 +342,7 @@ private fun ModuleList(
             withContext(Dispatchers.IO) {
                 runCatching {
                     ksuApp.okhttpClient.newCall(
-                        okhttp3.Request.Builder().url(changelogUrl).build()
+                        Request.Builder().url(changelogUrl).build()
                     ).execute().body!!.string()
                 }
             }
@@ -385,8 +390,9 @@ private fun ModuleList(
     }
 
     suspend fun onModuleUninstall(module: ModuleInfo) {
+        val formatter = if (module.metamodule) metaModuleUninstallConfirm else moduleUninstallConfirm
         val confirmResult = confirmDialog.awaitConfirm(
-            moduleStr, content = moduleUninstallConfirm.format(module.name), confirm = uninstall, dismiss = cancel
+            moduleStr, content = formatter.format(module.name), confirm = uninstall, dismiss = cancel
         )
         if (confirmResult != ConfirmResult.Confirmed) {
             return
@@ -548,22 +554,21 @@ fun ModuleItem(
         val indication = LocalIndication.current
         val viewModel = viewModel<ModuleViewModel>()
 
-        Column(
-            modifier = Modifier
-                .run {
-                    if (module.hasWebUi) {
-                        toggleable(
-                            value = module.enabled,
-                            enabled = !module.remove && module.enabled,
-                            interactionSource = interactionSource,
-                            role = Role.Button,
-                            indication = indication,
-                            onValueChange = { onClick(module) })
-                    } else {
-                        this
-                    }
+        Column(modifier = Modifier
+            .run {
+                if (module.hasWebUi) {
+                    toggleable(
+                        value = module.enabled,
+                        enabled = !module.remove && module.enabled,
+                        interactionSource = interactionSource,
+                        role = Role.Button,
+                        indication = indication,
+                        onValueChange = { onClick(module) })
+                } else {
+                    this
                 }
-                .padding(22.dp, 18.dp, 22.dp, 12.dp)) {
+            }
+            .padding(22.dp, 18.dp, 22.dp, 12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -574,14 +579,19 @@ fun ModuleItem(
                 Column(
                     modifier = Modifier.fillMaxWidth(0.8f)
                 ) {
-                    Text(
-                        text = module.name,
-                        fontSize = MaterialTheme.typography.titleMedium.fontSize,
-                        fontWeight = FontWeight.SemiBold,
-                        lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
-                        fontFamily = MaterialTheme.typography.titleMedium.fontFamily,
-                        textDecoration = textDecoration,
-                    )
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = module.name,
+                            fontSize = MaterialTheme.typography.titleMedium.fontSize,
+                            fontWeight = FontWeight.SemiBold,
+                            lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
+                            fontFamily = MaterialTheme.typography.titleMedium.fontFamily,
+                            textDecoration = textDecoration,
+                        )
+                        if (module.metamodule) {
+                            StatusTag("META", colorScheme.primary, colorScheme.onPrimary, 12.sp)
+                        }
+                    }
 
                     Text(
                         text = "$moduleVersion: ${module.version}",
@@ -747,7 +757,8 @@ fun ModuleItemPreview() {
         remove = false,
         updateJson = "",
         hasWebUi = false,
-        hasActionScript = false
+        hasActionScript = false,
+        metamodule = false
     )
     ModuleItem(EmptyDestinationsNavigator, module, "", {}, {}, {}, {})
 }
