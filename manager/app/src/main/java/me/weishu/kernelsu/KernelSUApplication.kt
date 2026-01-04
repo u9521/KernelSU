@@ -40,12 +40,6 @@ class KernelSUApplication : Application(), ViewModelStoreOwner {
                 .build()
         )
 
-        // For faster response when first entering superuser or webui activity
-        val superUserViewModel = ViewModelProvider(this)[SuperUserViewModel::class.java]
-        CoroutineScope(Dispatchers.Main).launch {
-            superUserViewModel.fetchAppList()
-        }
-
         val webroot = File(dataDir, "webroot")
         if (!webroot.exists()) {
             webroot.mkdir()
