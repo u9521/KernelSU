@@ -1,5 +1,6 @@
 package me.weishu.kernelsu.ui.component
 
+import android.R
 import android.os.Parcelable
 import android.util.Log
 import androidx.compose.foundation.layout.Box
@@ -45,6 +46,7 @@ interface ConfirmDialogVisuals : Parcelable {
     val title: String
     val content: String
     val isMarkdown: Boolean
+    val isHtml: Boolean
     val confirm: String?
     val dismiss: String?
 }
@@ -54,11 +56,12 @@ private data class ConfirmDialogVisualsImpl(
     override val title: String,
     override val content: String,
     override val isMarkdown: Boolean,
+    override val isHtml: Boolean,
     override val confirm: String?,
     override val dismiss: String?,
 ) : ConfirmDialogVisuals {
     companion object {
-        val Empty: ConfirmDialogVisuals = ConfirmDialogVisualsImpl("", "", false, null, null)
+        val Empty: ConfirmDialogVisuals = ConfirmDialogVisualsImpl("", "", false, false, null, null)
     }
 }
 
@@ -83,11 +86,11 @@ interface ConfirmDialogHandle : DialogHandle {
     val visuals: ConfirmDialogVisuals
 
     fun showConfirm(
-        title: String, content: String, markdown: Boolean = false, confirm: String? = null, dismiss: String? = null
+        title: String, content: String, markdown: Boolean = false, html: Boolean = false, confirm: String? = null, dismiss: String? = null
     )
 
     suspend fun awaitConfirm(
-        title: String, content: String, markdown: Boolean = false, confirm: String? = null, dismiss: String? = null
+        title: String, content: String, markdown: Boolean = false, html: Boolean = false, confirm: String? = null, dismiss: String? = null
     ): ConfirmResult
 }
 
@@ -231,20 +234,18 @@ private class ConfirmDialogHandleImpl(
         }
     }
 
-    override fun showConfirm(
-        title: String, content: String, markdown: Boolean, confirm: String?, dismiss: String?
-    ) {
+    override fun showConfirm(title: String, content: String, markdown: Boolean, html: Boolean, confirm: String?, dismiss: String?) {
         coroutineScope.launch {
-            updateVisuals(ConfirmDialogVisualsImpl(title, content, markdown, confirm, dismiss))
+            updateVisuals(ConfirmDialogVisualsImpl(title, content, markdown, html, confirm, dismiss))
             show()
         }
     }
 
     override suspend fun awaitConfirm(
-        title: String, content: String, markdown: Boolean, confirm: String?, dismiss: String?
+        title: String, content: String, markdown: Boolean, html: Boolean, confirm: String?, dismiss: String?
     ): ConfirmResult {
         coroutineScope.launch {
-            updateVisuals(ConfirmDialogVisualsImpl(title, content, markdown, confirm, dismiss))
+            updateVisuals(ConfirmDialogVisualsImpl(title, content, markdown, html, confirm, dismiss))
             show()
         }
         return awaitResult()
@@ -375,20 +376,22 @@ private fun ConfirmDialog(visuals: ConfirmDialogVisuals, confirm: () -> Unit, di
             Text(text = visuals.title)
         },
         text = {
-            if (visuals.isMarkdown) {
-                MarkdownContent(visuals.content)
-            } else {
-                Text(text = visuals.content)
+            visuals.content.let { content ->
+                when {
+                    visuals.isMarkdown -> MarkdownContent(content = content)
+                    visuals.isHtml -> GithubMarkdownContent(content = content)
+                    else -> Text(text = content)
+                }
             }
         },
         confirmButton = {
             TextButton(onClick = confirm) {
-                Text(text = visuals.confirm ?: stringResource(id = android.R.string.ok))
+                Text(text = visuals.confirm ?: stringResource(id = R.string.ok))
             }
         },
         dismissButton = {
             TextButton(onClick = dismiss) {
-                Text(text = visuals.dismiss ?: stringResource(id = android.R.string.cancel))
+                Text(text = visuals.dismiss ?: stringResource(id = R.string.cancel))
             }
         },
     )
