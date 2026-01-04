@@ -391,7 +391,7 @@ private fun ModuleList(
         val downloading = downloadingText.format(module.name)
         withContext(Dispatchers.IO) {
             download(
-                context, downloadUrl, fileName, downloading, onDownloaded = onInstallModule, onDownloading = {
+                downloadUrl, fileName, onDownloaded = onInstallModule, onDownloading = {
                     launch(Dispatchers.Main) {
                         Toast.makeText(context, downloading, Toast.LENGTH_SHORT).show()
                     }
