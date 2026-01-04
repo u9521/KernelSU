@@ -3,10 +3,10 @@ package me.weishu.kernelsu.ui.screen
 import android.os.Build
 import androidx.annotation.StringRes
 import androidx.compose.animation.Crossfade
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -44,16 +44,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.dropUnlessResumed
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -108,6 +106,11 @@ fun AppProfileScreen(
     val primaryForIcon = remember(appInfo.uid, sameUidApps) {
         runCatching { UidGroupUtils.pickPrimary(sameUidApps) }.getOrNull() ?: appInfo
     }
+    val sharedUserId = remember(appInfo.uid, sameUidApps, primaryForIcon) {
+        primaryForIcon.packageInfo.sharedUserId
+            ?: sameUidApps.firstOrNull { it.packageInfo.sharedUserId != null }?.packageInfo?.sharedUserId
+            ?: ""
+    }
     val initialProfile = Natives.getAppProfile(packageName, appInfo.uid)
     if (initialProfile.allowSu) {
         initialProfile.rules = getSepolicy(packageName)
@@ -145,6 +148,7 @@ fun AppProfileScreen(
                 )
             },
             appUid = appInfo.uid,
+            sharedUserId = if (isUidGroup) sharedUserId else "",
             appVersionName = if (isUidGroup) "" else (appInfo.packageInfo.versionName ?: ""),
             appVersionCode = if (isUidGroup) 0L else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 appInfo.packageInfo.longVersionCode
@@ -193,6 +197,7 @@ private fun AppProfileInner(
     appLabel: String,
     appIcon: @Composable () -> Unit,
     appUid: Int,
+    sharedUserId: String = "",
     appVersionName: String,
     appVersionCode: Long,
     profile: Natives.Profile,
@@ -210,24 +215,24 @@ private fun AppProfileInner(
             ListItem(
                 headlineContent = { Text(appLabel) },
                 supportingContent = {
-                    if (!isUidGroup) {
-                        Text("$appVersionName ($appVersionCode)")
-                        Text(packageName)
-                    } else {
-                        Text(
-                            text = stringResource(R.string.group_contains_apps, affectedApps.size),
-                            fontSize = 14.sp,
-                            maxLines = 1,
-                            softWrap = false,
-                            overflow = TextOverflow.Clip,
-                            modifier = Modifier
-                                .horizontalScroll(rememberScrollState())
-                                .clipToBounds()
-                        )
+                    Column {
+                        if (!isUidGroup) {
+                            Text(text = packageName)
+                            Text("$appVersionName ($appVersionCode)")
+                        } else {
+                            if (sharedUserId.isNotEmpty()) {
+                                Text(
+                                    text = sharedUserId,
+                                )
+                            }
+                            Text(
+                                text = stringResource(R.string.group_contains_apps, affectedApps.size),
+                            )
+                        }
                     }
                 },
                 trailingContent = {
-                    StatusTag("UID $appUid",colorScheme.primary, colorScheme.onPrimary)
+                    StatusTag("UID $appUid", colorScheme.primary, colorScheme.onPrimary)
                 },
                 leadingContent = appIcon,
             )
@@ -306,8 +311,10 @@ private fun AppProfileInner(
                     ListItem(
                         headlineContent = { Text(app.label) },
                         supportingContent = {
-                            Text("${app.packageInfo.versionName} (${app.packageInfo.longVersionCode})")
-                            Text(app.packageName)
+                            Column {
+                                Text(app.packageName)
+                                Text("${app.packageInfo.versionName} (${app.packageInfo.longVersionCode})")
+                            }
                         },
                         leadingContent = {
                             AsyncImage(
