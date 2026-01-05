@@ -1,7 +1,6 @@
 package me.weishu.kernelsu.ui.screen
 
 import android.content.Context
-import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -9,6 +8,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,9 +29,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -40,6 +42,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -49,6 +53,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -62,23 +67,21 @@ import androidx.core.content.edit
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.annotation.RootGraph
-import com.ramcosta.composedestinations.generated.destinations.AppProfileScreenDestination
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ksuApp
 import me.weishu.kernelsu.ui.component.SearchAppBar
 import me.weishu.kernelsu.ui.component.SearchStatus
+import me.weishu.kernelsu.ui.navigation.AppProfileScreenNavKey
+import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.ownerNameForUid
 import me.weishu.kernelsu.ui.util.pickPrimary
 import me.weishu.kernelsu.ui.viewmodel.SuperUserViewModel
 
-@OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
-@Destination<RootGraph>
+@OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun SuperUserScreen(navigator: DestinationsNavigator) {
+fun SuperUserScreen() {
+    val navigator = LocalNavController.current
     val viewModel = viewModel<SuperUserViewModel>()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
     val listState = rememberLazyListState()
@@ -87,9 +90,15 @@ fun SuperUserScreen(navigator: DestinationsNavigator) {
     val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
     LaunchedEffect(key1 = Unit) {
-        if (viewModel.appList.value.isEmpty() || viewModel.isRefreshing) {
-            viewModel.showSystemApps = prefs.getBoolean("show_system_apps", false)
-            viewModel.loadAppList()
+        when {
+            viewModel.appList.value.isEmpty() -> {
+                viewModel.showSystemApps = prefs.getBoolean("show_system_apps", false)
+                viewModel.loadAppList()
+            }
+
+            viewModel.isNeedRefresh -> {
+                viewModel.loadAppList()
+            }
         }
     }
 
@@ -100,42 +109,37 @@ fun SuperUserScreen(navigator: DestinationsNavigator) {
     Scaffold(
         topBar = {
             var showDropdown by remember { mutableStateOf(false) }
+            val dissMissMenu = { showDropdown = false }
             SearchAppBar(
                 title = { Text(stringResource(R.string.superuser)) }, searchStatus = searchStatus, dropdownContent = {
-                IconButton(
-                    onClick = { showDropdown = true },
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.MoreVert, contentDescription = stringResource(id = R.string.settings)
-                    )
-                    DropdownMenu(expanded = showDropdown, onDismissRequest = {
-                        showDropdown = false
-                    }) {
-                        DropdownMenuItem(text = {
-                            Text(stringResource(R.string.refresh))
-                        }, onClick = {
-                            viewModel.loadAppList()
-                            showDropdown = false
-                        })
-                        DropdownMenuItem(text = {
-                            Text(
-                                if (viewModel.showSystemApps) {
-                                    stringResource(R.string.hide_system_apps)
-                                } else {
-                                    stringResource(R.string.show_system_apps)
+                    IconButton(
+                        onClick = { showDropdown = true },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.MoreVert, contentDescription = stringResource(id = R.string.settings)
+                        )
+                        DropdownMenu(expanded = showDropdown, onDismissRequest = dissMissMenu) {
+                            val interactionSource = remember { MutableInteractionSource() }
+                            val showSysOnclick = {
+                                viewModel.showSystemApps = !viewModel.showSystemApps
+                                prefs.edit {
+                                    putBoolean("show_system_apps", viewModel.showSystemApps)
                                 }
-                            )
-                        }, onClick = {
-                            viewModel.showSystemApps = !viewModel.showSystemApps
-                            prefs.edit {
-                                putBoolean("show_system_apps", viewModel.showSystemApps)
+                                viewModel.loadAppList()
+                                dissMissMenu()
                             }
-                            viewModel.loadAppList()
-                            showDropdown = false
-                        })
+                            DropdownMenuItem(
+                                interactionSource = interactionSource, trailingIcon = {
+                                    Checkbox(viewModel.showSystemApps, { showSysOnclick() }, interactionSource = interactionSource)
+                                }, text = {
+                                    Text(
+                                        stringResource(R.string.show_system_apps)
+                                    )
+                                }, onClick = showSysOnclick
+                            )
+                        }
                     }
-                }
-            }, scrollBehavior = scrollBehavior
+                }, scrollBehavior = scrollBehavior
             )
         }, contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     ) { innerPadding ->
@@ -154,10 +158,10 @@ fun SuperUserScreen(navigator: DestinationsNavigator) {
                     // 搜索状态下，默认展开有多个应用的搜索结果组
                     val searchResultsByUid = viewModel.searchResults.value.groupBy { it.uid }
                     expandedUids.value = groups.filter { group ->
-                            // 只展开有多个应用且出现在搜索结果中的组
-                            val appsInGroup = searchResultsByUid[group.uid] ?: emptyList()
-                            appsInGroup.size > 1
-                        }.map { it.uid }.toSet()
+                        // 只展开有多个应用且出现在搜索结果中的组
+                        val appsInGroup = searchResultsByUid[group.uid] ?: emptyList()
+                        appsInGroup.size > 1
+                    }.map { it.uid }.toSet()
                 }
 
                 SearchStatus.ResultStatus.EMPTY, SearchStatus.ResultStatus.DEFAULT -> expandedUids.value = emptySet()
@@ -165,16 +169,18 @@ fun SuperUserScreen(navigator: DestinationsNavigator) {
                 SearchStatus.ResultStatus.LOAD -> {}
             }
         }
-
+        val state = rememberPullToRefreshState()
         PullToRefreshBox(
-            modifier = Modifier.padding(innerPadding), onRefresh = { viewModel.loadAppList() }, isRefreshing = viewModel.isRefreshing
+            modifier = Modifier.padding(innerPadding), state = state, onRefresh = { viewModel.loadAppList(true) }, isRefreshing = viewModel.isRefreshing,
+            indicator = {
+                PullToRefreshDefaults.LoadingIndicator(state = state, isRefreshing = viewModel.isRefreshing, modifier = Modifier.align(Alignment.TopCenter))
+            }
         ) {
             LazyColumn(
                 state = listState, modifier = Modifier
                     .fillMaxSize()
                     .nestedScroll(scrollBehavior.nestedScrollConnection)
             ) {
-                Log.d("TAG", "SuperUserScreen: ${viewModel.searchStatus.value.resultStatus}")
                 items(groups, key = { it.uid }) { group ->
                     val expanded = expandedUids.value.contains(group.uid)
                     GroupItem(
@@ -183,7 +189,8 @@ fun SuperUserScreen(navigator: DestinationsNavigator) {
                                 expandedUids.value = if (expanded) expandedUids.value - group.uid else expandedUids.value + group.uid
                             }
                         }) {
-                        navigator.navigate(AppProfileScreenDestination(group.primary))
+                        navigator.navigateTo(AppProfileScreenNavKey(group.primary))
+                        viewModel.markNeedRefresh()
                     }
                     AnimatedVisibility(
                         visible = expanded && group.apps.size > 1, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()
@@ -319,7 +326,7 @@ private fun GroupItem(
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     tags.forEach { meta ->
                         StatusTag(
-                            label = meta.label, backgroundColor = meta.bg, contentColor = meta.fg
+                            label = meta.label, contentColor = meta.fg, backgroundColor = meta.bg
                         )
                     }
                 }
@@ -329,7 +336,7 @@ private fun GroupItem(
 
 @Composable
 fun StatusTag(
-    label: String, backgroundColor: Color, contentColor: Color, textSize: TextUnit = 10.sp
+    label: String, textSize: TextUnit = 10.sp, contentColor: Color = colorScheme.onPrimary, backgroundColor: Color = colorScheme.primary
 ) {
     Box(
         modifier = Modifier.background(

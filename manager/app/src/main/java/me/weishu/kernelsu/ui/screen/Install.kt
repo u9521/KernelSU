@@ -63,17 +63,14 @@ import com.maxkeppeker.sheets.core.models.base.rememberUseCaseState
 import com.maxkeppeler.sheets.list.ListDialog
 import com.maxkeppeler.sheets.list.models.ListOption
 import com.maxkeppeler.sheets.list.models.ListSelection
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.annotation.RootGraph
-import com.ramcosta.composedestinations.generated.destinations.FlashScreenDestination
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import com.ramcosta.composedestinations.navigation.EmptyDestinationsNavigator
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.BrDropdownMenuItem
 import me.weishu.kernelsu.ui.component.DialogHandle
 import me.weishu.kernelsu.ui.component.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.rememberCustomDialog
+import me.weishu.kernelsu.ui.navigation.FlashScreenNavKey
 import me.weishu.kernelsu.ui.util.LkmSelection
+import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.getAvailablePartitions
 import me.weishu.kernelsu.ui.util.getCurrentKmi
 import me.weishu.kernelsu.ui.util.getDefaultPartition
@@ -87,9 +84,9 @@ import me.weishu.kernelsu.ui.util.rootAvailable
  * @date 2024/3/12.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
-@Destination<RootGraph>
 @Composable
-fun InstallScreen(navigator: DestinationsNavigator) {
+fun InstallScreen() {
+    val navigator = LocalNavController.current
     val context = LocalContext.current
     var installMethod by remember {
         mutableStateOf<InstallMethod?>(null)
@@ -113,7 +110,7 @@ fun InstallScreen(navigator: DestinationsNavigator) {
                 ota = isOta,
                 partition = partitionSelection
             )
-            navigator.navigate(FlashScreenDestination(flashIt))
+            navigator.navigateTo(FlashScreenNavKey(flashIt))
         }
     }
 
@@ -392,7 +389,7 @@ private fun SelectInstallMethod(onSelected: (InstallMethod) -> Unit = {}) {
 @Composable
 fun rememberSelectKmiDialog(onSelected: (String?) -> Unit): DialogHandle {
     return rememberCustomDialog { dismiss ->
-        val supportedKmi by produceState(initialValue = emptyList<String>()) {
+        val supportedKmi by produceState(initialValue = emptyList()) {
             value = getSupportedKmis()
         }
         val options = supportedKmi.map { value ->
@@ -460,5 +457,5 @@ private fun isKoFile(context: Context, uri: Uri): Boolean {
 @Composable
 @Preview
 fun SelectInstallPreview() {
-    InstallScreen(EmptyDestinationsNavigator)
+    InstallScreen()
 }

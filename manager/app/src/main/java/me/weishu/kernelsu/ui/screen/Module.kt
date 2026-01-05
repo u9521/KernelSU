@@ -44,13 +44,13 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -60,6 +60,8 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -85,12 +87,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.annotation.RootGraph
-import com.ramcosta.composedestinations.generated.destinations.ExecuteModuleActionScreenDestination
-import com.ramcosta.composedestinations.generated.destinations.FlashScreenDestination
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import com.ramcosta.composedestinations.navigation.EmptyDestinationsNavigator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -103,7 +99,12 @@ import me.weishu.kernelsu.ui.component.SearchAppBar
 import me.weishu.kernelsu.ui.component.SearchStatus
 import me.weishu.kernelsu.ui.component.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.rememberLoadingDialog
+import me.weishu.kernelsu.ui.navigation.ExecuteModuleActionNavKey
+import me.weishu.kernelsu.ui.navigation.FlashScreenNavKey
+import me.weishu.kernelsu.ui.navigation.NavController
+import me.weishu.kernelsu.ui.navigation.TopLevelRoute
 import me.weishu.kernelsu.ui.util.DownloadListener
+import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.util.download
 import me.weishu.kernelsu.ui.util.getFileName
@@ -119,9 +120,9 @@ import me.weishu.kernelsu.ui.webui.WebUIActivity
 import okhttp3.Request
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Destination<RootGraph>
 @Composable
-fun ModuleScreen(navigator: DestinationsNavigator) {
+fun ModuleScreen() {
+    val navigator = LocalNavController.current
     val viewModel = viewModel<ModuleViewModel>()
     val context = LocalContext.current
     val snackBarHost = LocalSnackbarHost.current
@@ -222,7 +223,7 @@ fun ModuleScreen(navigator: DestinationsNavigator) {
                 val confirmTitle = stringResource(R.string.module)
                 var zipUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
                 val confirmDialog = rememberConfirmDialog(onConfirm = {
-                    navigator.navigate(FlashScreenDestination(FlashIt.FlashModules(zipUris)))
+                    navigator.navigateTo(FlashScreenNavKey(FlashIt.FlashModules(zipUris)))
                     viewModel.markNeedRefresh()
                 })
                 val selectZipLauncher = rememberLauncherForActivityResult(
@@ -295,7 +296,7 @@ fun ModuleScreen(navigator: DestinationsNavigator) {
                     modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
                     boxModifier = Modifier.padding(innerPadding),
                     onInstallModule = {
-                        navigator.navigate(FlashScreenDestination(FlashIt.FlashModules(listOf(it))))
+                        navigator.navigateTo(FlashScreenNavKey(FlashIt.FlashModules(listOf(it))))
                     },
                     onClickModule = { id, name, hasWebUi ->
                         if (hasWebUi) {
@@ -312,10 +313,10 @@ fun ModuleScreen(navigator: DestinationsNavigator) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ModuleList(
-    navigator: DestinationsNavigator,
+    navigator: NavController,
     viewModel: ModuleViewModel,
     modifier: Modifier = Modifier,
     boxModifier: Modifier = Modifier,
@@ -341,7 +342,6 @@ private fun ModuleList(
     val changelogText = stringResource(R.string.module_changelog)
     val downloadingText = stringResource(R.string.module_downloading)
     val startDownloadingText = stringResource(R.string.module_start_downloading)
-    val fetchChangeLogFailed = stringResource(R.string.module_changelog_failed)
 
     val loadingDialog = rememberLoadingDialog()
     val confirmDialog = rememberConfirmDialog()
@@ -367,13 +367,7 @@ private fun ModuleList(
             }
         }
 
-        val changelog = changelogResult.getOrElse {
-            showToast(fetchChangeLogFailed.format(it.message))
-            return
-        }.ifBlank {
-            showToast(fetchChangeLogFailed.format(module.name))
-            return
-        }
+        val changelog = changelogResult.getOrElse { "" }
 
         // changelog is not empty, show it and wait for confirm
         val confirmResult = confirmDialog.awaitConfirm(
@@ -400,7 +394,7 @@ private fun ModuleList(
         }
     }
 
-    suspend fun onModuleUndoUninstall(module: ModuleViewModel.ModuleInfo) {
+    suspend fun onModuleUndoUninstall(module: ModuleInfo) {
         val success = loadingDialog.withLoading {
             withContext(Dispatchers.IO) {
                 undoUninstallModule(module.id)
@@ -456,9 +450,15 @@ private fun ModuleList(
             reboot()
         }
     }
+
+    val state = rememberPullToRefreshState()
     PullToRefreshBox(
-        modifier = boxModifier, onRefresh = {
+        modifier = boxModifier, state = state, onRefresh = {
             viewModel.fetchModuleList()
+        }, indicator = {
+            PullToRefreshDefaults.LoadingIndicator(
+                state = state, isRefreshing = viewModel.isRefreshing, modifier = Modifier.align(Alignment.TopCenter)
+            )
         }, isRefreshing = viewModel.isRefreshing
     ) {
         LazyColumn(
@@ -505,42 +505,40 @@ private fun ModuleList(
                             }
                         }
 
-                        ModuleItem(
-                            navigator = navigator, module = module, updateUrl = updatedModule.downloadUrl, onUninstall = {
-                                scope.launch { onModuleUninstall(module) }
-                            }, onUndoUninstall = {
-                                scope.launch { onModuleUndoUninstall(module) }
-                            },
-                            onCheckChanged = {
-                                scope.launch {
-                                    val success = loadingDialog.withLoading {
-                                        withContext(Dispatchers.IO) {
-                                            toggleModule(module.id, !module.enabled)
-                                        }
+                        ModuleItem(navigator = navigator, module = module, updateUrl = updatedModule.downloadUrl, onUninstall = {
+                            scope.launch { onModuleUninstall(module) }
+                        }, onUndoUninstall = {
+                            scope.launch { onModuleUndoUninstall(module) }
+                        }, onCheckChanged = {
+                            scope.launch {
+                                val success = loadingDialog.withLoading {
+                                    withContext(Dispatchers.IO) {
+                                        toggleModule(module.id, !module.enabled)
                                     }
-                                    if (success) {
-                                        viewModel.fetchModuleList()
+                                }
+                                if (success) {
+                                    viewModel.fetchModuleList()
 
-                                        val result = snackBarHost.showSnackbar(
-                                            message = rebootToApply, actionLabel = reboot, duration = SnackbarDuration.Long
-                                        )
-                                        if (result == SnackbarResult.ActionPerformed) {
-                                            reboot()
-                                        }
-                                    } else {
-                                        val message = if (module.enabled) failedDisable else failedEnable
-                                        snackBarHost.showSnackbar(message.format(module.name))
-                                    }
-                                }
-                            }, onUpdate = {
-                                scope.launch {
-                                    onModuleUpdate(
-                                        module, updatedModule.changelog, updatedModule.downloadUrl, "${module.name}-${updatedModule.version}.zip"
+                                    val result = snackBarHost.showSnackbar(
+                                        message = rebootToApply, actionLabel = reboot, duration = SnackbarDuration.Long
                                     )
+                                    if (result == SnackbarResult.ActionPerformed) {
+                                        reboot()
+                                    }
+                                } else {
+                                    val message = if (module.enabled) failedDisable else failedEnable
+                                    snackBarHost.showSnackbar(message.format(module.name))
                                 }
-                            }, onClick = {
-                                onClickModule(it.id, it.name, it.hasWebUi)
-                            })
+                            }
+                        }, onUpdate = {
+                            scope.launch {
+                                onModuleUpdate(
+                                    module, updatedModule.changelog, updatedModule.downloadUrl, "${module.name}-${updatedModule.version}.zip"
+                                )
+                            }
+                        }, onClick = {
+                            onClickModule(it.id, it.name, it.hasWebUi)
+                        })
 
                         // fix last item shadow incomplete in LazyColumn
                         Spacer(Modifier.height(1.dp))
@@ -556,7 +554,7 @@ private fun ModuleList(
 
 @Composable
 fun ModuleItem(
-    navigator: DestinationsNavigator,
+    navigator: NavController,
     module: ModuleInfo,
     updateUrl: String,
     onUninstall: (ModuleInfo) -> Unit,
@@ -609,7 +607,7 @@ fun ModuleItem(
                             textDecoration = textDecoration,
                         )
                         if (module.metamodule) {
-                            StatusTag("META", colorScheme.primary, colorScheme.onPrimary, 12.sp)
+                            StatusTag("META", 12.sp)
                         }
                     }
 
@@ -671,7 +669,7 @@ fun ModuleItem(
                 if (module.hasActionScript) {
                     FilledTonalButton(
                         modifier = Modifier.defaultMinSize(52.dp, 32.dp), enabled = !module.remove && module.enabled, onClick = {
-                            navigator.navigate(ExecuteModuleActionScreenDestination(module.id))
+                            navigator.navigateTo(ExecuteModuleActionNavKey(module.id))
                             viewModel.markNeedRefresh()
                         }, contentPadding = ButtonDefaults.TextButtonContentPadding
                     ) {
@@ -740,15 +738,13 @@ fun ModuleItem(
                 }
 
                 FilledTonalButton(
-                    modifier = Modifier.defaultMinSize(52.dp, 32.dp),
-                    onClick = {
+                    modifier = Modifier.defaultMinSize(52.dp, 32.dp), onClick = {
                         if (module.remove) {
                             onUndoUninstall(module)
                         } else {
                             onUninstall(module)
                         }
-                    },
-                    contentPadding = ButtonDefaults.TextButtonContentPadding
+                    }, contentPadding = ButtonDefaults.TextButtonContentPadding
                 ) {
                     Icon(
                         modifier = Modifier.size(20.dp), imageVector = if (module.remove) {
@@ -789,5 +785,5 @@ fun ModuleItemPreview() {
         hasActionScript = false,
         metamodule = false
     )
-    ModuleItem(EmptyDestinationsNavigator, module, "", {}, {}, {}, {}, {})
+    ModuleItem(NavController(TopLevelRoute.Module.navKey), module, "", {}, {}, {}, {}, {})
 }

@@ -30,7 +30,6 @@ import androidx.compose.material.icons.filled.RemoveModerator
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Update
-import androidx.compose.material.icons.rounded.EnhancedEncryption
 import androidx.compose.material.icons.rounded.UploadFile
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -71,12 +70,6 @@ import com.maxkeppeker.sheets.core.models.base.rememberUseCaseState
 import com.maxkeppeler.sheets.list.ListDialog
 import com.maxkeppeler.sheets.list.models.ListOption
 import com.maxkeppeler.sheets.list.models.ListSelection
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.annotation.RootGraph
-import com.ramcosta.composedestinations.generated.destinations.AppProfileTemplateScreenDestination
-import com.ramcosta.composedestinations.generated.destinations.FlashScreenDestination
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import com.ramcosta.composedestinations.navigation.EmptyDestinationsNavigator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -92,6 +85,9 @@ import me.weishu.kernelsu.ui.component.SwitchItem
 import me.weishu.kernelsu.ui.component.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.rememberCustomDialog
 import me.weishu.kernelsu.ui.component.rememberLoadingDialog
+import me.weishu.kernelsu.ui.navigation.AppProfileTemplateNavKey
+import me.weishu.kernelsu.ui.navigation.FlashScreenNavKey
+import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.util.execKsud
 import me.weishu.kernelsu.ui.util.getBugreportFile
@@ -105,9 +101,9 @@ import java.time.format.DateTimeFormatter
  * @date 2023/1/1.
  */
 @OptIn(ExperimentalMaterial3Api::class)
-@Destination<RootGraph>
 @Composable
-fun SettingScreen(navigator: DestinationsNavigator) {
+fun SettingScreen() {
+    val navigator = LocalNavController.current
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
     val snackBarHost = LocalSnackbarHost.current
     val context = LocalContext.current
@@ -118,7 +114,9 @@ fun SettingScreen(navigator: DestinationsNavigator) {
             TopBar(
                 scrollBehavior = scrollBehavior
             )
-        }, snackbarHost = { SnackbarHost(snackBarHost) }, contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+        },
+        snackbarHost = { SnackbarHost(snackBarHost) },
+        contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     ) { paddingValues ->
         val aboutDialog = rememberCustomDialog {
             AboutDialog(it)
@@ -157,66 +155,8 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                     headlineContent = { Text(profileTemplate) },
                     supportingContent = { Text(stringResource(id = R.string.settings_profile_template_summary)) },
                     modifier = Modifier.clickable {
-                        navigator.navigate(AppProfileTemplateScreenDestination)
+                        navigator.navigateTo(AppProfileTemplateNavKey)
                     })
-            }
-
-            val currentEnhancedEnabled = Natives.isEnhancedSecurityEnabled()
-            var enhancedSecurityMode by rememberSaveable { mutableIntStateOf(if (currentEnhancedEnabled) 1 else 0) }
-            val enhancedPersistValue by produceState(initialValue = null as Long?) {
-                value = getFeaturePersistValue("enhanced_security")
-            }
-            println("Enhanced persist value: $enhancedPersistValue")
-            LaunchedEffect(enhancedPersistValue) {
-                enhancedPersistValue?.let { v ->
-                    enhancedSecurityMode = if (v != 0L) 2 else if (currentEnhancedEnabled) 1 else 0
-                }
-            }
-
-            val enhancedStatus by produceState(initialValue = "") {
-                value = getFeatureStatus("enhanced_security")
-            }
-            val enhancedSummary = when (enhancedStatus) {
-                "unsupported" -> stringResource(id = R.string.feature_status_unsupported_summary)
-                "managed" -> stringResource(id = R.string.feature_status_managed_summary)
-                else -> stringResource(id = R.string.settings_enable_enhanced_security_summary)
-            }
-
-
-            KsuIsValid {
-                FeatureItem(
-                    title = stringResource(id = R.string.settings_enable_enhanced_security),
-                    summary = enhancedSummary,
-                    enabled = enhancedStatus == "supported",
-                    icon = Icons.Rounded.EnhancedEncryption,
-                    index = enhancedSecurityMode
-                ) { index ->
-                    when (index) {
-                        // Default: disable and save to persist
-                        0 -> if (Natives.setEnhancedSecurityEnabled(false)) {
-                            execKsud("feature save", true)
-                            prefs.edit { putInt("enhanced_security_mode", 0) }
-                            enhancedSecurityMode = 0
-                        }
-
-                        // Temporarily enable: save disabled state first, then enable
-                        1 -> if (Natives.setEnhancedSecurityEnabled(false)) {
-                            execKsud("feature save", true)
-                            if (Natives.setEnhancedSecurityEnabled(true)) {
-                                prefs.edit { putInt("enhanced_security_mode", 0) }
-                                enhancedSecurityMode = 1
-                            }
-                        }
-
-                        // Permanently enable: enable and save
-                        2 -> if (Natives.setEnhancedSecurityEnabled(true)) {
-                            execKsud("feature save", true)
-                            prefs.edit { putInt("enhanced_security_mode", 2) }
-                            enhancedSecurityMode = 2
-                        }
-                    }
-                }
-
             }
 
             val currentSuEnabled = Natives.isSuEnabled()
@@ -483,7 +423,7 @@ fun SettingScreen(navigator: DestinationsNavigator) {
 
             val lkmMode = Natives.isLkmMode
             if (lkmMode) {
-                UninstallItem(navigator) {
+                UninstallItem {
                     loadingDialog.withLoading(it)
                 }
             }
@@ -502,8 +442,9 @@ fun SettingScreen(navigator: DestinationsNavigator) {
 
 @Composable
 fun UninstallItem(
-    navigator: DestinationsNavigator, withLoading: suspend (suspend () -> Unit) -> Unit
+    withLoading: suspend (suspend () -> Unit) -> Unit
 ) {
+    val navigator = LocalNavController.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val uninstallConfirmDialog = rememberConfirmDialog()
@@ -519,12 +460,12 @@ fun UninstallItem(
                 withLoading {
                     when (uninstallType) {
                         UninstallType.TEMPORARY -> showTodo()
-                        UninstallType.PERMANENT -> navigator.navigate(
-                            FlashScreenDestination(FlashIt.FlashUninstall)
+                        UninstallType.PERMANENT -> navigator.navigateTo(
+                            FlashScreenNavKey(FlashIt.FlashUninstall)
                         )
 
-                        UninstallType.RESTORE_STOCK_IMAGE -> navigator.navigate(
-                            FlashScreenDestination(FlashIt.FlashRestore)
+                        UninstallType.RESTORE_STOCK_IMAGE -> navigator.navigateTo(
+                            FlashScreenNavKey(FlashIt.FlashRestore)
                         )
 
                         UninstallType.NONE -> Unit
@@ -605,5 +546,5 @@ private fun TopBar(
 @Preview
 @Composable
 private fun SettingsPreview() {
-    SettingScreen(EmptyDestinationsNavigator)
+    SettingScreen()
 }

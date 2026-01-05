@@ -40,8 +40,6 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.onClick
@@ -51,7 +49,6 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import me.weishu.kernelsu.R
-import kotlin.math.min
 
 
 @Composable
@@ -116,7 +113,7 @@ fun RadioItem(
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun FeatureItem(
-    icon: ImageVector? = null, title: String,enabled: Boolean = true, summary: String? = null, index: Int, onCheckedChange: (Int) -> Unit
+    icon: ImageVector? = null, title: String, enabled: Boolean = true, summary: String? = null, index: Int, onCheckedChange: (Int) -> Unit
 ) {
     val modeItems = listOf(
         stringResource(id = R.string.settings_mode_default),

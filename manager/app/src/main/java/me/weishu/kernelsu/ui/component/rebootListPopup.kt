@@ -26,7 +26,7 @@ import me.weishu.kernelsu.ui.util.reboot
 
 
 @Composable
-fun RebootDropdownItem(@StringRes id: Int, reason: String = "",dismissMenu: () -> Unit) {
+fun RebootDropdownItem(@StringRes id: Int, reason: String = "", dismissMenu: () -> Unit) {
     DropdownMenuItem(text = {
         Text(stringResource(id))
     }, onClick = {

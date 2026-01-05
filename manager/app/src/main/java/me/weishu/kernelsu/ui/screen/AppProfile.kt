@@ -6,7 +6,6 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -44,7 +43,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
@@ -55,11 +53,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.dropUnlessResumed
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.annotation.RootGraph
-import com.ramcosta.composedestinations.generated.destinations.AppProfileTemplateScreenDestination
-import com.ramcosta.composedestinations.generated.destinations.TemplateEditorScreenDestination
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import kotlinx.coroutines.launch
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
@@ -68,6 +61,9 @@ import me.weishu.kernelsu.ui.component.SwitchItem
 import me.weishu.kernelsu.ui.component.profile.AppProfileConfig
 import me.weishu.kernelsu.ui.component.profile.RootProfileConfig
 import me.weishu.kernelsu.ui.component.profile.TemplateConfig
+import me.weishu.kernelsu.ui.navigation.AppProfileTemplateNavKey
+import me.weishu.kernelsu.ui.navigation.TemplateEditorNavKey
+import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.util.forceStopApp
 import me.weishu.kernelsu.ui.util.getSepolicy
@@ -84,14 +80,13 @@ import me.weishu.kernelsu.ui.viewmodel.getTemplateInfoById
  * @date 2023/5/16.
  */
 @OptIn(ExperimentalMaterial3Api::class)
-@Destination<RootGraph>
 @Composable
 fun AppProfileScreen(
-    navigator: DestinationsNavigator,
     appInfo: SuperUserViewModel.AppInfo,
 ) {
     val context = LocalContext.current
     val snackBarHost = LocalSnackbarHost.current
+    val navigator = LocalNavController.current
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val scope = rememberCoroutineScope()
     val failToUpdateAppProfile = stringResource(R.string.failed_to_update_app_profile).format(appInfo.label)
@@ -161,11 +156,11 @@ fun AppProfileScreen(
             affectedApps = sameUidApps,
             onViewTemplate = {
                 getTemplateInfoById(it)?.let { info ->
-                    navigator.navigate(TemplateEditorScreenDestination(info))
+                    navigator.navigateTo(TemplateEditorNavKey(info))
                 }
             },
             onManageTemplate = {
-                navigator.navigate(AppProfileTemplateScreenDestination())
+                navigator.navigateTo(AppProfileTemplateNavKey)
             },
             onProfileChange = {
                 scope.launch {
@@ -232,7 +227,7 @@ private fun AppProfileInner(
                     }
                 },
                 trailingContent = {
-                    StatusTag("UID $appUid", colorScheme.primary, colorScheme.onPrimary)
+                    StatusTag("UID $appUid")
                 },
                 leadingContent = appIcon,
             )

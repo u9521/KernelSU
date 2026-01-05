@@ -54,15 +54,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.annotation.RootGraph
-import com.ramcosta.composedestinations.generated.destinations.TemplateEditorScreenDestination
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import com.ramcosta.composedestinations.result.ResultRecipient
-import com.ramcosta.composedestinations.result.getOr
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ui.navigation.NavController
+import me.weishu.kernelsu.ui.navigation.TemplateEditorNavKey
+import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.viewmodel.TemplateViewModel
 
 /**
@@ -71,11 +68,9 @@ import me.weishu.kernelsu.ui.viewmodel.TemplateViewModel
  */
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
-@Destination<RootGraph>
 @Composable
-fun AppProfileTemplateScreen(
-    navigator: DestinationsNavigator, resultRecipient: ResultRecipient<TemplateEditorScreenDestination, Boolean>
-) {
+fun AppProfileTemplateScreen() {
+    val navigator = LocalNavController.current
     val viewModel = viewModel<TemplateViewModel>()
     val scope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
@@ -85,64 +80,65 @@ fun AppProfileTemplateScreen(
             viewModel.fetchTemplates()
         }
     }
-
     // handle result from TemplateEditorScreen, refresh if needed
-    resultRecipient.onNavResult { result ->
-        if (result.getOr { false }) {
-            scope.launch { viewModel.fetchTemplates() }
-        }
+    var needRefresh by remember { mutableStateOf(false) }
+
+    needRefresh = navigator.popResult<Boolean>(NeedRefreshTemplate) ?: false
+
+    if (needRefresh) {
+        scope.launch { viewModel.fetchTemplates() }
     }
 
     Scaffold(
         topBar = {
-        val clipboard = LocalClipboard.current
-        val context = LocalContext.current
-        val showToast = fun(msg: String) {
-            scope.launch(Dispatchers.Main) {
-                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-            }
-        }
-        TopBar(
-            onBack = dropUnlessResumed { navigator.popBackStack() }, onSync = {
-            scope.launch { viewModel.fetchTemplates(true) }
-        }, onImport = {
-            scope.launch {
-                clipboard.getClipEntry()?.clipData?.getItemAt(0)?.text?.toString()?.let {
-                    if (it.isEmpty()) {
-                        showToast(context.getString(R.string.app_profile_template_import_empty))
-                        return@let
-                    }
-                    viewModel.importTemplates(
-                        it, {
-                            showToast(context.getString(R.string.app_profile_template_import_success))
-                            viewModel.fetchTemplates(false)
-                        }, showToast
-                    )
+            val clipboard = LocalClipboard.current
+            val context = LocalContext.current
+            val showToast = fun(msg: String) {
+                scope.launch(Dispatchers.Main) {
+                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                 }
             }
-        }, onExport = {
-            scope.launch {
-                viewModel.exportTemplates({
-                    showToast(context.getString(R.string.app_profile_template_export_empty))
-                }, {
-                    clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("template", it)))
-                })
-            }
-        }, scrollBehavior = scrollBehavior
-        )
-    }, floatingActionButton = {
-        ExtendedFloatingActionButton(
-            onClick = {
-                navigator.navigate(
-                    TemplateEditorScreenDestination(
-                        TemplateViewModel.TemplateInfo(), false
+            TopBar(
+                onBack = dropUnlessResumed { navigator.popBackStack() }, onSync = {
+                    scope.launch { viewModel.fetchTemplates(true) }
+                }, onImport = {
+                    scope.launch {
+                        clipboard.getClipEntry()?.clipData?.getItemAt(0)?.text?.toString()?.let {
+                            if (it.isEmpty()) {
+                                showToast(context.getString(R.string.app_profile_template_import_empty))
+                                return@let
+                            }
+                            viewModel.importTemplates(
+                                it, {
+                                    showToast(context.getString(R.string.app_profile_template_import_success))
+                                    viewModel.fetchTemplates(false)
+                                }, showToast
+                            )
+                        }
+                    }
+                }, onExport = {
+                    scope.launch {
+                        viewModel.exportTemplates({
+                            showToast(context.getString(R.string.app_profile_template_export_empty))
+                        }, {
+                            clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("template", it)))
+                        })
+                    }
+                }, scrollBehavior = scrollBehavior
+            )
+        }, floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = {
+                    navigator.navigateTo(
+                        TemplateEditorNavKey(
+                            TemplateViewModel.TemplateInfo(), false
+                        )
                     )
-                )
-            },
-            icon = { Icon(Icons.Filled.Add, null) },
-            text = { Text(stringResource(id = R.string.app_profile_template_create)) },
-        )
-    }, contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+                },
+                icon = { Icon(Icons.Filled.Add, null) },
+                text = { Text(stringResource(id = R.string.app_profile_template_create)) },
+            )
+        }, contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     ) { innerPadding ->
         PullToRefreshBox(
             modifier = Modifier.padding(innerPadding), isRefreshing = viewModel.isRefreshing, onRefresh = {
@@ -165,15 +161,15 @@ fun AppProfileTemplateScreen(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TemplateItem(
-    navigator: DestinationsNavigator, template: TemplateViewModel.TemplateInfo
+    navigator: NavController, template: TemplateViewModel.TemplateInfo
 ) {
     ListItem(
         modifier = Modifier.clickable {
-                navigator.navigate(TemplateEditorScreenDestination(template, !template.local))
-            },
+            navigator.navigateTo(TemplateEditorNavKey(template, !template.local))
+        },
         headlineContent = { Text(template.name) },
         supportingContent = {
-            Column() {
+            Column {
                 Text(
                     text = "${template.id}${if (template.author.isEmpty()) "" else "@${template.author}"}",
                     style = MaterialTheme.typography.bodySmall,
@@ -181,13 +177,13 @@ private fun TemplateItem(
                 )
                 Text(template.description)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    StatusTag(label = "UID: ${template.uid}", colorScheme.primary, colorScheme.onPrimary)
-                    StatusTag(label = "GID: ${template.gid}", colorScheme.secondaryContainer, colorScheme.onSecondaryContainer)
-                    StatusTag(label = template.context, colorScheme.tertiaryContainer, colorScheme.onTertiaryContainer)
+                    StatusTag(label = "UID: ${template.uid}")
+                    StatusTag(label = "GID: ${template.gid}", contentColor = colorScheme.onSecondaryContainer, backgroundColor = colorScheme.secondaryContainer)
+                    StatusTag(label = template.context, contentColor = colorScheme.onTertiaryContainer, backgroundColor = colorScheme.tertiaryContainer)
                     if (template.local) {
-                        StatusTag(label = "local", colorScheme.primary, colorScheme.onPrimary)
+                        StatusTag(label = "local")
                     } else {
-                        StatusTag(label = "remote", colorScheme.primary, colorScheme.onPrimary)
+                        StatusTag(label = "remote")
                     }
                 }
             }
@@ -202,43 +198,43 @@ private fun TopBar(
 ) {
     TopAppBar(
         title = {
-        Text(stringResource(R.string.settings_profile_template))
-    }, navigationIcon = {
-        IconButton(
-            onClick = onBack
-        ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
-    }, actions = {
-        IconButton(onClick = onSync) {
-            Icon(
-                Icons.Filled.Sync, contentDescription = stringResource(id = R.string.app_profile_template_sync)
-            )
-        }
-
-        var showDropdown by remember { mutableStateOf(false) }
-        IconButton(onClick = {
-            showDropdown = true
-        }) {
-            Icon(
-                imageVector = Icons.Filled.ImportExport, contentDescription = stringResource(id = R.string.app_profile_import_export)
-            )
-
-            DropdownMenu(expanded = showDropdown, onDismissRequest = {
-                showDropdown = false
-            }) {
-                DropdownMenuItem(text = {
-                    Text(stringResource(id = R.string.app_profile_import_from_clipboard))
-                }, onClick = {
-                    onImport()
-                    showDropdown = false
-                })
-                DropdownMenuItem(text = {
-                    Text(stringResource(id = R.string.app_profile_export_to_clipboard))
-                }, onClick = {
-                    onExport()
-                    showDropdown = false
-                })
+            Text(stringResource(R.string.settings_profile_template))
+        }, navigationIcon = {
+            IconButton(
+                onClick = onBack
+            ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
+        }, actions = {
+            IconButton(onClick = onSync) {
+                Icon(
+                    Icons.Filled.Sync, contentDescription = stringResource(id = R.string.app_profile_template_sync)
+                )
             }
-        }
-    }, windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal), scrollBehavior = scrollBehavior
+
+            var showDropdown by remember { mutableStateOf(false) }
+            IconButton(onClick = {
+                showDropdown = true
+            }) {
+                Icon(
+                    imageVector = Icons.Filled.ImportExport, contentDescription = stringResource(id = R.string.app_profile_import_export)
+                )
+
+                DropdownMenu(expanded = showDropdown, onDismissRequest = {
+                    showDropdown = false
+                }) {
+                    DropdownMenuItem(text = {
+                        Text(stringResource(id = R.string.app_profile_import_from_clipboard))
+                    }, onClick = {
+                        onImport()
+                        showDropdown = false
+                    })
+                    DropdownMenuItem(text = {
+                        Text(stringResource(id = R.string.app_profile_export_to_clipboard))
+                    }, onClick = {
+                        onExport()
+                        showDropdown = false
+                    })
+                }
+            }
+        }, windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal), scrollBehavior = scrollBehavior
     )
 }
