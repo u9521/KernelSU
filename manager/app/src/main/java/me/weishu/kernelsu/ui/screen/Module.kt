@@ -163,59 +163,59 @@ fun ModuleScreen(navigator: DestinationsNavigator) {
 
     Scaffold(
         topBar = {
-            SearchAppBar(
-                title = { Text(stringResource(R.string.module)) },
-                searchStatus = searchStatus,
-                dropdownContent = {
-                    RebootListPopup()
-                    var showDropdown by remember { mutableStateOf(false) }
+        SearchAppBar(
+            title = { Text(stringResource(R.string.module)) },
+            searchStatus = searchStatus,
+            dropdownContent = {
+                RebootListPopup()
+                var showDropdown by remember { mutableStateOf(false) }
 
-                    IconButton(
-                        onClick = { showDropdown = true },
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.MoreVert, contentDescription = stringResource(id = R.string.settings)
-                        )
+                IconButton(
+                    onClick = { showDropdown = true },
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.MoreVert, contentDescription = stringResource(id = R.string.settings)
+                    )
 
-                        DropdownMenu(expanded = showDropdown, onDismissRequest = {
-                            showDropdown = false
-                        }) {
-                            DropdownMenuItem(text = {
-                                Text(stringResource(R.string.module_sort_action_first))
-                            }, trailingIcon = {
-                                Checkbox(viewModel.sortActionFirst, null)
-                            }, onClick = {
-                                viewModel.sortActionFirst = !viewModel.sortActionFirst
-                                prefs.edit {
-                                    putBoolean(
-                                        "module_sort_action_first", viewModel.sortActionFirst
-                                    )
-                                }
-                                scope.launch {
-                                    viewModel.fetchModuleList()
-                                }
-                            })
-                            DropdownMenuItem(text = {
-                                Text(stringResource(R.string.module_sort_enabled_first))
-                            }, trailingIcon = {
-                                Checkbox(viewModel.sortEnabledFirst, null)
-                            }, onClick = {
-                                viewModel.sortEnabledFirst = !viewModel.sortEnabledFirst
-                                prefs.edit {
-                                    putBoolean(
-                                        "module_sort_enabled_first", viewModel.sortEnabledFirst
-                                    )
-                                }
-                                scope.launch {
-                                    viewModel.fetchModuleList()
-                                }
-                            })
-                        }
+                    DropdownMenu(expanded = showDropdown, onDismissRequest = {
+                        showDropdown = false
+                    }) {
+                        DropdownMenuItem(text = {
+                            Text(stringResource(R.string.module_sort_action_first))
+                        }, trailingIcon = {
+                            Checkbox(viewModel.sortActionFirst, null)
+                        }, onClick = {
+                            viewModel.sortActionFirst = !viewModel.sortActionFirst
+                            prefs.edit {
+                                putBoolean(
+                                    "module_sort_action_first", viewModel.sortActionFirst
+                                )
+                            }
+                            scope.launch {
+                                viewModel.fetchModuleList()
+                            }
+                        })
+                        DropdownMenuItem(text = {
+                            Text(stringResource(R.string.module_sort_enabled_first))
+                        }, trailingIcon = {
+                            Checkbox(viewModel.sortEnabledFirst, null)
+                        }, onClick = {
+                            viewModel.sortEnabledFirst = !viewModel.sortEnabledFirst
+                            prefs.edit {
+                                putBoolean(
+                                    "module_sort_enabled_first", viewModel.sortEnabledFirst
+                                )
+                            }
+                            scope.launch {
+                                viewModel.fetchModuleList()
+                            }
+                        })
                     }
-                },
-                scrollBehavior = scrollBehavior,
-            )
-        },
+                }
+            },
+            scrollBehavior = scrollBehavior,
+        )
+    },
         floatingActionButton = {
             if (!hideInstallButton) {
                 val moduleInstall = stringResource(id = R.string.module_install)
@@ -341,7 +341,6 @@ private fun ModuleList(
     val changelogText = stringResource(R.string.module_changelog)
     val downloadingText = stringResource(R.string.module_downloading)
     val startDownloadingText = stringResource(R.string.module_start_downloading)
-    val fetchChangeLogFailed = stringResource(R.string.module_changelog_failed)
 
     val loadingDialog = rememberLoadingDialog()
     val confirmDialog = rememberConfirmDialog()
@@ -367,13 +366,7 @@ private fun ModuleList(
             }
         }
 
-        val changelog = changelogResult.getOrElse {
-            showToast(fetchChangeLogFailed.format(it.message))
-            return
-        }.ifBlank {
-            showToast(fetchChangeLogFailed.format(module.name))
-            return
-        }
+        val changelog = changelogResult.getOrElse { "" }
 
         // changelog is not empty, show it and wait for confirm
         val confirmResult = confirmDialog.awaitConfirm(
@@ -505,42 +498,40 @@ private fun ModuleList(
                             }
                         }
 
-                        ModuleItem(
-                            navigator = navigator, module = module, updateUrl = updatedModule.downloadUrl, onUninstall = {
-                                scope.launch { onModuleUninstall(module) }
-                            }, onUndoUninstall = {
-                                scope.launch { onModuleUndoUninstall(module) }
-                            },
-                            onCheckChanged = {
-                                scope.launch {
-                                    val success = loadingDialog.withLoading {
-                                        withContext(Dispatchers.IO) {
-                                            toggleModule(module.id, !module.enabled)
-                                        }
+                        ModuleItem(navigator = navigator, module = module, updateUrl = updatedModule.downloadUrl, onUninstall = {
+                            scope.launch { onModuleUninstall(module) }
+                        }, onUndoUninstall = {
+                            scope.launch { onModuleUndoUninstall(module) }
+                        }, onCheckChanged = {
+                            scope.launch {
+                                val success = loadingDialog.withLoading {
+                                    withContext(Dispatchers.IO) {
+                                        toggleModule(module.id, !module.enabled)
                                     }
-                                    if (success) {
-                                        viewModel.fetchModuleList()
+                                }
+                                if (success) {
+                                    viewModel.fetchModuleList()
 
-                                        val result = snackBarHost.showSnackbar(
-                                            message = rebootToApply, actionLabel = reboot, duration = SnackbarDuration.Long
-                                        )
-                                        if (result == SnackbarResult.ActionPerformed) {
-                                            reboot()
-                                        }
-                                    } else {
-                                        val message = if (module.enabled) failedDisable else failedEnable
-                                        snackBarHost.showSnackbar(message.format(module.name))
-                                    }
-                                }
-                            }, onUpdate = {
-                                scope.launch {
-                                    onModuleUpdate(
-                                        module, updatedModule.changelog, updatedModule.downloadUrl, "${module.name}-${updatedModule.version}.zip"
+                                    val result = snackBarHost.showSnackbar(
+                                        message = rebootToApply, actionLabel = reboot, duration = SnackbarDuration.Long
                                     )
+                                    if (result == SnackbarResult.ActionPerformed) {
+                                        reboot()
+                                    }
+                                } else {
+                                    val message = if (module.enabled) failedDisable else failedEnable
+                                    snackBarHost.showSnackbar(message.format(module.name))
                                 }
-                            }, onClick = {
-                                onClickModule(it.id, it.name, it.hasWebUi)
-                            })
+                            }
+                        }, onUpdate = {
+                            scope.launch {
+                                onModuleUpdate(
+                                    module, updatedModule.changelog, updatedModule.downloadUrl, "${module.name}-${updatedModule.version}.zip"
+                                )
+                            }
+                        }, onClick = {
+                            onClickModule(it.id, it.name, it.hasWebUi)
+                        })
 
                         // fix last item shadow incomplete in LazyColumn
                         Spacer(Modifier.height(1.dp))
@@ -573,22 +564,21 @@ fun ModuleItem(
         val indication = LocalIndication.current
         val viewModel = viewModel<ModuleViewModel>()
 
-        Column(
-            modifier = Modifier
-                .run {
-                    if (module.hasWebUi) {
-                        toggleable(
-                            value = module.enabled,
-                            enabled = !module.remove && module.enabled,
-                            interactionSource = interactionSource,
-                            role = Role.Button,
-                            indication = indication,
-                            onValueChange = { onClick(module) })
-                    } else {
-                        this
-                    }
+        Column(modifier = Modifier
+            .run {
+                if (module.hasWebUi) {
+                    toggleable(
+                        value = module.enabled,
+                        enabled = !module.remove && module.enabled,
+                        interactionSource = interactionSource,
+                        role = Role.Button,
+                        indication = indication,
+                        onValueChange = { onClick(module) })
+                } else {
+                    this
                 }
-                .padding(22.dp, 18.dp, 22.dp, 12.dp)) {
+            }
+            .padding(22.dp, 18.dp, 22.dp, 12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -740,15 +730,13 @@ fun ModuleItem(
                 }
 
                 FilledTonalButton(
-                    modifier = Modifier.defaultMinSize(52.dp, 32.dp),
-                    onClick = {
+                    modifier = Modifier.defaultMinSize(52.dp, 32.dp), onClick = {
                         if (module.remove) {
                             onUndoUninstall(module)
                         } else {
                             onUninstall(module)
                         }
-                    },
-                    contentPadding = ButtonDefaults.TextButtonContentPadding
+                    }, contentPadding = ButtonDefaults.TextButtonContentPadding
                 ) {
                     Icon(
                         modifier = Modifier.size(20.dp), imageVector = if (module.remove) {
