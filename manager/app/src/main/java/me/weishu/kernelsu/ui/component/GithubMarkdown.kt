@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.toArgb
@@ -40,7 +42,10 @@ import java.nio.charset.StandardCharsets
 
 @SuppressLint("ClickableViewAccessibility")
 @Composable
-fun GithubMarkdown(content: String) {
+fun GithubMarkdown(
+    content: String, isLoading: MutableState<Boolean> = mutableStateOf(true)
+) {
+    isLoading.value = true
     val isDark = isSystemInDarkTheme()
     val dir = if (LocalLayoutDirection.current == LayoutDirection.Rtl) "rtl" else "ltr"
 
@@ -106,9 +111,7 @@ fun GithubMarkdown(content: String) {
                         setGeolocationEnabled(false)
                     }
                     webViewClient = object : WebViewClient() {
-                        private val assetLoader = WebViewAssetLoader.Builder()
-                            .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(context))
-                            .build()
+                        private val assetLoader = WebViewAssetLoader.Builder().addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(context)).build()
 
                         override fun onPageFinished(view: WebView, url: String) {
                             super.onPageFinished(view, url)
@@ -134,6 +137,10 @@ fun GithubMarkdown(content: String) {
                             return true
                         }
 
+                        override fun onPageCommitVisible(view: WebView?, url: String?) {
+                            isLoading.value = false
+                        }
+
                         override fun shouldInterceptRequest(
                             view: WebView, request: WebResourceRequest
                         ): WebResourceResponse? {
@@ -142,11 +149,7 @@ fun GithubMarkdown(content: String) {
                             if (!scheme.startsWith("http")) return null
                             val client: OkHttpClient = ksuApp.okhttpClient
                             val call = client.newCall(
-                                Request.Builder()
-                                    .url(request.url.toString())
-                                    .method(request.method, null)
-                                    .headers(request.requestHeaders.toHeaders())
-                                    .build()
+                                Request.Builder().url(request.url.toString()).method(request.method, null).headers(request.requestHeaders.toHeaders()).build()
                             )
                             return try {
                                 val reply: Response = call.execute()
@@ -158,8 +161,7 @@ fun GithubMarkdown(content: String) {
                                 WebResourceResponse(mimeType, charset, body.byteStream())
                             } catch (e: IOException) {
                                 WebResourceResponse(
-                                    "text/html", "utf-8",
-                                    ByteArrayInputStream(Log.getStackTraceString(e).toByteArray(StandardCharsets.UTF_8))
+                                    "text/html", "utf-8", ByteArrayInputStream(Log.getStackTraceString(e).toByteArray(StandardCharsets.UTF_8))
                                 )
                             }
                         }
@@ -168,8 +170,7 @@ fun GithubMarkdown(content: String) {
                         ev.action == MotionEvent.ACTION_MOVE
                     }
                     loadDataWithBaseURL(
-                        "https://appassets.androidplatform.net", html,
-                        "text/html", StandardCharsets.UTF_8.name(), null
+                        "https://appassets.androidplatform.net", html, "text/html", StandardCharsets.UTF_8.name(), null
                     )
                 } catch (e: Throwable) {
                     Log.e("GithubMarkdown", "WebView setup failed", e)
