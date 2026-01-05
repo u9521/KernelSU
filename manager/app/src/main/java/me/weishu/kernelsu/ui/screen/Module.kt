@@ -247,6 +247,7 @@ fun ModuleScreen(navigator: DestinationsNavigator) {
                         navigator.navigate(FlashScreenDestination(FlashIt.FlashModules(listOf(uris.first()))))
                     } else if (uris.size > 1) {
                         // multiple files selected
+                        viewModel.markNeedRefresh()
                         val moduleNames = uris.mapIndexed { index, uri -> "\n${index + 1}. ${uri.getFileName(context)}" }.joinToString("")
                         val confirmContent = context.getString(R.string.module_install_prompt_with_name, moduleNames)
                         zipUris = uris
