@@ -85,12 +85,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.annotation.RootGraph
-import com.ramcosta.composedestinations.generated.destinations.ExecuteModuleActionScreenDestination
-import com.ramcosta.composedestinations.generated.destinations.FlashScreenDestination
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import com.ramcosta.composedestinations.navigation.EmptyDestinationsNavigator
+import androidx.navigation3.runtime.NavBackStack
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -103,7 +98,12 @@ import me.weishu.kernelsu.ui.component.SearchAppBar
 import me.weishu.kernelsu.ui.component.SearchStatus
 import me.weishu.kernelsu.ui.component.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.rememberLoadingDialog
+import me.weishu.kernelsu.ui.navigation.ExecuteModuleActionNavKey
+import me.weishu.kernelsu.ui.navigation.FlashScreenNavKey
+import me.weishu.kernelsu.ui.navigation.NavController
+import me.weishu.kernelsu.ui.navigation.TopLevelRoute
 import me.weishu.kernelsu.ui.util.DownloadListener
+import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.util.ModuleParser
 import me.weishu.kernelsu.ui.util.download
@@ -120,9 +120,9 @@ import me.weishu.kernelsu.ui.webui.WebUIActivity
 import okhttp3.Request
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Destination<RootGraph>
 @Composable
-fun ModuleScreen(navigator: DestinationsNavigator) {
+fun ModuleScreen() {
+    val navigator = LocalNavController.current
     val viewModel = viewModel<ModuleViewModel>()
     val context = LocalContext.current
     val snackBarHost = LocalSnackbarHost.current
@@ -167,66 +167,66 @@ fun ModuleScreen(navigator: DestinationsNavigator) {
 
     Scaffold(
         topBar = {
-        SearchAppBar(
-            title = { Text(stringResource(R.string.module)) },
-            searchStatus = searchStatus,
-            dropdownContent = {
-                RebootListPopup()
-                var showDropdown by remember { mutableStateOf(false) }
+            SearchAppBar(
+                title = { Text(stringResource(R.string.module)) },
+                searchStatus = searchStatus,
+                dropdownContent = {
+                    RebootListPopup()
+                    var showDropdown by remember { mutableStateOf(false) }
 
-                IconButton(
-                    onClick = { showDropdown = true },
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.MoreVert, contentDescription = stringResource(id = R.string.settings)
-                    )
+                    IconButton(
+                        onClick = { showDropdown = true },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.MoreVert, contentDescription = stringResource(id = R.string.settings)
+                        )
 
-                    DropdownMenu(expanded = showDropdown, onDismissRequest = {
-                        showDropdown = false
-                    }) {
-                        DropdownMenuItem(text = {
-                            Text(stringResource(R.string.module_sort_action_first))
-                        }, trailingIcon = {
-                            Checkbox(viewModel.sortActionFirst, null)
-                        }, onClick = {
-                            viewModel.sortActionFirst = !viewModel.sortActionFirst
-                            prefs.edit {
-                                putBoolean(
-                                    "module_sort_action_first", viewModel.sortActionFirst
-                                )
-                            }
-                            scope.launch {
-                                viewModel.fetchModuleList()
-                            }
-                        })
-                        DropdownMenuItem(text = {
-                            Text(stringResource(R.string.module_sort_enabled_first))
-                        }, trailingIcon = {
-                            Checkbox(viewModel.sortEnabledFirst, null)
-                        }, onClick = {
-                            viewModel.sortEnabledFirst = !viewModel.sortEnabledFirst
-                            prefs.edit {
-                                putBoolean(
-                                    "module_sort_enabled_first", viewModel.sortEnabledFirst
-                                )
-                            }
-                            scope.launch {
-                                viewModel.fetchModuleList()
-                            }
-                        })
+                        DropdownMenu(expanded = showDropdown, onDismissRequest = {
+                            showDropdown = false
+                        }) {
+                            DropdownMenuItem(text = {
+                                Text(stringResource(R.string.module_sort_action_first))
+                            }, trailingIcon = {
+                                Checkbox(viewModel.sortActionFirst, null)
+                            }, onClick = {
+                                viewModel.sortActionFirst = !viewModel.sortActionFirst
+                                prefs.edit {
+                                    putBoolean(
+                                        "module_sort_action_first", viewModel.sortActionFirst
+                                    )
+                                }
+                                scope.launch {
+                                    viewModel.fetchModuleList()
+                                }
+                            })
+                            DropdownMenuItem(text = {
+                                Text(stringResource(R.string.module_sort_enabled_first))
+                            }, trailingIcon = {
+                                Checkbox(viewModel.sortEnabledFirst, null)
+                            }, onClick = {
+                                viewModel.sortEnabledFirst = !viewModel.sortEnabledFirst
+                                prefs.edit {
+                                    putBoolean(
+                                        "module_sort_enabled_first", viewModel.sortEnabledFirst
+                                    )
+                                }
+                                scope.launch {
+                                    viewModel.fetchModuleList()
+                                }
+                            })
+                        }
                     }
-                }
-            },
-            scrollBehavior = scrollBehavior,
-        )
-    },
+                },
+                scrollBehavior = scrollBehavior,
+            )
+        },
         floatingActionButton = {
             if (!hideInstallButton) {
                 val moduleInstall = stringResource(id = R.string.module_install)
                 val confirmTitle = stringResource(R.string.module)
                 var zipUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
                 val confirmDialog = rememberConfirmDialog(onConfirm = {
-                    navigator.navigate(FlashScreenDestination(FlashIt.FlashModules(zipUris)))
+                    navigator.navigateTo(FlashScreenNavKey(FlashIt.FlashModules(zipUris)))
                     viewModel.markNeedRefresh()
                 })
                 val selectZipLauncher = rememberLauncherForActivityResult(
@@ -311,7 +311,7 @@ fun ModuleScreen(navigator: DestinationsNavigator) {
                     modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
                     boxModifier = Modifier.padding(innerPadding),
                     onInstallModule = {
-                        navigator.navigate(FlashScreenDestination(FlashIt.FlashModules(listOf(it))))
+                        navigator.navigateTo(FlashScreenNavKey(FlashIt.FlashModules(listOf(it))))
                     },
                     onClickModule = { id, name, hasWebUi ->
                         if (hasWebUi) {
@@ -331,7 +331,7 @@ fun ModuleScreen(navigator: DestinationsNavigator) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ModuleList(
-    navigator: DestinationsNavigator,
+    navigator: NavController,
     viewModel: ModuleViewModel,
     modifier: Modifier = Modifier,
     boxModifier: Modifier = Modifier,
@@ -563,7 +563,7 @@ private fun ModuleList(
 
 @Composable
 fun ModuleItem(
-    navigator: DestinationsNavigator,
+    navigator: NavController,
     module: ModuleInfo,
     updateUrl: String,
     onUninstall: (ModuleInfo) -> Unit,
@@ -580,21 +580,22 @@ fun ModuleItem(
         val indication = LocalIndication.current
         val viewModel = viewModel<ModuleViewModel>()
 
-        Column(modifier = Modifier
-            .run {
-                if (module.hasWebUi) {
-                    toggleable(
-                        value = module.enabled,
-                        enabled = !module.remove && module.enabled,
-                        interactionSource = interactionSource,
-                        role = Role.Button,
-                        indication = indication,
-                        onValueChange = { onClick(module) })
-                } else {
-                    this
+        Column(
+            modifier = Modifier
+                .run {
+                    if (module.hasWebUi) {
+                        toggleable(
+                            value = module.enabled,
+                            enabled = !module.remove && module.enabled,
+                            interactionSource = interactionSource,
+                            role = Role.Button,
+                            indication = indication,
+                            onValueChange = { onClick(module) })
+                    } else {
+                        this
+                    }
                 }
-            }
-            .padding(22.dp, 18.dp, 22.dp, 12.dp)) {
+                .padding(22.dp, 18.dp, 22.dp, 12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -677,7 +678,7 @@ fun ModuleItem(
                 if (module.hasActionScript) {
                     FilledTonalButton(
                         modifier = Modifier.defaultMinSize(52.dp, 32.dp), enabled = !module.remove && module.enabled, onClick = {
-                            navigator.navigate(ExecuteModuleActionScreenDestination(module.id))
+                            navigator.navigateTo(ExecuteModuleActionNavKey(module.id))
                             viewModel.markNeedRefresh()
                         }, contentPadding = ButtonDefaults.TextButtonContentPadding
                     ) {
@@ -793,5 +794,5 @@ fun ModuleItemPreview() {
         hasActionScript = false,
         metamodule = false
     )
-    ModuleItem(EmptyDestinationsNavigator, module, "", {}, {}, {}, {}, {})
+    ModuleItem(NavController(TopLevelRoute.Module), module, "", {}, {}, {}, {}, {})
 }

@@ -45,12 +45,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.lifecycle.compose.dropUnlessResumed
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.annotation.RootGraph
-import com.ramcosta.composedestinations.result.ResultBackNavigator
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.profile.RootProfileConfig
+import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.deleteAppProfileTemplate
 import me.weishu.kernelsu.ui.util.getAppProfileTemplate
 import me.weishu.kernelsu.ui.util.setAppProfileTemplate
@@ -61,15 +59,15 @@ import me.weishu.kernelsu.ui.viewmodel.toJSON
  * @author weishu
  * @date 2023/10/20.
  */
+const val NeedRefreshTemplate = "refresh_temple"
+
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
-@Destination<RootGraph>
 @Composable
 fun TemplateEditorScreen(
-    navigator: ResultBackNavigator<Boolean>,
     initialTemplate: TemplateViewModel.TemplateInfo,
     readOnly: Boolean = true,
 ) {
-
+    val navigator = LocalNavController.current
     val isCreation = initialTemplate.id.isBlank()
     val autoSave = !isCreation
 
@@ -80,7 +78,7 @@ fun TemplateEditorScreen(
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
 
     BackHandler {
-        navigator.navigateBack(result = !readOnly)
+        navigator.setResult(NeedRefreshTemplate, !readOnly)
     }
 
     Scaffold(
@@ -106,15 +104,15 @@ fun TemplateEditorScreen(
                 },
                 readOnly = readOnly,
                 summary = titleSummary,
-                onBack = dropUnlessResumed { navigator.navigateBack(result = !readOnly) },
+                onBack = dropUnlessResumed { navigator.popBackStack() },
                 onDelete = {
                     if (deleteAppProfileTemplate(template.id)) {
-                        navigator.navigateBack(result = true)
+                        navigator.setResult(NeedRefreshTemplate, true)
                     }
                 },
                 onSave = {
                     if (saveTemplate(template, isCreation)) {
-                        navigator.navigateBack(result = true)
+                        navigator.setResult(NeedRefreshTemplate, true)
                     } else {
                         Toast.makeText(context, saveTemplateFailed, Toast.LENGTH_SHORT).show()
                     }

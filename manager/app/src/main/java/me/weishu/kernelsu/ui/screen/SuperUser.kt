@@ -1,7 +1,6 @@
 package me.weishu.kernelsu.ui.screen
 
 import android.content.Context
-import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -62,23 +61,21 @@ import androidx.core.content.edit
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.annotation.RootGraph
-import com.ramcosta.composedestinations.generated.destinations.AppProfileScreenDestination
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ksuApp
 import me.weishu.kernelsu.ui.component.SearchAppBar
 import me.weishu.kernelsu.ui.component.SearchStatus
+import me.weishu.kernelsu.ui.navigation.AppProfileScreenNavKey
+import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.ownerNameForUid
 import me.weishu.kernelsu.ui.util.pickPrimary
 import me.weishu.kernelsu.ui.viewmodel.SuperUserViewModel
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
-@Destination<RootGraph>
 @Composable
-fun SuperUserScreen(navigator: DestinationsNavigator) {
+fun SuperUserScreen() {
+    val navigator = LocalNavController.current
     val viewModel = viewModel<SuperUserViewModel>()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
     val listState = rememberLazyListState()
@@ -108,40 +105,40 @@ fun SuperUserScreen(navigator: DestinationsNavigator) {
             var showDropdown by remember { mutableStateOf(false) }
             SearchAppBar(
                 title = { Text(stringResource(R.string.superuser)) }, searchStatus = searchStatus, dropdownContent = {
-                IconButton(
-                    onClick = { showDropdown = true },
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.MoreVert, contentDescription = stringResource(id = R.string.settings)
-                    )
-                    DropdownMenu(expanded = showDropdown, onDismissRequest = {
-                        showDropdown = false
-                    }) {
-                        DropdownMenuItem(text = {
-                            Text(stringResource(R.string.refresh))
-                        }, onClick = {
-                            viewModel.loadAppList()
+                    IconButton(
+                        onClick = { showDropdown = true },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.MoreVert, contentDescription = stringResource(id = R.string.settings)
+                        )
+                        DropdownMenu(expanded = showDropdown, onDismissRequest = {
                             showDropdown = false
-                        })
-                        DropdownMenuItem(text = {
-                            Text(
-                                if (viewModel.showSystemApps) {
-                                    stringResource(R.string.hide_system_apps)
-                                } else {
-                                    stringResource(R.string.show_system_apps)
+                        }) {
+                            DropdownMenuItem(text = {
+                                Text(stringResource(R.string.refresh))
+                            }, onClick = {
+                                viewModel.loadAppList()
+                                showDropdown = false
+                            })
+                            DropdownMenuItem(text = {
+                                Text(
+                                    if (viewModel.showSystemApps) {
+                                        stringResource(R.string.hide_system_apps)
+                                    } else {
+                                        stringResource(R.string.show_system_apps)
+                                    }
+                                )
+                            }, onClick = {
+                                viewModel.showSystemApps = !viewModel.showSystemApps
+                                prefs.edit {
+                                    putBoolean("show_system_apps", viewModel.showSystemApps)
                                 }
-                            )
-                        }, onClick = {
-                            viewModel.showSystemApps = !viewModel.showSystemApps
-                            prefs.edit {
-                                putBoolean("show_system_apps", viewModel.showSystemApps)
-                            }
-                            viewModel.loadAppList()
-                            showDropdown = false
-                        })
+                                viewModel.loadAppList()
+                                showDropdown = false
+                            })
+                        }
                     }
-                }
-            }, scrollBehavior = scrollBehavior
+                }, scrollBehavior = scrollBehavior
             )
         }, contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     ) { innerPadding ->
@@ -160,10 +157,10 @@ fun SuperUserScreen(navigator: DestinationsNavigator) {
                     // 搜索状态下，默认展开有多个应用的搜索结果组
                     val searchResultsByUid = viewModel.searchResults.value.groupBy { it.uid }
                     expandedUids.value = groups.filter { group ->
-                            // 只展开有多个应用且出现在搜索结果中的组
-                            val appsInGroup = searchResultsByUid[group.uid] ?: emptyList()
-                            appsInGroup.size > 1
-                        }.map { it.uid }.toSet()
+                        // 只展开有多个应用且出现在搜索结果中的组
+                        val appsInGroup = searchResultsByUid[group.uid] ?: emptyList()
+                        appsInGroup.size > 1
+                    }.map { it.uid }.toSet()
                 }
 
                 SearchStatus.ResultStatus.EMPTY, SearchStatus.ResultStatus.DEFAULT -> expandedUids.value = emptySet()
@@ -180,7 +177,6 @@ fun SuperUserScreen(navigator: DestinationsNavigator) {
                     .fillMaxSize()
                     .nestedScroll(scrollBehavior.nestedScrollConnection)
             ) {
-                Log.d("TAG", "SuperUserScreen: ${viewModel.searchStatus.value.resultStatus}")
                 items(groups, key = { it.uid }) { group ->
                     val expanded = expandedUids.value.contains(group.uid)
                     GroupItem(
@@ -189,7 +185,7 @@ fun SuperUserScreen(navigator: DestinationsNavigator) {
                                 expandedUids.value = if (expanded) expandedUids.value - group.uid else expandedUids.value + group.uid
                             }
                         }) {
-                        navigator.navigate(AppProfileScreenDestination(group.primary))
+                        navigator.navigateTo(AppProfileScreenNavKey(group.primary))
                         viewModel.markNeedRefresh()
                     }
                     AnimatedVisibility(

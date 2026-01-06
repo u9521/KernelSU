@@ -159,6 +159,7 @@ class ModuleViewModel : ViewModel() {
                         executable -> 3
                         else -> 4
                     }
+
                     sortEnabledFirst && !sortActionFirst -> if (it.enabled) 1 else 2
                     !sortEnabledFirst && sortActionFirst -> if (executable) 1 else 2
                     else -> 1

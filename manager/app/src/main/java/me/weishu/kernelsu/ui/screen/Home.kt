@@ -52,10 +52,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.pm.PackageInfoCompat
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.annotation.RootGraph
-import com.ramcosta.composedestinations.generated.destinations.InstallScreenDestination
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.weishu.kernelsu.KernelVersion
@@ -64,6 +60,8 @@ import me.weishu.kernelsu.R
 import me.weishu.kernelsu.getKernelVersion
 import me.weishu.kernelsu.ui.component.RebootListPopup
 import me.weishu.kernelsu.ui.component.rememberConfirmDialog
+import me.weishu.kernelsu.ui.navigation.InstallScreenNavKey
+import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.checkNewVersion
 import me.weishu.kernelsu.ui.util.getModuleCount
 import me.weishu.kernelsu.ui.util.getSELinuxStatus
@@ -72,17 +70,17 @@ import me.weishu.kernelsu.ui.util.module.LatestVersionInfo
 import me.weishu.kernelsu.ui.util.rootAvailable
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Destination<RootGraph>(start = true)
 @Composable
-fun HomeScreen(navigator: DestinationsNavigator) {
+fun HomeScreen() {
     val kernelVersion = getKernelVersion()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
+    val navigator = LocalNavController.current
 
     Scaffold(
         topBar = {
             TopBar(
                 kernelVersion, onInstallClick = {
-                    navigator.navigate(InstallScreenDestination)
+                    navigator.navigateTo(InstallScreenNavKey)
                 }, scrollBehavior = scrollBehavior
             )
         }, contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
@@ -101,7 +99,7 @@ fun HomeScreen(navigator: DestinationsNavigator) {
             }
 
             StatusCard(kernelVersion, ksuVersion, lkmMode) {
-                navigator.navigate(InstallScreenDestination)
+                navigator.navigateTo(InstallScreenNavKey)
             }
             if (isManager && Natives.requireNewKernel()) {
                 WarningCard(
