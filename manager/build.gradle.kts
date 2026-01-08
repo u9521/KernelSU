@@ -65,6 +65,7 @@ subprojects {
             defaultConfig {
                 minSdk = androidMinSdkVersion
                 if (this is ApplicationDefaultConfig) {
+                    applicationId = "u.u9521.breezeksu"
                     targetSdk = androidTargetSdkVersion
                     versionCode = managerVersionCode
                     versionName = managerVersionName
