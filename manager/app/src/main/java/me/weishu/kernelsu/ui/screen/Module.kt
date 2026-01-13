@@ -388,7 +388,7 @@ private fun ModuleList(
                 runCatching {
                     ksuApp.okhttpClient.newCall(
                         Request.Builder().url(changelogUrl).build()
-                    ).execute().body!!.string()
+                    ).execute().body.string()
                 }
             }
         }

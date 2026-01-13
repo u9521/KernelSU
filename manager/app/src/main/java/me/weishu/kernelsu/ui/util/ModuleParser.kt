@@ -17,7 +17,7 @@ data class ParsedModuleInfo(
 
 object ModuleParser {
 
-    class ModuleParseException(@StringRes val messageRes: Int, vararg val formatArgs: Any) : Exception() {
+    class ModuleParseException(@param:StringRes val messageRes: Int, vararg val formatArgs: Any) : Exception() {
         fun getMessage(context: Context): String {
             return context.getString(messageRes, *formatArgs)
         }
@@ -181,7 +181,7 @@ object ModuleParser {
                         context.getString(R.string.module_info_name, it)
                     }, compare(oldModuleInfo.version, newModuleInfo.version)?.let {
                         context.getString(R.string.module_info_version, it)
-                    }, compareInt(oldModuleInfo.versionCode, newModuleInfo.versionCode)?.let {
+                    }, compareInt(oldModuleInfo.versionCode, newModuleInfo.versionCode).let {
                         context.getString(R.string.module_info_version_code, it)
                     }, compare(oldModuleInfo.author, newModuleInfo.author)?.let {
                         context.getString(R.string.module_info_author, it)

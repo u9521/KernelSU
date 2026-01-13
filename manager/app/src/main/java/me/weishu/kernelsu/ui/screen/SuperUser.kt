@@ -65,11 +65,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ksuApp
+import me.weishu.kernelsu.ui.component.AppIconImage
 import me.weishu.kernelsu.ui.component.SearchAppBar
 import me.weishu.kernelsu.ui.component.SearchStatus
 import me.weishu.kernelsu.ui.navigation.AppProfileScreenNavKey
@@ -220,10 +219,8 @@ private fun SimpleAppItem(
             }
         },
         leadingContent = {
-            AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current).data(app.packageInfo).crossfade(true).build(),
-                contentDescription = app.label,
-                modifier = Modifier
+            AppIconImage(
+                app.packageInfo, modifier = Modifier
                     .padding(4.dp)
                     .width(32.dp)
                     .height(32.dp)
@@ -311,13 +308,11 @@ private fun GroupItem(
         modifier = Modifier.combinedClickable(onClick = onClickPrimary, onLongClick = onToggleExpand),
         headlineContent = { Text(if (group.apps.size > 1) "${ownerNameForUid(group.uid)} (${group.uid})" else group.primary.label) },
         leadingContent = {
-            AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current).data(group.primary.packageInfo).crossfade(true).build(),
-                contentDescription = if (group.apps.size > 1) "${ownerNameForUid(group.uid)} (${group.uid})" else group.primary.label,
-                modifier = Modifier
+            AppIconImage(
+                group.primary.packageInfo, modifier = Modifier
                     .padding(4.dp)
                     .width(48.dp)
-                    .height(48.dp)
+                    .height(48.dp), contentDescription = if (group.apps.size > 1) "${ownerNameForUid(group.uid)} (${group.uid})" else group.primary.label
             )
         },
         supportingContent = {

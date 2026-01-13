@@ -51,11 +51,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.dropUnlessResumed
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
 import kotlinx.coroutines.launch
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ui.component.AppIconImage
 import me.weishu.kernelsu.ui.component.BrMenuBox
 import me.weishu.kernelsu.ui.component.SwitchItem
 import me.weishu.kernelsu.ui.component.profile.AppProfileConfig
@@ -84,7 +83,6 @@ import me.weishu.kernelsu.ui.viewmodel.getTemplateInfoById
 fun AppProfileScreen(
     appInfo: SuperUserViewModel.AppInfo,
 ) {
-    val context = LocalContext.current
     val snackBarHost = LocalSnackbarHost.current
     val navigator = LocalNavController.current
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -102,9 +100,7 @@ fun AppProfileScreen(
         runCatching { pickPrimary(sameUidApps) }.getOrNull() ?: appInfo
     }
     val sharedUserId = remember(appInfo.uid, sameUidApps, primaryForIcon) {
-        primaryForIcon.packageInfo.sharedUserId
-            ?: sameUidApps.firstOrNull { it.packageInfo.sharedUserId != null }?.packageInfo?.sharedUserId
-            ?: ""
+        primaryForIcon.packageInfo.sharedUserId ?: sameUidApps.firstOrNull { it.packageInfo.sharedUserId != null }?.packageInfo?.sharedUserId ?: ""
     }
     val initialProfile = Natives.getAppProfile(packageName, appInfo.uid)
     if (initialProfile.allowSu) {
@@ -116,11 +112,10 @@ fun AppProfileScreen(
 
     Scaffold(
         topBar = {
-            TopBar(
-                onBack = dropUnlessResumed { navigator.popBackStack() },
-                scrollBehavior = scrollBehavior
-            )
-        },
+        TopBar(
+            onBack = dropUnlessResumed { navigator.popBackStack() }, scrollBehavior = scrollBehavior
+        )
+    },
         snackbarHost = { SnackbarHost(hostState = snackBarHost) },
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     ) { paddingValues ->
@@ -133,10 +128,8 @@ fun AppProfileScreen(
             appLabel = if (isUidGroup) ownerNameForUid(appInfo.uid) else appInfo.label,
             appIcon = {
                 val iconApp = if (isUidGroup) primaryForIcon else appInfo
-                AsyncImage(
-                    model = ImageRequest.Builder(context).data(iconApp.packageInfo).crossfade(true).build(),
-                    contentDescription = iconApp.label,
-                    modifier = Modifier
+                AppIconImage(
+                    iconApp.packageInfo, modifier = Modifier
                         .padding(4.dp)
                         .width(48.dp)
                         .height(48.dp)
@@ -148,8 +141,7 @@ fun AppProfileScreen(
             appVersionCode = if (isUidGroup) 0L else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 appInfo.packageInfo.longVersionCode
             } else {
-                @Suppress("DEPRECATION")
-                appInfo.packageInfo.versionCode.toLong()
+                @Suppress("DEPRECATION") appInfo.packageInfo.versionCode.toLong()
             },
             profile = profile,
             isUidGroup = isUidGroup,
@@ -203,7 +195,6 @@ private fun AppProfileInner(
     onProfileChange: (Natives.Profile) -> Unit,
 ) {
     val isRootGranted = profile.allowSu
-    val context = LocalContext.current
 
     Column(modifier = modifier) {
         AppMenuBox(packageName, isUidGroup) {
@@ -265,16 +256,11 @@ private fun AppProfileInner(
                     Crossfade(targetState = mode, label = "") { currentMode ->
                         if (currentMode == Mode.Template) {
                             TemplateConfig(
-                                profile = profile,
-                                onViewTemplate = onViewTemplate,
-                                onManageTemplate = onManageTemplate,
-                                onProfileChange = onProfileChange
+                                profile = profile, onViewTemplate = onViewTemplate, onManageTemplate = onManageTemplate, onProfileChange = onProfileChange
                             )
                         } else if (mode == Mode.Custom) {
                             RootProfileConfig(
-                                fixedName = true,
-                                profile = profile,
-                                onProfileChange = onProfileChange
+                                fixedName = true, profile = profile, onProfileChange = onProfileChange
                             )
                         }
                     }
@@ -286,10 +272,7 @@ private fun AppProfileInner(
                     Crossfade(targetState = mode, label = "") { currentMode ->
                         val modifyEnabled = currentMode == Mode.Custom
                         AppProfileConfig(
-                            fixedName = true,
-                            profile = profile,
-                            enabled = modifyEnabled,
-                            onProfileChange = onProfileChange
+                            fixedName = true, profile = profile, enabled = modifyEnabled, onProfileChange = onProfileChange
                         )
                     }
                 }
@@ -297,9 +280,7 @@ private fun AppProfileInner(
         }
         if (isUidGroup) {
             Text(
-                color = colorScheme.primary,
-                modifier = Modifier.padding(16.dp),
-                text = stringResource(R.string.app_profile_affects_following_apps)
+                color = colorScheme.primary, modifier = Modifier.padding(16.dp), text = stringResource(R.string.app_profile_affects_following_apps)
             )
             affectedApps.forEach { app ->
                 AppMenuBox(app.packageName, false) {
@@ -312,10 +293,8 @@ private fun AppProfileInner(
                             }
                         },
                         leadingContent = {
-                            AsyncImage(
-                                model = ImageRequest.Builder(context).data(app.packageInfo).crossfade(true).build(),
-                                contentDescription = app.label,
-                                modifier = Modifier
+                            AppIconImage(
+                                app.packageInfo, modifier = Modifier
                                     .padding(4.dp)
                                     .width(48.dp)
                                     .height(48.dp)
@@ -338,20 +317,16 @@ private enum class Mode(@StringRes private val res: Int) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TopBar(
-    onBack: () -> Unit,
-    scrollBehavior: TopAppBarScrollBehavior? = null
+    onBack: () -> Unit, scrollBehavior: TopAppBarScrollBehavior? = null
 ) {
     TopAppBar(
         title = {
-            Text(stringResource(R.string.profile))
-        },
-        navigationIcon = {
-            IconButton(
-                onClick = onBack
-            ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
-        },
-        windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
-        scrollBehavior = scrollBehavior
+        Text(stringResource(R.string.profile))
+    }, navigationIcon = {
+        IconButton(
+            onClick = onBack
+        ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
+    }, windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal), scrollBehavior = scrollBehavior
     )
 }
 
@@ -396,8 +371,7 @@ private fun ProfileBox(
 private fun AppMenuBox(packageName: String, isUidGroup: Boolean, content: @Composable () -> Unit) {
     if (isUidGroup) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
+            modifier = Modifier.fillMaxWidth()
         ) {
             content()
         }
@@ -426,8 +400,7 @@ private fun AppMenuBox(packageName: String, isUidGroup: Boolean, content: @Compo
                     restartApp(packageName)
                 },
             )
-        },
-        description = null
+        }, description = null
     )
 }
 

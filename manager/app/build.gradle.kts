@@ -92,47 +92,33 @@ android {
 
 dependencies {
     implementation(libs.androidx.activity.compose)
-
     implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.androidx.compose.foundation.layout)
     implementation(libs.androidx.compose.material)
+    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation(libs.androidx.compose.foundation.layout)
-    implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
-
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
-    debugImplementation(libs.androidx.compose.ui.tooling)
-
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-
-    implementation(libs.com.github.topjohnwu.libsu.core)
-    implementation(libs.com.github.topjohnwu.libsu.service)
-    implementation(libs.com.github.topjohnwu.libsu.io)
-
-    implementation(libs.dev.rikka.rikkax.parcelablelist)
-
-    implementation(libs.io.coil.kt.coil.compose)
-
-    implementation(libs.kotlinx.coroutines.core)
-
-    implementation(libs.me.zhanghai.android.appiconloader.coil)
-
-    implementation(libs.sheet.compose.dialogs.core)
-    implementation(libs.sheet.compose.dialogs.list)
-    implementation(libs.sheet.compose.dialogs.input)
-
-    implementation(libs.markwon)
-
-    implementation(libs.androidx.webkit)
-
-    implementation(libs.lsposed.cxx)
-    implementation(libs.androidx.navigation3.ui)
-    implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.material3.adaptive.navigation3)
+    implementation(libs.androidx.navigation3.runtime)
+    implementation(libs.androidx.navigation3.ui)
+    implementation(libs.androidx.webkit)
+    implementation(libs.com.github.topjohnwu.libsu.core)
+    implementation(libs.com.github.topjohnwu.libsu.io)
+    implementation(libs.com.github.topjohnwu.libsu.service)
+    implementation(libs.dev.rikka.rikkax.parcelablelist)
+    implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.serialization.core)
-
-
+    implementation(libs.lsposed.cxx)
+    implementation(libs.markwon)
+    implementation(platform(libs.okhttp.bom))
+    implementation(libs.okhttp)
+    implementation(libs.sheet.compose.dialogs.core)
+    implementation(libs.sheet.compose.dialogs.input)
+    implementation(libs.sheet.compose.dialogs.list)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
+    debugImplementation(libs.androidx.compose.ui.tooling)
 }
