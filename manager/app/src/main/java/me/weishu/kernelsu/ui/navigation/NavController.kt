@@ -15,7 +15,6 @@ import androidx.navigation3.runtime.rememberDecoratedNavEntries
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 
 internal const val REVERSE_ANIM = "reverse_anim"
-internal const val NAVBAR_SWITCH = "navbar_switch"
 
 class NavController(val startKey: NavKey) {
 
@@ -80,14 +79,12 @@ class NavController(val startKey: NavKey) {
     fun navigateTo(key: NavKey) {
         if (current() == key) return
         if (getTopLevel(key) != null) {
-            setResult(NAVBAR_SWITCH, true, goback = false)
             // we don't need to reverse Home
             val revAnim = key != startKey && getTopLevel(key)!!.ordinal < getTopLevel(currentTopLevel)!!.ordinal
             setResult(REVERSE_ANIM, revAnim, goback = false)
             currentTopLevel = key
             return
         }
-        popResult<Boolean>(NAVBAR_SWITCH)
         popResult<Boolean>(REVERSE_ANIM)
         current()?.let {
             if (it.javaClass == key.javaClass) {

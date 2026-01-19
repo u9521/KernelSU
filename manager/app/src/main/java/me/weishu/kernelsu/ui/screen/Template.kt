@@ -2,6 +2,11 @@ package me.weishu.kernelsu.ui.screen
 
 import android.content.ClipData
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,6 +30,7 @@ import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,6 +43,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,6 +53,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.ClipEntry
@@ -57,6 +66,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ui.navigation.AppProfileTemplateNavKey
 import me.weishu.kernelsu.ui.navigation.NavController
 import me.weishu.kernelsu.ui.navigation.TemplateEditorNavKey
 import me.weishu.kernelsu.ui.util.LocalNavController
@@ -67,7 +77,7 @@ import me.weishu.kernelsu.ui.viewmodel.TemplateViewModel
  * @date 2023/10/20.
  */
 
-@OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AppProfileTemplateScreen() {
     val navigator = LocalNavController.current
@@ -85,8 +95,10 @@ fun AppProfileTemplateScreen() {
 
     needRefresh = navigator.popResult<Boolean>(NeedRefreshTemplate) ?: false
 
-    if (needRefresh) {
-        scope.launch { viewModel.fetchTemplates() }
+    LaunchedEffect(needRefresh) {
+        if (needRefresh) {
+            viewModel.fetchTemplates()
+        }
     }
 
     Scaffold(
@@ -140,10 +152,12 @@ fun AppProfileTemplateScreen() {
             )
         }, contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     ) { innerPadding ->
-        PullToRefreshBox(
-            modifier = Modifier.padding(innerPadding), isRefreshing = viewModel.isRefreshing, onRefresh = {
-                scope.launch { viewModel.fetchTemplates() }
-            }) {
+        val state = rememberPullToRefreshState()
+        PullToRefreshBox(modifier = Modifier.padding(innerPadding), isRefreshing = viewModel.isRefreshing, state = state, onRefresh = {
+            scope.launch { viewModel.fetchTemplates() }
+        }, indicator = {
+            PullToRefreshDefaults.LoadingIndicator(state = state, isRefreshing = viewModel.isRefreshing, modifier = Modifier.align(Alignment.TopCenter))
+        }) {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -191,23 +205,38 @@ private fun TemplateItem(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun TopBar(
     onBack: () -> Unit, onSync: () -> Unit = {}, onImport: () -> Unit = {}, onExport: () -> Unit = {}, scrollBehavior: TopAppBarScrollBehavior? = null
 ) {
+    val navigator = LocalNavController.current
+    val motionScheme = MaterialTheme.motionScheme
     TopAppBar(
         title = {
             Text(stringResource(R.string.settings_profile_template))
         }, navigationIcon = {
-            IconButton(
-                onClick = onBack
-            ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
+            val isNavIconVisible = navigator.current() == AppProfileTemplateNavKey
+            AnimatedVisibility(
+                visible = isNavIconVisible,
+                enter = fadeIn(animationSpec = motionScheme.defaultEffectsSpec()) + expandHorizontally(
+                    expandFrom = Alignment.Start, animationSpec =
+                        motionScheme.defaultEffectsSpec()
+                ),
+                exit = fadeOut(animationSpec = motionScheme.defaultEffectsSpec()) + shrinkHorizontally(
+                    shrinkTowards = Alignment.Start, animationSpec =
+                        motionScheme.defaultEffectsSpec()
+                )
+            ) {
+                IconButton(
+                    onClick = onBack
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                }
+            }
         }, actions = {
             IconButton(onClick = onSync) {
-                Icon(
-                    Icons.Filled.Sync, contentDescription = stringResource(id = R.string.app_profile_template_sync)
-                )
+                Icon(Icons.Filled.Sync, contentDescription = null)
             }
 
             var showDropdown by remember { mutableStateOf(false) }

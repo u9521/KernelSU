@@ -99,14 +99,12 @@
     <string name="app_profile_template_save">Save</string>
     <string name="app_profile_template_delete">Delete</string>
     <string name="app_profile_template_view">View template</string>
-    <string name="app_profile_template_readonly">Read only</string>
     <string name="app_profile_template_id_exist">Template ID already exists!</string>
     <string name="app_profile_import_export">Import/Export</string>
     <string name="app_profile_import_from_clipboard">Import from clipboard</string>
     <string name="app_profile_export_to_clipboard">Export to clipboard</string>
     <string name="app_profile_template_export_empty">Cannot find local template to export!</string>
     <string name="app_profile_template_import_success">Imported successfully</string>
-    <string name="app_profile_template_sync">Sync online templates</string>
     <string name="app_profile_template_save_failed">Failed to save template</string>
     <string name="app_profile_template_import_empty">Clipboard is empty!</string>
     <string name="app_profile_affects_following_apps">Affects the following apps</string>
@@ -202,4 +200,12 @@
     <string name="module_error_prop_too_large">module.prop is too large (&gt; 1MiB)</string>
     <string name="module_error_missing_id">module.prop is missing required field \'id\'</string>
     <string name="module_error_invalid_id">Module ID \'%s\' is invalid</string>
+    <string name="app_profile_template_id_too_long"><![CDATA[Template ID too long > 255]]></string>
+    <string name="profile_template_none">No templates available</string>
+    <string name="profile_template_unselected">Unselected</string>
+    <string name="close">Close</string>
+    <string name="deselect_all">Deselect All (%s)</string>
+    <string name="select_all">Select All (%s)</string>
+    <string name="no_result">No result</string>
+    <string name="search">Search</string>
 </resources>

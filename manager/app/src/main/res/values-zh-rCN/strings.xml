@@ -95,14 +95,12 @@
     <string name="app_profile_template_save">保存</string>
     <string name="app_profile_template_delete">删除</string>
     <string name="app_profile_template_view">查看模版</string>
-    <string name="app_profile_template_readonly">只读</string>
     <string name="app_profile_template_id_exist">模版 ID 已存在！</string>
     <string name="app_profile_import_export">导入/导出</string>
     <string name="app_profile_import_from_clipboard">从剪切板导入</string>
     <string name="app_profile_export_to_clipboard">导出到剪切板</string>
     <string name="app_profile_template_export_empty">没有可以导出的本地模板！</string>
     <string name="app_profile_template_import_success">导入成功</string>
-    <string name="app_profile_template_sync">同步在线规则</string>
     <string name="app_profile_template_save_failed">模版保存失败</string>
     <string name="app_profile_template_import_empty">剪切板为空！</string>
     <string name="app_profile_affects_following_apps">影响以下应用</string>
@@ -197,4 +195,12 @@
     <string name="module_error_prop_too_large">module.prop 文件过大 (&gt; 1MiB)</string>
     <string name="module_error_missing_id">module.prop 缺少字段 \'id\'</string>
     <string name="module_error_invalid_id">模块 ID \'%s\' 无效</string>
+    <string name="app_profile_template_id_too_long"><![CDATA[模板id过长 > 255]]></string>
+    <string name="profile_template_none">无可用模板</string>
+    <string name="profile_template_unselected">未选择模板</string>
+    <string name="close">关闭</string>
+    <string name="deselect_all">全不选 (%s)</string>
+    <string name="select_all">全选 (%s)</string>
+    <string name="no_result">无结果</string>
+    <string name="search">搜索</string>
 </resources>

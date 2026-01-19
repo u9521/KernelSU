@@ -1,7 +1,6 @@
 package me.weishu.kernelsu.ui.screen
 
 import android.widget.Toast
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -20,9 +19,7 @@ import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -32,21 +29,21 @@ import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.dropUnlessResumed
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ui.component.OutlinedTextEdit
 import me.weishu.kernelsu.ui.component.profile.RootProfileConfig
 import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.deleteAppProfileTemplate
@@ -77,20 +74,12 @@ fun TemplateEditorScreen(
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
 
-    BackHandler {
-        navigator.setResult(NeedRefreshTemplate, !readOnly)
-    }
+    navigator.setResult(NeedRefreshTemplate, !readOnly, goback = false)
 
     Scaffold(
         topBar = {
             val author =
                 if (initialTemplate.author.isNotEmpty()) "@${initialTemplate.author}" else ""
-            val readOnlyHint = if (readOnly) {
-                " - ${stringResource(id = R.string.app_profile_template_readonly)}"
-            } else {
-                ""
-            }
-            val titleSummary = "${initialTemplate.id}$author$readOnlyHint"
             val saveTemplateFailed = stringResource(id = R.string.app_profile_template_save_failed)
             val context = LocalContext.current
 
@@ -103,7 +92,6 @@ fun TemplateEditorScreen(
                     stringResource(R.string.app_profile_template_edit)
                 },
                 readOnly = readOnly,
-                summary = titleSummary,
                 onBack = dropUnlessResumed { navigator.popBackStack() },
                 onDelete = {
                     if (deleteAppProfileTemplate(template.id)) {
@@ -112,7 +100,7 @@ fun TemplateEditorScreen(
                 },
                 onSave = {
                     if (saveTemplate(template, isCreation)) {
-                        navigator.setResult(NeedRefreshTemplate, true)
+                        navigator.setResult(NeedRefreshTemplate, true, goback = false)
                     } else {
                         Toast.makeText(context, saveTemplateFailed, Toast.LENGTH_SHORT).show()
                     }
@@ -125,39 +113,45 @@ fun TemplateEditorScreen(
         Column(
             modifier = Modifier
                 .padding(innerPadding)
+                .padding(horizontal = 16.dp)
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
                 .verticalScroll(rememberScrollState())
-                .pointerInteropFilter {
-                    // disable click and ripple if readOnly
-                    readOnly
-                }
         ) {
-            if (isCreation) {
-                var errorHint by remember {
-                    mutableStateOf("")
-                }
-                val idConflictError = stringResource(id = R.string.app_profile_template_id_exist)
-                val idInvalidError = stringResource(id = R.string.app_profile_template_id_invalid)
-                TextEdit(
-                    label = stringResource(id = R.string.app_profile_template_id),
-                    text = template.id,
-                    errorHint = errorHint,
-                    isError = errorHint.isNotEmpty()
-                ) { value ->
-                    errorHint = if (isTemplateExist(value)) {
+            val idConflictError = stringResource(id = R.string.app_profile_template_id_exist)
+            val idInvalidError = stringResource(id = R.string.app_profile_template_id_invalid)
+            val idTooLongError = stringResource(id = R.string.app_profile_template_id_too_long)
+            val keyboardController = LocalSoftwareKeyboardController.current
+            val editTextModifier = Modifier.fillMaxWidth()
+            OutlinedTextEdit(
+                modifier = editTextModifier,
+                label = { Text(stringResource(id = R.string.app_profile_template_id)) },
+                text = template.id,
+                readOnly = !isCreation,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Ascii, imeAction = ImeAction.Next
+                ), keyboardActions = KeyboardActions(onDone = {
+                    keyboardController?.hide()
+                }),
+                validator = { input ->
+                    if (isTemplateExist(input)) {
                         idConflictError
-                    } else if (!isValidTemplateId(value)) {
+                    } else if (!isValidTemplateId(input)) {
                         idInvalidError
+                    } else if (input.length > 255) {
+                        idTooLongError
                     } else {
-                        ""
+                        null
                     }
-                    template = template.copy(id = value)
                 }
+            ) { value ->
+                template = template.copy(id = value)
             }
 
-            TextEdit(
-                label = stringResource(id = R.string.app_profile_template_name),
-                text = template.name
+            OutlinedTextEdit(
+                modifier = editTextModifier,
+                label = { Text(stringResource(id = R.string.app_profile_template_name)) },
+                text = template.name,
+                readOnly = readOnly
             ) { value ->
                 template.copy(name = value).run {
                     if (autoSave) {
@@ -169,9 +163,27 @@ fun TemplateEditorScreen(
                     template = this
                 }
             }
-            TextEdit(
-                label = stringResource(id = R.string.app_profile_template_description),
-                text = template.description
+            OutlinedTextEdit(
+                modifier = editTextModifier,
+                label = { Text(stringResource(id = R.string.module_author)) },
+                text = template.author,
+                readOnly = readOnly
+            ) { value ->
+                template.copy(author = value).run {
+                    if (autoSave) {
+                        if (!saveTemplate(this)) {
+                            // failed
+                            return@run
+                        }
+                    }
+                    template = this
+                }
+            }
+            OutlinedTextEdit(
+                modifier = editTextModifier,
+                label = { Text(stringResource(id = R.string.app_profile_template_description)) },
+                text = template.description, singleLine = false,
+                readOnly = readOnly
             ) { value ->
                 template.copy(description = value).run {
                     if (autoSave) {
@@ -185,7 +197,6 @@ fun TemplateEditorScreen(
             }
 
             RootProfileConfig(
-                fixedName = true,
                 profile = toNativeProfile(template),
                 onProfileChange = {
                     template.copy(
@@ -205,7 +216,9 @@ fun TemplateEditorScreen(
                         }
                         template = this
                     }
-                })
+                },
+                readOnly = readOnly
+            )
         }
     }
 }
@@ -296,40 +309,6 @@ private fun TopBar(
     )
 }
 
-@Composable
-private fun TextEdit(
-    label: String,
-    text: String,
-    errorHint: String = "",
-    isError: Boolean = false,
-    onValueChange: (String) -> Unit = {}
-) {
-    ListItem(headlineContent = {
-        val keyboardController = LocalSoftwareKeyboardController.current
-        OutlinedTextField(
-            value = text,
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text(label) },
-            suffix = {
-                if (errorHint.isNotBlank()) {
-                    Text(
-                        text = if (isError) errorHint else "",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            },
-            isError = isError,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Ascii, imeAction = ImeAction.Next
-            ),
-            keyboardActions = KeyboardActions(onDone = {
-                keyboardController?.hide()
-            }),
-            onValueChange = onValueChange
-        )
-    })
-}
 
 private fun isValidTemplateId(id: String): Boolean {
     return Regex("""^([A-Za-z][A-Za-z\d_]*\.)*[A-Za-z][A-Za-z\d_]*$""").matches(id)

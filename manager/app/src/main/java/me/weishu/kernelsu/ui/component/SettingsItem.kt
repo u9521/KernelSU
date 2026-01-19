@@ -1,5 +1,6 @@
 package me.weishu.kernelsu.ui.component
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -79,12 +80,14 @@ fun SwitchItem(
             { Icon(icon, title) }
         },
         trailingContent = {
-            Switch(
-                checked = checked,
-                enabled = enabled,
-                onCheckedChange = onCheckedChange,
-                interactionSource = interactionSource
-            )
+            Crossfade(enabled) {
+                Switch(
+                    checked = checked,
+                    enabled = it,
+                    onCheckedChange = onCheckedChange,
+                    interactionSource = interactionSource
+                )
+            }
         },
         supportingContent = {
             if (summary != null) {
