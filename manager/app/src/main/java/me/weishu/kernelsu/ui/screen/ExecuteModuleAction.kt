@@ -8,8 +8,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -54,7 +56,7 @@ fun ExecuteModuleActionScreen(moduleId: String) {
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     var actionResult: Boolean
-
+    var showCloseFAB by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         if (text.isNotEmpty()) {
             return@LaunchedEffect
@@ -78,7 +80,7 @@ fun ExecuteModuleActionScreen(moduleId: String) {
                 actionResult = it
             }
         }
-        if (actionResult) navigator.popBackStack()
+        if (actionResult) showCloseFAB = true
     }
 
     Scaffold(
@@ -101,7 +103,19 @@ fun ExecuteModuleActionScreen(moduleId: String) {
                 }
             )
         },
-        snackbarHost = { SnackbarHost(snackBarHost) }
+        snackbarHost = { SnackbarHost(snackBarHost) },
+        floatingActionButton = {
+            if (!showCloseFAB) {
+                return@Scaffold
+            }
+            ExtendedFloatingActionButton(
+                onClick = {
+                    navigator.popBackStack()
+                },
+                icon = { Icon(Icons.Filled.Close, stringResource(R.string.close)) },
+                text = { Text(text = stringResource(R.string.close)) },
+            )
+        }
     ) { innerPadding ->
         KeyEventBlocker {
             it.key == Key.VolumeDown || it.key == Key.VolumeUp

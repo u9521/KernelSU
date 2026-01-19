@@ -21,6 +21,7 @@
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:theme="@style/Theme.KernelSU">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -36,6 +37,16 @@
                     android:mimeType="application/zip"
                     android:scheme="content" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="ksu" />
+                <data android:host="action" />
+                <data android:host="webui" />
+            </intent-filter>
         </activity>
 
         <activity
@@ -43,6 +54,7 @@
             android:autoRemoveFromRecents="true"
             android:documentLaunchMode="intoExisting"
             android:exported="false"
+            android:taskAffinity="${applicationId}.webui"
             android:theme="@style/Theme.KernelSU.WebUI" />
 
         <provider

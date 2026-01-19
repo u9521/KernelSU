@@ -13,6 +13,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -170,8 +171,8 @@ class ModuleViewModel : ViewModel() {
         ).thenBy(Collator.getInstance(Locale.getDefault()), ModuleInfo::id)
     }
 
-    fun fetchModuleList() {
-        viewModelScope.launch {
+    fun fetchModuleList(): Job {
+        return viewModelScope.launch {
             withContext(Dispatchers.Main) { isRefreshing = true }
 
             val oldModuleList = modules
@@ -228,7 +229,6 @@ class ModuleViewModel : ViewModel() {
             Log.i(TAG, "load cost: ${SystemClock.elapsedRealtime() - start}, modules: $modules")
         }
     }
-
 
     private fun ModuleInfo.toSignature(): ModuleUpdateSignature {
         return ModuleUpdateSignature(
