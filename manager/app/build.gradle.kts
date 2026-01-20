@@ -34,7 +34,6 @@ val baseCppFlags = baseCFlags + "-fno-rtti"
 
 android {
     namespace = "me.weishu.kernelsu"
-
     buildTypes {
         debug {
             externalNativeBuild {
@@ -105,6 +104,7 @@ android {
     buildToolsVersion = androidBuildToolsVersion
 
     defaultConfig {
+        applicationId = "u.u9521.breezeksu"
         minSdk = androidMinSdkVersion
         targetSdk = androidTargetSdkVersion
         versionCode = managerVersionCode
