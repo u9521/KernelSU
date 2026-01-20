@@ -30,7 +30,9 @@ import androidx.compose.material.icons.filled.RemoveModerator
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Update
+import androidx.compose.material.icons.rounded.RemoveCircle
 import androidx.compose.material.icons.rounded.UploadFile
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -77,9 +79,9 @@ import me.weishu.kernelsu.BuildConfig
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.AboutDialog
+import me.weishu.kernelsu.ui.component.BrDropdownMenuItem
 import me.weishu.kernelsu.ui.component.ConfirmResult
 import me.weishu.kernelsu.ui.component.DialogHandle
-import me.weishu.kernelsu.ui.component.FeatureItem
 import me.weishu.kernelsu.ui.component.KsuIsValid
 import me.weishu.kernelsu.ui.component.SwitchItem
 import me.weishu.kernelsu.ui.component.rememberConfirmDialog
@@ -176,96 +178,78 @@ fun SettingScreen() {
             val suSummary = when (suStatus) {
                 "unsupported" -> stringResource(id = R.string.feature_status_unsupported_summary)
                 "managed" -> stringResource(id = R.string.feature_status_managed_summary)
-                else -> stringResource(id = R.string.settings_disable_su_summary)
+                else -> stringResource(id = R.string.settings_sucompat_summary)
             }
+            val suCompatModeItems = listOf(
+                stringResource(id = R.string.settings_mode_enable_by_default),
+                stringResource(id = R.string.settings_mode_disable_until_reboot),
+                stringResource(id = R.string.settings_mode_disable_always),
+            )
 
             KsuIsValid {
-                FeatureItem(
-                    icon = Icons.Filled.RemoveModerator,
-                    title = stringResource(id = R.string.settings_disable_su),
-                    summary = suSummary,
+                BrDropdownMenuItem(
+                    title = stringResource(id = R.string.settings_sucompat),
+                    selected = suCompatModeItems.getOrNull(suCompatMode),
                     enabled = suStatus == "supported",
-                    index = suCompatMode,
-                ) { index ->
-                    when (index) {
-                        // Default: enable and save to persist
-                        0 -> if (Natives.setSuEnabled(true)) {
-                            execKsud("feature save", true)
-                            prefs.edit { putInt("su_compat_mode", 0) }
-                            suCompatMode = 0
-                        }
+                    summary = suSummary,
+                    icon = { Icon(Icons.Default.RemoveModerator, stringResource(id = R.string.settings_sucompat)) }
+                ) { dismissMenu ->
+                    suCompatModeItems.forEachIndexed { index, name ->
+                        DropdownMenuItem(
+                            text = { Text(name) },
+                            onClick = {
+                                when (index) {
+                                    // Default: enable and save to persist
+                                    0 -> if (Natives.setSuEnabled(true)) {
+                                        execKsud("feature save", true)
+                                        prefs.edit { putInt("su_compat_mode", 0) }
+                                        suCompatMode = 0
+                                    }
 
-                        // Temporarily disable: save enabled state first, then disable
-                        1 -> if (Natives.setSuEnabled(true)) {
-                            execKsud("feature save", true)
-                            if (Natives.setSuEnabled(false)) {
-                                prefs.edit { putInt("su_compat_mode", 0) }
-                                suCompatMode = 1
-                            }
-                        }
+                                    // Temporarily disable: save enabled state first, then disable
+                                    1 -> if (Natives.setSuEnabled(true)) {
+                                        execKsud("feature save", true)
+                                        if (Natives.setSuEnabled(false)) {
+                                            prefs.edit { putInt("su_compat_mode", 0) }
+                                            suCompatMode = 1
+                                        }
+                                    }
 
-                        // Permanently disable: disable and save
-                        2 -> if (Natives.setSuEnabled(false)) {
-                            execKsud("feature save", true)
-                            prefs.edit { putInt("su_compat_mode", 2) }
-                            suCompatMode = 2
-                        }
+                                    // Permanently disable: disable and save
+                                    2 -> if (Natives.setSuEnabled(false)) {
+                                        execKsud("feature save", true)
+                                        prefs.edit { putInt("su_compat_mode", 2) }
+                                        suCompatMode = 2
+                                    }
+                                }
+                                dismissMenu()
+                            },
+                        )
                     }
                 }
             }
 
-            val currentUmountEnabled = Natives.isKernelUmountEnabled()
-            var kernelUmountMode by rememberSaveable { mutableIntStateOf(if (!currentUmountEnabled) 1 else 0) }
-            val umountPersistValue by produceState(initialValue = null as Long?) {
-                value = getFeaturePersistValue("kernel_umount")
-            }
-            LaunchedEffect(umountPersistValue) {
-                umountPersistValue?.let { v ->
-                    kernelUmountMode = if (v == 0L) 2 else if (!currentUmountEnabled) 1 else 0
-                }
-            }
-
+            var isKernelUmountEnabled by rememberSaveable { mutableStateOf(Natives.isKernelUmountEnabled()) }
             val umountStatus by produceState(initialValue = "") {
                 value = getFeatureStatus("kernel_umount")
             }
             val umountSummary = when (umountStatus) {
                 "unsupported" -> stringResource(id = R.string.feature_status_unsupported_summary)
                 "managed" -> stringResource(id = R.string.feature_status_managed_summary)
-                else -> stringResource(id = R.string.settings_disable_kernel_umount_summary)
+                else -> stringResource(id = R.string.settings_kernel_umount_summary)
             }
 
-
             KsuIsValid {
-                FeatureItem(
-                    icon = Icons.Filled.FolderDelete,
-                    title = stringResource(id = R.string.settings_disable_kernel_umount),
+                SwitchItem(
+                    icon = Icons.Rounded.RemoveCircle,
+                    title = stringResource(id = R.string.settings_kernel_umount),
                     summary = umountSummary,
                     enabled = umountStatus == "supported",
-                    index = kernelUmountMode,
-                ) { index ->
-                    when (index) {
-                        // Default: enable and save to persist
-                        0 -> if (Natives.setKernelUmountEnabled(true)) {
-                            execKsud("feature save", true)
-                            prefs.edit { putInt("kernel_umount_mode", 0) }
-                            kernelUmountMode = 0
-                        }
-
-                        // Temporarily disable: save enabled state first, then disable
-                        1 -> if (Natives.setKernelUmountEnabled(true)) {
-                            execKsud("feature save", true)
-                            if (Natives.setKernelUmountEnabled(false)) {
-                                prefs.edit { putInt("kernel_umount_mode", 0) }
-                                kernelUmountMode = 1
-                            }
-                        }
-
-                        // Permanently disable: disable and save
-                        2 -> if (Natives.setKernelUmountEnabled(false)) {
-                            execKsud("feature save", true)
-                            prefs.edit { putInt("kernel_umount_mode", 2) }
-                            kernelUmountMode = 2
-                        }
+                    checked = isKernelUmountEnabled,
+                ) { checked ->
+                    if (Natives.setKernelUmountEnabled(checked)) {
+                        execKsud("feature save", true)
+                        isKernelUmountEnabled = checked
                     }
                 }
             }

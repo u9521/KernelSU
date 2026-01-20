@@ -21,11 +21,15 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemColors
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -34,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.NativeKeyEvent
@@ -41,8 +46,10 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -54,135 +61,61 @@ import me.weishu.kernelsu.R
 
 @Composable
 fun SwitchItem(
-    icon: ImageVector? = null,
-    title: String,
-    summary: String? = null,
-    checked: Boolean,
-    enabled: Boolean = true,
-    onCheckedChange: (Boolean) -> Unit
+    icon: ImageVector? = null, title: String, summary: String? = null, checked: Boolean, enabled: Boolean = true, onCheckedChange: (Boolean) -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
 
     ListItem(
-        modifier = Modifier
-            .toggleable(
-                value = checked,
-                interactionSource = interactionSource,
-                role = Role.Switch,
-                enabled = enabled,
-                indication = LocalIndication.current,
-                onValueChange = onCheckedChange
-            ),
-        headlineContent = {
+        modifier = Modifier.toggleable(
+            value = checked,
+            interactionSource = interactionSource,
+            role = Role.Switch,
+            enabled = enabled,
+            indication = LocalIndication.current,
+            onValueChange = onCheckedChange
+        ), headlineContent = {
             Text(title)
-        },
-        leadingContent = icon?.let {
+        }, leadingContent = icon?.let {
             { Icon(icon, title) }
-        },
-        trailingContent = {
+        }, trailingContent = {
             Crossfade(enabled) {
                 Switch(
-                    checked = checked,
-                    enabled = it,
-                    onCheckedChange = onCheckedChange,
-                    interactionSource = interactionSource
+                    checked = checked, enabled = it, onCheckedChange = onCheckedChange, interactionSource = interactionSource
                 )
-            }
-        },
-        supportingContent = {
-            if (summary != null) {
-                Text(summary)
-            }
-        }
-    )
-}
-
-@Composable
-fun RadioItem(
-    title: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    ListItem(
-        headlineContent = {
-            Text(title)
-        },
-        leadingContent = {
-            RadioButton(selected = selected, onClick = onClick)
-        }
-    )
-}
-
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-fun FeatureItem(
-    icon: ImageVector? = null, title: String, enabled: Boolean = true, summary: String? = null, index: Int, onCheckedChange: (Int) -> Unit
-) {
-    val modeItems = listOf(
-        stringResource(id = R.string.settings_mode_default),
-        stringResource(id = R.string.settings_mode_temp_enable),
-        stringResource(id = R.string.settings_mode_always_enable),
-    )
-    var selectedIndex by remember { mutableIntStateOf(index) }
-    Column {
-        ListItem(headlineContent = {
-            Text(title)
-        }, leadingContent = {
-            icon?.let {
-                Icon(icon, title)
             }
         }, supportingContent = {
             if (summary != null) {
                 Text(summary)
             }
         })
-        FlowRow(
-            Modifier
-                .padding(horizontal = 16.dp)
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            modeItems.forEachIndexed { index, label ->
-                ToggleButton(
-                    checked = selectedIndex == index,
-                    enabled = enabled,
-                    onCheckedChange = {
-                        selectedIndex = index
-                        onCheckedChange(index)
-                    },
-                    shapes = when (index) {
-                        0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
-                        modeItems.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
-                        else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .semantics { role = Role.RadioButton },
-                ) {
-                    Text(label)
-                }
-            }
-        }
-    }
 }
+
 
 @Composable
 fun BrMenuBox(
-    description: String?, menuContent: @Composable ColumnScope.(dismissMenu: () -> Unit) -> Unit, content: @Composable () -> Unit
+    modifier: Modifier = Modifier,
+    description: String?,
+    enabled: Boolean = true,
+    menuContent: @Composable ColumnScope.(dismissMenu: () -> Unit) -> Unit,
+    content: @Composable () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
     var touchPoint: Offset by remember { mutableStateOf(Offset.Zero) }
     val interactionSource = remember { MutableInteractionSource() }
     val dismissMenu = { expanded = false }
+    val hapticFeedback = LocalHapticFeedback.current
+    LaunchedEffect(expanded) {
+        if (expanded) hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+    }
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
             .indication(interactionSource, LocalIndication.current)
-            .focusable(interactionSource = interactionSource)
+            .focusable(enabled = enabled, interactionSource = interactionSource)
             .semantics {
                 role = Role.Button
+                if (!enabled) {
+                    disabled()
+                }
                 onClick(label = description) {
                     touchPoint = Offset.Zero
                     expanded = true
@@ -190,6 +123,7 @@ fun BrMenuBox(
                 }
             }
             .onKeyEvent { event ->
+                if (!enabled) return@onKeyEvent false
                 if (event.type == KeyEventType.KeyUp && (event.key == Key.Enter || event.key == Key.NumPadEnter || event.nativeKeyEvent.keyCode == NativeKeyEvent.KEYCODE_DPAD_CENTER)) {
                     touchPoint = Offset.Zero
                     expanded = true
@@ -198,6 +132,7 @@ fun BrMenuBox(
                 false
             }
             .pointerInput(Unit) {
+                if (!enabled) return@pointerInput
                 detectTapGestures(onPress = { offset ->
                     val press = PressInteraction.Press(offset)
                     interactionSource.emit(press)
@@ -214,9 +149,7 @@ fun BrMenuBox(
             }) {
         content()
         Box(
-            modifier = Modifier
-                .offset { IntOffset(touchPoint.x.toInt(), touchPoint.y.toInt()) }
-        ) {
+            modifier = Modifier.offset { IntOffset(touchPoint.x.toInt(), touchPoint.y.toInt()) }) {
             DropdownMenu(
                 expanded = expanded,
                 onDismissRequest = dismissMenu,
@@ -230,30 +163,29 @@ fun BrMenuBox(
 
 @Composable
 fun BrDropdownMenuItem(
-    icon: ImageVector? = null,
+    icon: @Composable (() -> Unit)? = null,
     title: String,
+    enabled: Boolean = true,
     summary: String? = null,
     selected: String? = null,
+    colors: ListItemColors = ListItemDefaults.colors(),
     menuContent: @Composable ColumnScope.(dismissMenu: () -> Unit) -> Unit
 ) {
-    BrMenuBox(title, menuContent = menuContent, content = {
-        ListItem(
-            headlineContent = { Text(title) },
-            supportingContent = {
-                if (summary != null) {
-                    Text(summary)
-                }
-            },
-            leadingContent = {
-                icon?.let {
-                    Icon(icon, title)
-                }
-            },
-            trailingContent = {
-                selected?.let {
-                    Text(selected)
-                }
+    BrMenuBox(modifier = Modifier.fillMaxWidth(), title, enabled = enabled, menuContent = menuContent, content = {
+        ListItem(colors = colors, headlineContent = { Text(title) }, supportingContent = {
+            if (summary != null) {
+                Text(summary)
             }
-        )
+        }, leadingContent = icon, trailingContent = {
+            selected?.let {
+                Text(
+                    selected, style = MaterialTheme.typography.bodyMedium, color = if (enabled) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                    }
+                )
+            }
+        })
     })
 }
