@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Warning
@@ -31,7 +30,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.Scaffold
@@ -82,13 +80,8 @@ fun HomeScreen() {
     val navigator = LocalNavController.current
 
     Scaffold(
-        topBar = {
-            TopBar(
-                onInstallClick = {
-                    navigator.navigateTo(InstallScreenNavKey)
-                }, scrollBehavior = scrollBehavior
-            )
-        }, contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+        topBar = { TopBar(scrollBehavior = scrollBehavior) },
+        contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -170,18 +163,10 @@ fun UpdateCard() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TopBar(
-    onInstallClick: () -> Unit, scrollBehavior: TopAppBarScrollBehavior? = null
-) {
+private fun TopBar(scrollBehavior: TopAppBarScrollBehavior? = null) {
     TopAppBar(
-        title = { Text(stringResource(R.string.app_name)) }, actions = {
-            IconButton(onClick = onInstallClick) {
-                Icon(
-                    imageVector = Icons.Filled.Archive, contentDescription = stringResource(id = R.string.install)
-                )
-            }
-            RebootListPopup()
-        }, windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal), scrollBehavior = scrollBehavior
+        title = { Text(stringResource(R.string.app_name)) }, actions = { RebootListPopup() },
+        windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal), scrollBehavior = scrollBehavior
     )
 }
 

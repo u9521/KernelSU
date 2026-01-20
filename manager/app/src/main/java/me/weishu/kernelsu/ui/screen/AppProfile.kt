@@ -45,7 +45,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialTheme.colorScheme
-import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
@@ -401,7 +400,7 @@ private fun RootProfile(profile: Natives.Profile, mode: Mode, onProfileChange: (
 
                 Mode.Custom -> {
                     RootProfileConfig(
-                        modifier = Modifier.padding(horizontal = 16.dp),profile = profile, onProfileChange = onProfileChange
+                        modifier = Modifier.padding(horizontal = 16.dp), profile = profile, onProfileChange = onProfileChange
                     )
                 }
 
@@ -468,6 +467,7 @@ private fun AppMenuBox(packageName: String, isUidGroup: Boolean, content: @Compo
         return
     }
     BrMenuBox(
+        modifier = Modifier.fillMaxWidth(),
         content = content, menuContent = { dismissMenu ->
             DropdownMenuItem(
                 text = { Text(stringResource(id = R.string.launch_app)) },

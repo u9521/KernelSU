@@ -4,66 +4,86 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Parcelable
 import android.provider.OpenableColumns
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SmallExtendedFloatingActionButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.material3.animateFloatingActionButton
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.dropUnlessResumed
-import com.maxkeppeker.sheets.core.models.base.Header
-import com.maxkeppeker.sheets.core.models.base.rememberUseCaseState
-import com.maxkeppeler.sheets.list.ListDialog
-import com.maxkeppeler.sheets.list.models.ListOption
-import com.maxkeppeler.sheets.list.models.ListSelection
+import kotlinx.parcelize.IgnoredOnParcel
+import kotlinx.parcelize.Parcelize
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.getKernelVersion
 import me.weishu.kernelsu.ui.component.BrDropdownMenuItem
 import me.weishu.kernelsu.ui.component.DialogHandle
 import me.weishu.kernelsu.ui.component.rememberConfirmDialog
@@ -83,183 +103,20 @@ import me.weishu.kernelsu.ui.util.rootAvailable
  * @author weishu
  * @date 2024/3/12.
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
-@Composable
-fun InstallScreen() {
-    val navigator = LocalNavController.current
-    val context = LocalContext.current
-    var installMethod by remember {
-        mutableStateOf<InstallMethod?>(null)
-    }
 
-    var lkmSelection by remember {
-        mutableStateOf<LkmSelection>(LkmSelection.KmiNone)
-    }
 
-    var partitionSelectionIndex by remember { mutableIntStateOf(0) }
-    var partitionsState by remember { mutableStateOf<List<String>>(emptyList()) }
-    var hasCustomSelected by remember { mutableStateOf(false) }
+data class EnvData(
+    val rootAvailable: Boolean = false,
+    val isAbDevice: Boolean = false,
+    val defaultPartition: String = "boot",
+    val partitions: List<String> = emptyList(),
+    val currentKmi: String = ""
+)
 
-    val onInstall = {
-        installMethod?.let { method ->
-            val isOta = method is InstallMethod.DirectInstallToInactiveSlot
-            val partitionSelection = partitionsState.getOrNull(partitionSelectionIndex)
-            val flashIt = FlashIt.FlashBoot(
-                boot = if (method is InstallMethod.SelectFile) method.uri else null,
-                lkm = lkmSelection,
-                ota = isOta,
-                partition = partitionSelection
-            )
-            navigator.navigateTo(FlashScreenNavKey(flashIt))
-        }
-    }
-
-    val currentKmi by produceState(initialValue = "") { value = getCurrentKmi() }
-
-    val selectKmiDialog = rememberSelectKmiDialog { kmi ->
-        kmi?.let {
-            lkmSelection = LkmSelection.KmiString(it)
-            onInstall()
-        }
-    }
-
-    val onClickNext = {
-        if (lkmSelection == LkmSelection.KmiNone && currentKmi.isBlank()) {
-            // no lkm file selected and cannot get current kmi
-            selectKmiDialog.show()
-        } else {
-            onInstall()
-        }
-    }
-
-    val selectLkmLauncher =
-        rememberLauncherForActivityResult(contract = ActivityResultContracts.StartActivityForResult()) {
-            if (it.resultCode == Activity.RESULT_OK) {
-                it.data?.data?.let { uri ->
-                    val isKo = isKoFile(context, uri)
-                    if (isKo) {
-                        lkmSelection = LkmSelection.LkmUri(uri)
-                    } else {
-                        lkmSelection = LkmSelection.KmiNone
-                        Toast.makeText(
-                            context,
-                            context.getString(R.string.install_only_support_ko_file),
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                }
-            }
-        }
-
-    val onLkmUpload = {
-        selectLkmLauncher.launch(Intent(Intent.ACTION_GET_CONTENT).apply {
-            type = "application/octet-stream"
-        })
-    }
-
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
-
-    Scaffold(
-        topBar = {
-            TopBar(
-                onBack = dropUnlessResumed { navigator.popBackStack() },
-                scrollBehavior = scrollBehavior
-            )
-        },
-        contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .nestedScroll(scrollBehavior.nestedScrollConnection)
-                .verticalScroll(rememberScrollState())
-        ) {
-            SelectInstallMethod { method ->
-                installMethod = method
-            }
-            AnimatedVisibility(
-                visible = installMethod is InstallMethod.DirectInstall || installMethod is InstallMethod.DirectInstallToInactiveSlot,
-                enter = expandVertically(),
-                exit = shrinkVertically()
-            ) {
-                val isOta = installMethod is InstallMethod.DirectInstallToInactiveSlot
-                val suffix = produceState(initialValue = "", isOta) {
-                    value = getSlotSuffix(isOta)
-                }.value
-                val partitions = produceState(initialValue = emptyList()) {
-                    value = getAvailablePartitions()
-                }.value
-                val defaultPartition = produceState(initialValue = "") {
-                    value = getDefaultPartition()
-                }.value
-                val displayPartitions = partitions.map { name ->
-                    if (defaultPartition == name) "$name (default)" else name
-                }
-                val defaultIndex = partitions.indexOf(defaultPartition).takeIf { it >= 0 } ?: 0
-                if (!hasCustomSelected) partitionSelectionIndex = defaultIndex
-                BrDropdownMenuItem(
-                    title = "${stringResource(R.string.install_select_partition)} (${suffix})",
-                    selected = displayPartitions.getOrNull(partitionSelectionIndex),
-                    icon = Icons.Default.Edit
-                ) { dismissMenu ->
-                    displayPartitions.forEachIndexed { index, name ->
-                        DropdownMenuItem(
-                            text = { Text(name) },
-                            onClick = {
-                                hasCustomSelected = true
-                                partitionSelectionIndex = index
-                                dismissMenu()
-                            },
-                        )
-                    }
-                }
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                (lkmSelection as? LkmSelection.LkmUri)?.let {
-                    Text(
-                        stringResource(
-                            id = R.string.selected_lkm,
-                            it.uri.lastPathSegment ?: "(file)"
-                        )
-                    )
-                }
-                Button(
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = installMethod != null,
-                    onClick = {
-                        onLkmUpload()
-                    }) {
-                    Text(
-                        stringResource(id = R.string.install_upload_lkm_file),
-                        fontSize = MaterialTheme.typography.bodyMedium.fontSize
-                    )
-                }
-                Button(
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = installMethod != null,
-                    onClick = {
-                        onClickNext()
-                    }) {
-                    Text(
-                        stringResource(id = R.string.install_next),
-                        fontSize = MaterialTheme.typography.bodyMedium.fontSize
-                    )
-                }
-            }
-        }
-    }
-}
-
-sealed class InstallMethod {
+@Parcelize
+sealed class InstallMethod : Parcelable {
     data class SelectFile(
-        val uri: Uri? = null,
-        @StringRes override val label: Int = R.string.select_file,
-        override val summary: String?
+        val uri: Uri? = null, @get:StringRes override val label: Int = R.string.select_file, override val summary: String?
     ) : InstallMethod()
 
     data object DirectInstall : InstallMethod() {
@@ -273,145 +130,406 @@ sealed class InstallMethod {
     }
 
     abstract val label: Int
+
+    @IgnoredOnParcel
     open val summary: String? = null
 }
 
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun SelectInstallMethod(onSelected: (InstallMethod) -> Unit = {}) {
-    val rootAvailable = rootAvailable()
-    val isAbDevice = produceState(initialValue = false) {
-        value = isAbDevice()
+fun InstallScreen() {
+    val context = LocalContext.current
+    val navigator = LocalNavController.current
+    val hapticFeedback = LocalHapticFeedback.current
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
+
+    var installMethod by rememberSaveable { mutableStateOf<InstallMethod?>(null) }
+    var lkmSelection by rememberSaveable { mutableStateOf<LkmSelection>(LkmSelection.KmiNone) }
+    var partitionSelectionIndex by rememberSaveable { mutableIntStateOf(0) }
+    var partitionSelected by rememberSaveable { mutableStateOf(false) }
+
+    val envData = produceState(initialValue = EnvData()) {
+        value = EnvData(
+            rootAvailable = rootAvailable(),
+            isAbDevice = isAbDevice(),
+            defaultPartition = getDefaultPartition(),
+            partitions = getAvailablePartitions(),
+            currentKmi = getCurrentKmi()
+        )
     }.value
-    val defaultPartitionName = produceState(initialValue = "boot") {
-        value = getDefaultPartition()
-    }.value
-    val selectFileTip = stringResource(
-        id = R.string.select_file_tip, defaultPartitionName
-    )
-    val radioOptions =
-        mutableListOf<InstallMethod>(InstallMethod.SelectFile(summary = selectFileTip))
-    if (rootAvailable) {
-        radioOptions.add(InstallMethod.DirectInstall)
 
-        if (isAbDevice) {
-            radioOptions.add(InstallMethod.DirectInstallToInactiveSlot)
+    val partitionRecommend = stringResource(R.string.select_file_tip, envData.defaultPartition)
+
+    val onFileSelectLaunch = { uri: Uri ->
+        installMethod = InstallMethod.SelectFile(uri, summary = partitionRecommend)
+    }
+
+    val onLkmSelectLaunch = { uri: Uri ->
+        if (isKoFile(context, uri)) {
+            lkmSelection = LkmSelection.LkmUri(uri)
+        } else {
+            lkmSelection = LkmSelection.KmiNone
+            Toast.makeText(context, R.string.install_only_support_ko_file, Toast.LENGTH_SHORT).show()
         }
     }
 
-    var selectedOption by remember { mutableStateOf<InstallMethod?>(null) }
-    val selectImageLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) {
-        if (it.resultCode == Activity.RESULT_OK) {
-            it.data?.data?.let { uri ->
-                val option = InstallMethod.SelectFile(uri, summary = selectFileTip)
-                selectedOption = option
-                onSelected(option)
-            }
+    val selectImageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { res ->
+        if (res.resultCode == Activity.RESULT_OK) res.data?.data?.let(onFileSelectLaunch)
+    }
+    val selectLkmLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { res ->
+        if (res.resultCode == Activity.RESULT_OK) res.data?.data?.let(onLkmSelectLaunch)
+    }
+
+    val onInstallClick = {
+        installMethod?.let { method ->
+            val isOta = method is InstallMethod.DirectInstallToInactiveSlot
+            val partitionSelection = envData.partitions.getOrNull(partitionSelectionIndex)
+            val flashIt = FlashIt.FlashBoot(
+                boot = if (method is InstallMethod.SelectFile) method.uri else null, lkm = lkmSelection, ota = isOta, partition = partitionSelection
+            )
+            navigator.navigateTo(FlashScreenNavKey(flashIt))
+            // reset after navigation
+            installMethod = null
+            lkmSelection = LkmSelection.KmiNone
+            partitionSelected = false
         }
     }
 
-    val confirmDialog = rememberConfirmDialog(onConfirm = {
-        selectedOption = InstallMethod.DirectInstallToInactiveSlot
-        onSelected(InstallMethod.DirectInstallToInactiveSlot)
-    }, onDismiss = null)
-    val dialogTitle = stringResource(id = android.R.string.dialog_alert_title)
-    val dialogContent = stringResource(id = R.string.install_inactive_slot_warning)
-
-    val onClick = { option: InstallMethod ->
-
-        when (option) {
-            is InstallMethod.SelectFile -> {
-                selectImageLauncher.launch(Intent(Intent.ACTION_GET_CONTENT).apply {
-                    type = "application/octet-stream"
-                })
-            }
-
-            is InstallMethod.DirectInstall -> {
-                selectedOption = option
-                onSelected(option)
-            }
-
-            is InstallMethod.DirectInstallToInactiveSlot -> {
-                confirmDialog.showConfirm(dialogTitle, dialogContent)
-            }
+    LaunchedEffect(envData.defaultPartition, envData.partitions) {
+        if (!partitionSelected && envData.partitions.isNotEmpty()) {
+            val idx = envData.partitions.indexOf(envData.defaultPartition)
+            if (idx >= 0) partitionSelectionIndex = idx
         }
     }
 
-    Column {
-        radioOptions.forEach { option ->
-            val interactionSource = remember { MutableInteractionSource() }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .toggleable(
-                        value = option.javaClass == selectedOption?.javaClass,
-                        onValueChange = {
-                            onClick(option)
-                        },
-                        role = Role.RadioButton,
-                        indication = LocalIndication.current,
-                        interactionSource = interactionSource
-                    )
-            ) {
-                RadioButton(
-                    selected = option.javaClass == selectedOption?.javaClass,
-                    onClick = {
-                        onClick(option)
-                    },
-                    interactionSource = interactionSource
-                )
-                Column(
-                    modifier = Modifier.padding(vertical = 12.dp)
-                ) {
-                    Text(
-                        text = stringResource(id = option.label),
-                        fontSize = MaterialTheme.typography.titleMedium.fontSize,
-                        fontFamily = MaterialTheme.typography.titleMedium.fontFamily,
-                        fontStyle = MaterialTheme.typography.titleMedium.fontStyle
-                    )
-                    option.summary?.let {
-                        Text(
-                            text = it,
-                            fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                            fontFamily = MaterialTheme.typography.bodySmall.fontFamily,
-                            fontStyle = MaterialTheme.typography.bodySmall.fontStyle
-                        )
+    val selectKmiDialog = rememberSelectKmiDialog(envData.currentKmi) { kmi ->
+        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+        lkmSelection = LkmSelection.KmiString(kmi)
+        onInstallClick()
+    }
+
+    val checkAndInstall: () -> Unit = {
+        val isKmiUnselected = lkmSelection == LkmSelection.KmiNone
+        val isKmiUnknown = envData.currentKmi.isBlank()
+        val isSelectFileMode = installMethod is InstallMethod.SelectFile
+        // When the KMI version is unknown or when manually selecting an image file for patching, display the KMI selection dialog
+        if (isKmiUnselected && (isKmiUnknown || isSelectFileMode)) {
+            selectKmiDialog.show()
+        } else {
+            onInstallClick()
+        }
+    }
+
+    Scaffold(topBar = {
+        TopBar(
+            onBack = dropUnlessResumed { navigator.popBackStack() }, scrollBehavior = scrollBehavior
+        )
+    }, contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal), floatingActionButton = {
+        SmallExtendedFloatingActionButton(
+            content = {
+                Text(stringResource(id = R.string.install_next))
+                Spacer(Modifier.width(2.dp))
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, stringResource(id = R.string.install_next))
+            },
+            modifier = Modifier
+                .padding(bottom = 6.dp + 48.dp + 6.dp /* SnackBar height */)
+                .animateFloatingActionButton(
+                    visible = installMethod != null,
+                    alignment = Alignment.CenterEnd,
+                ),
+            onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                checkAndInstall()
+            },
+        )
+    }
+
+
+    ) { innerPadding ->
+        val selectFileTip = stringResource(R.string.select_file_tip, envData.defaultPartition)
+        val kernelVersion = getKernelVersion()
+        val availableMethods = remember(envData.rootAvailable, envData.isAbDevice) {
+            buildList {
+                add(InstallMethod.SelectFile(summary = selectFileTip))
+                if (envData.rootAvailable && kernelVersion.isGKI()) {
+                    add(InstallMethod.DirectInstall)
+                    if (envData.isAbDevice && kernelVersion.isGKI()) {
+                        add(InstallMethod.DirectInstallToInactiveSlot)
                     }
                 }
             }
         }
+        InstallInner(
+            modifier = Modifier.padding(innerPadding),
+            scrollBehavior = scrollBehavior,
+            availableMethods = availableMethods,
+            currentMethod = installMethod,
+            lkmSelection = lkmSelection,
+            partitions = envData.partitions,
+            defaultPartition = envData.defaultPartition,
+            partitionIndex = partitionSelectionIndex,
+            onMethodChange = { installMethod = it },
+            onPartitionChange = { index ->
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                partitionSelected = true
+                partitionSelectionIndex = index
+            },
+            onLaunchImagePicker = {
+                selectImageLauncher.launch(Intent(Intent.ACTION_GET_CONTENT).apply { type = "application/octet-stream" })
+            },
+            onLaunchLkmPicker = {
+                selectLkmLauncher.launch(Intent(Intent.ACTION_GET_CONTENT).apply { type = "application/octet-stream" })
+            },
+        )
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun InstallInner(
+    modifier: Modifier = Modifier,
+    scrollBehavior: TopAppBarScrollBehavior,
+    availableMethods: List<InstallMethod>,
+    currentMethod: InstallMethod?,
+    lkmSelection: LkmSelection,
+    partitions: List<String>,
+    defaultPartition: String,
+    partitionIndex: Int,
+    onMethodChange: (InstallMethod) -> Unit,
+    onPartitionChange: (Int) -> Unit,
+    onLaunchImagePicker: () -> Unit,
+    onLaunchLkmPicker: () -> Unit,
+) {
+    val hapticFeedback = LocalHapticFeedback.current
+    val motionScheme = MaterialTheme.motionScheme
+    Column(
+        modifier = modifier
+            .nestedScroll(scrollBehavior.nestedScrollConnection)
+            .verticalScroll(rememberScrollState())
+    ) {
+        InstallMethodSelector(
+            options = availableMethods, selectedOption = currentMethod, onOptionSelected = { method ->
+                if (method is InstallMethod.SelectFile) {
+                    onLaunchImagePicker()
+                } else {
+                    onMethodChange(method)
+                }
+            })
+
+        val showPartitionSelector = currentMethod is InstallMethod.DirectInstall || currentMethod is InstallMethod.DirectInstallToInactiveSlot
+
+        AnimatedVisibility(
+            visible = showPartitionSelector,
+            enter = expandVertically(animationSpec = motionScheme.fastSpatialSpec()),
+            exit = shrinkVertically(animationSpec = motionScheme.fastSpatialSpec())
+        ) {
+            val isOta = currentMethod is InstallMethod.DirectInstallToInactiveSlot
+            val suffix by produceState("", isOta) { value = getSlotSuffix(isOta) }
+
+            PartitionSelectorCard(
+                partitions = partitions, defaultPartition = defaultPartition, selectedIndex = partitionIndex, suffix = suffix, onSelect = onPartitionChange
+            )
+        }
+
+        LkmSelectorCard(
+            onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                onLaunchLkmPicker()
+            })
+
+        (lkmSelection as? LkmSelection.LkmUri)?.let {
+            Text(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 16.dp), text = stringResource(
+                    id = R.string.selected_lkm, it.uri.lastPathSegment ?: "(file)"
+                )
+            )
+        }
+    }
+}
+
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun InstallMethodSelector(
+    options: List<InstallMethod>, selectedOption: InstallMethod?, onOptionSelected: (InstallMethod) -> Unit
+) {
+    var pendingOption by remember { mutableStateOf<InstallMethod?>(null) }
+    val confirmDialog = rememberConfirmDialog(onConfirm = { pendingOption?.let { onOptionSelected(it) } }, onDismiss = null)
+    val motionScheme = MaterialTheme.motionScheme
+    val otaTitle = stringResource(id = android.R.string.dialog_alert_title)
+    val otDialogContent = stringResource(id = R.string.install_inactive_slot_warning)
+    val handleSelection = { option: InstallMethod ->
+        if (option is InstallMethod.DirectInstallToInactiveSlot) {
+            pendingOption = option
+
+            confirmDialog.showConfirm(
+                title = otaTitle, content = otDialogContent
+            )
+        } else {
+            onOptionSelected(option)
+        }
+    }
+    Column(modifier = Modifier.animateContentSize(motionScheme.fastSpatialSpec())) {
+        options.forEach { option ->
+            val isSelected = option.javaClass == selectedOption?.javaClass
+            InstallMethodItem(
+                title = stringResource(option.label), summary = option.summary, isSelected = isSelected, onClick = { handleSelection(option) })
+        }
+    }
+}
+
+@Composable
+fun InstallMethodItem(title: String, summary: String?, isSelected: Boolean, onClick: () -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
+    Row(
+        verticalAlignment = Alignment.CenterVertically, modifier = Modifier
+            .fillMaxWidth()
+            .toggleable(
+                value = isSelected, onValueChange = {
+                    onClick()
+                }, role = Role.RadioButton, indication = LocalIndication.current, interactionSource = interactionSource
+            )
+    ) {
+        Spacer(modifier = Modifier.width(16.dp))
+        RadioButton(
+            selected = isSelected, onClick = null
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Column(
+            modifier = Modifier.padding(vertical = 12.dp)
+        ) {
+            Text(
+                text = title,
+                fontSize = MaterialTheme.typography.titleMedium.fontSize,
+                fontFamily = MaterialTheme.typography.titleMedium.fontFamily,
+                fontStyle = MaterialTheme.typography.titleMedium.fontStyle
+            )
+            summary?.let {
+                Text(
+                    text = it,
+                    fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                    fontFamily = MaterialTheme.typography.bodySmall.fontFamily,
+                    fontStyle = MaterialTheme.typography.bodySmall.fontStyle
+                )
+            }
+        }
+        Spacer(modifier = Modifier.width(16.dp))
+    }
+}
+
+@Composable
+fun PartitionSelectorCard(
+    partitions: List<String>, defaultPartition: String, selectedIndex: Int, suffix: String, onSelect: (Int) -> Unit
+) {
+    ElevatedCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 12.dp, start = 16.dp, end = 16.dp),
+    ) {
+        val displayNames = remember(partitions, defaultPartition) {
+            partitions.map { if (it == defaultPartition) "$it (default)" else it }
+        }
+
+        BrDropdownMenuItem(
+            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+            icon = { Icon(painterResource(R.drawable.ic_hard_drive_rounded_24dp), null) },
+            title = "${stringResource(R.string.install_select_partition)} ($suffix)",
+            selected = displayNames.getOrNull(selectedIndex)
+        ) { dismiss ->
+            displayNames.forEachIndexed { index, name ->
+                DropdownMenuItem(text = { Text(name) }, onClick = { onSelect(index); dismiss() })
+            }
+        }
+    }
+}
+
+@Composable
+fun LkmSelectorCard(onClick: () -> Unit) {
+    ElevatedCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 12.dp, start = 16.dp, end = 16.dp), onClick = onClick
+    ) {
+        ListItem(
+            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+            leadingContent = { Icon(painterResource(R.drawable.ic_drive_file_move_rounded_24dp), null) },
+            headlineContent = { Text(stringResource(id = R.string.install_upload_lkm_file)) })
+    }
+}
+
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun KmiSelectDialog(
+    title: String, defaultKmi: String, options: List<String>, onConfirm: (String) -> Unit, onDismiss: () -> Unit
+) {
+    var selectedOption by remember {
+        mutableStateOf(defaultKmi)
+    }
+    var canConfirm by remember { mutableStateOf(false) }
+    val enableConfirm = { canConfirm = true }
+
+    AlertDialog(onDismissRequest = onDismiss, modifier = Modifier.heightIn(max = 500.dp), title = {
+        Text(text = title, style = MaterialTheme.typography.titleLarge)
+    }, text = {
+        Column(
+            modifier = Modifier
+                .selectableGroup()
+                .verticalScroll(rememberScrollState())
+        ) {
+            options.forEach { text ->
+                val isSelected = (text == selectedOption)
+                if (isSelected) enableConfirm()
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .selectable(
+                            selected = isSelected, onClick = { selectedOption = text }, role = Role.RadioButton
+                        )
+                        .padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = isSelected, onClick = null
+                    )
+                    Text(
+                        text = text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 16.dp)
+                    )
+                }
+            }
+        }
+    }, confirmButton = {
+        Button(
+            enabled = canConfirm, onClick = {
+                onConfirm(selectedOption)
+            }, shapes = ButtonDefaults.shapes()
+        ) {
+            Text(stringResource(android.R.string.ok))
+        }
+    }, dismissButton = {
+        TextButton(onClick = onDismiss) {
+            Text(stringResource(android.R.string.cancel))
+        }
+    })
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun rememberSelectKmiDialog(onSelected: (String?) -> Unit): DialogHandle {
+fun rememberSelectKmiDialog(defaultKmi: String, onSelected: (String) -> Unit): DialogHandle {
     return rememberCustomDialog { dismiss ->
         val supportedKmi by produceState(initialValue = emptyList()) {
             value = getSupportedKmis()
         }
-        val options = supportedKmi.map { value ->
-            ListOption(
-                titleText = value
-            )
-        }
 
-        var selection by remember { mutableStateOf<String?>(null) }
-        ListDialog(
-            state = rememberUseCaseState(visible = true, onFinishedRequest = {
-                onSelected(selection)
-            }, onCloseRequest = {
+        KmiSelectDialog(
+            title = stringResource(R.string.select_kmi), options = supportedKmi, defaultKmi = defaultKmi, onConfirm = { selected ->
+                onSelected(selected)
                 dismiss()
-            }), header = Header.Default(
-                title = stringResource(R.string.select_kmi),
-            ), selection = ListSelection.Single(
-                showRadioButtons = true,
-                options = options,
-            ) { _, option ->
-                selection = option.titleText
-            })
+            }, onDismiss = dismiss
+        )
     }
 }
 
@@ -435,11 +553,7 @@ private fun isKoFile(context: Context, uri: Uri): Boolean {
 
     return try {
         context.contentResolver.query(
-            uri,
-            arrayOf(OpenableColumns.DISPLAY_NAME),
-            null,
-            null,
-            null
+            uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null
         )?.use { cursor ->
             val idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
             if (idx != -1 && cursor.moveToFirst()) {
@@ -453,6 +567,7 @@ private fun isKoFile(context: Context, uri: Uri): Boolean {
         false
     }
 }
+
 
 @Composable
 @Preview
