@@ -54,5 +54,21 @@ fun getMainEntryProvider(): (NavKey) -> NavEntry<NavKey> {
             TemplateEditorScreen(it.initialTemplate, it.readOnly)
         }
     }
-    return mainEntryProvider
+    return mainEntryProvider.injectMetadata()
+}
+
+private fun <T : Any> ((T) -> NavEntry<T>).injectMetadata(): (T) -> NavEntry<T> {
+    return { key ->
+        val originalEntry = this(key)
+        val newMetadata = originalEntry.metadata + ("navKey" to key)
+
+        NavEntry(
+            key = key,
+            contentKey = originalEntry.contentKey,
+            metadata = newMetadata,
+            content = {
+                originalEntry.Content()
+            }
+        )
+    }
 }

@@ -8,11 +8,9 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.snap
-import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
@@ -59,12 +57,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -78,8 +77,7 @@ import me.weishu.kernelsu.ui.component.SwitchItem
 import me.weishu.kernelsu.ui.component.profile.AppProfileConfig
 import me.weishu.kernelsu.ui.component.profile.RootProfileConfig
 import me.weishu.kernelsu.ui.component.profile.RootTemplateSelector
-import me.weishu.kernelsu.ui.navigation.slideInFromLeft
-import me.weishu.kernelsu.ui.navigation.slideInFromRight
+import me.weishu.kernelsu.ui.navigation.slideHorizontal
 import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.util.forceStopApp
@@ -136,10 +134,10 @@ fun AppProfileScreen(
 
     Scaffold(
         topBar = {
-            TopBar(
-                onBack = dropUnlessResumed { navigator.popBackStack() }, scrollBehavior = scrollBehavior
-            )
-        },
+        TopBar(
+            onBack = dropUnlessResumed { navigator.popBackStack() }, scrollBehavior = scrollBehavior
+        )
+    },
         snackbarHost = { SnackbarHost(hostState = snackBarHost) },
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     ) { paddingValues ->
@@ -265,8 +263,7 @@ private fun AppProfileInner(
                 val shouldClearTemplate = (newMode == Mode.Default || newMode == Mode.Custom)
                 onProfileChange(
                     profile.copy(
-                        rootUseDefault = (newMode == Mode.Default),
-                        rootTemplate = if (shouldClearTemplate) null else profile.rootTemplate
+                        rootUseDefault = (newMode == Mode.Default), rootTemplate = if (shouldClearTemplate) null else profile.rootTemplate
                     )
                 )
                 rootMode = newMode
@@ -306,12 +303,12 @@ private enum class Mode(@param:StringRes private val res: Int) {
 private fun TopBar(onBack: () -> Unit, scrollBehavior: TopAppBarScrollBehavior? = null) {
     TopAppBar(
         title = {
-            Text(stringResource(R.string.profile))
-        }, navigationIcon = {
-            IconButton(
-                onClick = onBack
-            ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
-        }, windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal), scrollBehavior = scrollBehavior
+        Text(stringResource(R.string.profile))
+    }, navigationIcon = {
+        IconButton(
+            onClick = onBack
+        ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
+    }, windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal), scrollBehavior = scrollBehavior
     )
 }
 
@@ -326,32 +323,19 @@ private fun ProfileBox(mode: Mode, hasTemplate: Boolean, onModeChange: (Mode) ->
     HorizontalDivider(thickness = Dp.Hairline)
     ListItem(headlineContent = {
         Row(
-            modifier = Modifier
-                .fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly
+            modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             FilterChip(
                 selected = mode == Mode.Default,
                 label = { Text(stringResource(R.string.profile_default)) },
                 onClick = { onModeChange(Mode.Default) },
             )
-            val motionScheme = MaterialTheme.motionScheme
-            AnimatedVisibility(
-                visible = hasTemplate,
-                enter = expandHorizontally(
-                    expandFrom = Alignment.CenterHorizontally,
-                    animationSpec = motionScheme.fastEffectsSpec()
-                ) + fadeIn(),
-                exit = shrinkHorizontally(
-                    shrinkTowards = Alignment.CenterHorizontally,
-                    animationSpec = motionScheme.fastEffectsSpec()
-                ) + fadeOut()
-            ) {
+            if (hasTemplate) {
                 FilterChip(
                     selected = mode == Mode.Template,
                     label = {
                         Text(
-                            stringResource(R.string.profile_template),
-                            maxLines = 1, // 确保文字只有一行，避免高度变化
+                            stringResource(R.string.profile_template), maxLines = 1, // 确保文字只有一行，避免高度变化
                             softWrap = false
                         )
                     },
@@ -371,15 +355,12 @@ private fun ProfileBox(mode: Mode, hasTemplate: Boolean, onModeChange: (Mode) ->
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun RootProfile(profile: Natives.Profile, mode: Mode, onProfileChange: (Natives.Profile) -> Unit) {
+    val motionScheme = MaterialTheme.motionScheme
+    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     Column {
-        val motionScheme = MaterialTheme.motionScheme
         AnimatedContent(
             targetState = mode, label = "ModeSwitchAnimation", transitionSpec = {
-                if (targetState.ordinal > initialState.ordinal) {
-                    slideInFromRight(animationSpec = motionScheme.defaultSpatialSpec())
-                } else {
-                    slideInFromLeft(animationSpec = motionScheme.defaultSpatialSpec())
-                }
+                slideHorizontal(isRtl == targetState.ordinal > initialState.ordinal, animationSpec = motionScheme.defaultSpatialSpec())
             }) { targetMode ->
             when (targetMode) {
                 Mode.Template -> {
@@ -418,37 +399,32 @@ private fun RootProfile(profile: Natives.Profile, mode: Mode, onProfileChange: (
 private fun RootTempleInfo(templateId: String?) {
     val template = viewModel<TemplateViewModel>().templateList.find { it.id == templateId }
     AnimatedContent(
-        targetState = template,
-        transitionSpec = {
+        targetState = template, transitionSpec = {
             if (targetState == null) {
                 EnterTransition.None togetherWith fadeOut(animationSpec = snap(delayMillis = 250))
             } else {
                 EnterTransition.None togetherWith ExitTransition.None
             }
-        },
-        label = ""
+        }, label = ""
     ) { localTemplate ->
         if (localTemplate == null) {
             return@AnimatedContent
         }
         Column {
-            val editTextModifier = Modifier
-                .fillMaxWidth()
+            val editTextModifier = Modifier.fillMaxWidth()
             OutlinedTextEdit(
                 modifier = editTextModifier,
                 label = { Text(stringResource(id = R.string.app_profile_template_name)) },
                 text = localTemplate.name,
                 readOnly = true,
-                onValueChange = {}
-            )
+                onValueChange = {})
             OutlinedTextEdit(
                 modifier = editTextModifier,
                 label = { Text(stringResource(id = R.string.app_profile_template_description)) },
                 text = localTemplate.description,
                 singleLine = false,
                 readOnly = true,
-                onValueChange = {}
-            )
+                onValueChange = {})
         }
     }
 }
@@ -467,8 +443,7 @@ private fun AppMenuBox(packageName: String, isUidGroup: Boolean, content: @Compo
         return
     }
     BrMenuBox(
-        modifier = Modifier.fillMaxWidth(),
-        content = content, menuContent = { dismissMenu ->
+        modifier = Modifier.fillMaxWidth(), content = content, menuContent = { dismissMenu ->
             DropdownMenuItem(
                 text = { Text(stringResource(id = R.string.launch_app)) },
                 onClick = {

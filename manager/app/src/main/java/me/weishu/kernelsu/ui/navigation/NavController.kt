@@ -14,8 +14,6 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberDecoratedNavEntries
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 
-internal const val REVERSE_ANIM = "reverse_anim"
-
 class NavController(val startKey: NavKey) {
 
     private var topLevelState = mutableStateOf(startKey)
@@ -32,7 +30,6 @@ class NavController(val startKey: NavKey) {
         set(value) {
             topLevelState.value = value
         }
-
 
     companion object {
         fun Saver(startKey: NavKey): Saver<NavController, Any> =
@@ -68,8 +65,8 @@ class NavController(val startKey: NavKey) {
             })
     }
 
-    fun getTopLevel(key: NavKey): TopLevelRoute? {
-        return TopLevelRoute.entries.find { it.navKey == key }
+    fun getTopLevel(key: NavKey?): TopLevelRoute? {
+        return if (key == null) null else TopLevelRoute.entries.find { it.navKey == key }
     }
 
     fun isTopLevel(): Boolean {
@@ -79,18 +76,8 @@ class NavController(val startKey: NavKey) {
     fun navigateTo(key: NavKey) {
         if (current() == key) return
         if (getTopLevel(key) != null) {
-            // we don't need to reverse Home
-            val revAnim = key != startKey && getTopLevel(key)!!.ordinal < getTopLevel(currentTopLevel)!!.ordinal
-            setResult(REVERSE_ANIM, revAnim, goback = false)
             currentTopLevel = key
             return
-        }
-        popResult<Boolean>(REVERSE_ANIM)
-        current()?.let {
-            if (it.javaClass == key.javaClass) {
-                backStacks[currentTopLevel]?.set(backStacks[currentTopLevel]!!.lastIndex, key)
-                return
-            }
         }
         backStacks[currentTopLevel]?.add(key)
     }
@@ -101,6 +88,8 @@ class NavController(val startKey: NavKey) {
             currentStack.removeLastOrNull()
         } else if (currentTopLevel != startKey) {
             currentTopLevel = startKey
+        } else {
+            currentStack.removeLastOrNull()
         }
     }
 
