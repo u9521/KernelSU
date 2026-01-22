@@ -1,4 +1,4 @@
-package me.weishu.kernelsu.ui.navigation
+package me.weishu.kernelsu.ui.navigation3
 
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.core.FiniteAnimationSpec

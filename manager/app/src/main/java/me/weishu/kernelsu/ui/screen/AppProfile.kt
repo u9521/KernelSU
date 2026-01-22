@@ -51,6 +51,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -77,7 +78,7 @@ import me.weishu.kernelsu.ui.component.SwitchItem
 import me.weishu.kernelsu.ui.component.profile.AppProfileConfig
 import me.weishu.kernelsu.ui.component.profile.RootProfileConfig
 import me.weishu.kernelsu.ui.component.profile.RootTemplateSelector
-import me.weishu.kernelsu.ui.navigation.slideHorizontal
+import me.weishu.kernelsu.ui.navigation3.slideHorizontal
 import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.util.forceStopApp
@@ -97,17 +98,27 @@ import me.weishu.kernelsu.ui.viewmodel.TemplateViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppProfileScreen(
-    appInfo: SuperUserViewModel.AppInfo,
+    packageName: String,
 ) {
     val snackBarHost = LocalSnackbarHost.current
     val navigator = LocalNavController.current
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val scope = rememberCoroutineScope()
+    val appInfoState = remember(packageName) {
+        derivedStateOf {
+            SuperUserViewModel.apps.find { it.packageName == packageName }
+        }
+    }
+    val appInfo = appInfoState.value
+    if (appInfo == null) {
+        LaunchedEffect(Unit) {
+            navigator.popBackStack()
+        }
+        return
+    }
     val failToUpdateAppProfile = stringResource(R.string.failed_to_update_app_profile).format(appInfo.label)
     val failToUpdateSepolicy = stringResource(R.string.failed_to_update_sepolicy).format(appInfo.label)
     val suNotAllowed = stringResource(R.string.su_not_allowed).format(appInfo.label)
-
-    val packageName = appInfo.packageName
     val sameUidApps = remember(appInfo.uid) {
         SuperUserViewModel.apps.filter { it.uid == appInfo.uid }
     }
@@ -134,10 +145,10 @@ fun AppProfileScreen(
 
     Scaffold(
         topBar = {
-        TopBar(
-            onBack = dropUnlessResumed { navigator.popBackStack() }, scrollBehavior = scrollBehavior
-        )
-    },
+            TopBar(
+                onBack = dropUnlessResumed { navigator.popBackStack() }, scrollBehavior = scrollBehavior
+            )
+        },
         snackbarHost = { SnackbarHost(hostState = snackBarHost) },
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     ) { paddingValues ->
@@ -303,12 +314,12 @@ private enum class Mode(@param:StringRes private val res: Int) {
 private fun TopBar(onBack: () -> Unit, scrollBehavior: TopAppBarScrollBehavior? = null) {
     TopAppBar(
         title = {
-        Text(stringResource(R.string.profile))
-    }, navigationIcon = {
-        IconButton(
-            onClick = onBack
-        ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
-    }, windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal), scrollBehavior = scrollBehavior
+            Text(stringResource(R.string.profile))
+        }, navigationIcon = {
+            IconButton(
+                onClick = onBack
+            ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
+        }, windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal), scrollBehavior = scrollBehavior
     )
 }
 

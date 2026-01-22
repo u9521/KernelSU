@@ -1,4 +1,4 @@
-package me.weishu.kernelsu.ui.navigation
+package me.weishu.kernelsu.ui.util
 
 import android.os.Parcel
 import android.os.Parcelable
@@ -7,10 +7,8 @@ import kotlinx.serialization.builtins.ByteArraySerializer
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import me.weishu.kernelsu.ui.screen.FlashIt
-import me.weishu.kernelsu.ui.viewmodel.SuperUserViewModel
 import me.weishu.kernelsu.ui.viewmodel.TemplateViewModel
 
-object AppInfoSerializer : BaseParcelableSerializer<SuperUserViewModel.AppInfo>(SuperUserViewModel.AppInfo::class.java)
 object FlashItSerializer : BaseParcelableSerializer<FlashIt>(FlashIt::class.java)
 object TemplateInfoSerializer : BaseParcelableSerializer<TemplateViewModel.TemplateInfo>(TemplateViewModel.TemplateInfo::class.java)
 

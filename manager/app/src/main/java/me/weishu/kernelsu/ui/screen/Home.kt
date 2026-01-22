@@ -62,8 +62,8 @@ import me.weishu.kernelsu.R
 import me.weishu.kernelsu.getKernelVersion
 import me.weishu.kernelsu.ui.component.RebootListPopup
 import me.weishu.kernelsu.ui.component.rememberConfirmDialog
-import me.weishu.kernelsu.ui.navigation.InstallScreenNavKey
-import me.weishu.kernelsu.ui.navigation.TopLevelRoute
+import me.weishu.kernelsu.ui.navigation3.Route
+import me.weishu.kernelsu.ui.navigation3.TopLevelRoute
 import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.checkNewVersion
 import me.weishu.kernelsu.ui.util.getModuleCount
@@ -97,7 +97,7 @@ fun HomeScreen() {
             }
 
             StatusCard(kernelVersion, ksuVersion, lkmMode) {
-                navigator.navigateTo(InstallScreenNavKey)
+                navigator.navigateTo(Route.Install)
             }
             if (isManager && Natives.requireNewKernel()) {
                 WarningCard(

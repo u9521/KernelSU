@@ -88,7 +88,7 @@ import me.weishu.kernelsu.ui.component.BrDropdownMenuItem
 import me.weishu.kernelsu.ui.component.DialogHandle
 import me.weishu.kernelsu.ui.component.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.rememberCustomDialog
-import me.weishu.kernelsu.ui.navigation.FlashScreenNavKey
+import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.util.LkmSelection
 import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.getAvailablePartitions
@@ -188,7 +188,7 @@ fun InstallScreen() {
             val flashIt = FlashIt.FlashBoot(
                 boot = if (method is InstallMethod.SelectFile) method.uri else null, lkm = lkmSelection, ota = isOta, partition = partitionSelection
             )
-            navigator.navigateTo(FlashScreenNavKey(flashIt))
+            navigator.navigateTo(Route.Flash(flashIt))
             // reset after navigation
             installMethod = null
             lkmSelection = LkmSelection.KmiNone

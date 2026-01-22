@@ -23,7 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
-import me.weishu.kernelsu.ui.navigation.AppProfileTemplateNavKey
+import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.listAppProfileTemplates
 import me.weishu.kernelsu.ui.viewmodel.getTemplateInfoById
@@ -64,7 +64,7 @@ fun RootTemplateSelector(
             trailingIcon = {
                 if (noTemplates) {
                     IconButton(
-                        onClick = { navigator.navigateTo(AppProfileTemplateNavKey) }
+                        onClick = { navigator.navigateTo(Route.AppProfileTemplate) }
                     ) {
                         Icon(Icons.Filled.Create, null)
                     }

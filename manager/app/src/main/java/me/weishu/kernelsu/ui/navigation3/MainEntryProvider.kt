@@ -1,4 +1,4 @@
-package me.weishu.kernelsu.ui.navigation
+package me.weishu.kernelsu.ui.navigation3
 
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.navigation3.ListDetailSceneStrategy
@@ -23,34 +23,34 @@ import me.weishu.kernelsu.ui.screen.TemplateEditorScreen
 fun getMainEntryProvider(): (NavKey) -> NavEntry<NavKey> {
 
     val mainEntryProvider: (NavKey) -> NavEntry<NavKey> = entryProvider {
-        entry<HomeNavKey> {
+        entry<Route.Home> {
             HomeScreen()
         }
-        entry<SuperUserNavKey>(metadata = ListDetailSceneStrategy.listPane("navbar")) {
+        entry<Route.SuperUser>(metadata = ListDetailSceneStrategy.listPane("navbar")) {
             SuperUserScreen()
         }
-        entry<ModuleNavKey> {
+        entry<Route.Module> {
             ModuleScreen()
         }
-        entry<SettingNavKey> {
+        entry<Route.Settings> {
             SettingScreen()
         }
-        entry<AppProfileScreenNavKey>(metadata = ListDetailSceneStrategy.detailPane("navbar")) {
-            AppProfileScreen(appInfo = it.appInfo)
+        entry<Route.AppProfile>(metadata = ListDetailSceneStrategy.detailPane("navbar")) {
+            AppProfileScreen(it.packageName)
         }
-        entry<ExecuteModuleActionNavKey> {
+        entry<Route.ExecuteModuleAction> {
             ExecuteModuleActionScreen(it.moduleId)
         }
-        entry<FlashScreenNavKey> {
+        entry<Route.Flash> {
             FlashScreen(it.flashIt)
         }
-        entry<InstallScreenNavKey> {
+        entry<Route.Install> {
             InstallScreen()
         }
-        entry<AppProfileTemplateNavKey>(metadata = ListDetailSceneStrategy.listPane("appProfile")) {
+        entry<Route.AppProfileTemplate>(metadata = ListDetailSceneStrategy.listPane("appProfile")) {
             AppProfileTemplateScreen()
         }
-        entry<TemplateEditorNavKey>(metadata = ListDetailSceneStrategy.detailPane("appProfile")) {
+        entry<Route.TemplateEditor>(metadata = ListDetailSceneStrategy.detailPane("appProfile")) {
             TemplateEditorScreen(it.initialTemplate, it.readOnly)
         }
     }

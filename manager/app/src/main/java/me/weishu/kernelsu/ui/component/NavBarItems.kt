@@ -25,7 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import me.weishu.kernelsu.Natives
-import me.weishu.kernelsu.ui.navigation.TopLevelRoute
+import me.weishu.kernelsu.ui.navigation3.TopLevelRoute
 import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.isRailNavbar
 import me.weishu.kernelsu.ui.util.navigationSuiteType

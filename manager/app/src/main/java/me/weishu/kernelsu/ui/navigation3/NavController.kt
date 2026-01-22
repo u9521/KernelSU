@@ -1,7 +1,6 @@
-package me.weishu.kernelsu.ui.navigation
+package me.weishu.kernelsu.ui.navigation3
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.listSaver
@@ -13,6 +12,10 @@ import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberDecoratedNavEntries
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+
 
 class NavController(val startKey: NavKey) {
 
@@ -22,48 +25,13 @@ class NavController(val startKey: NavKey) {
         NavBackStack(route)
     }
 
-    @PublishedApi
-    internal val results = mutableStateMapOf<String, Any?>()
+    private val resultBus = mutableMapOf<String, MutableSharedFlow<Any>>()
 
     var currentTopLevel: NavKey
         get() = topLevelState.value
         set(value) {
             topLevelState.value = value
         }
-
-    companion object {
-        fun Saver(startKey: NavKey): Saver<NavController, Any> =
-            listSaver(save = { controller ->
-                val currentLevel = controller.currentTopLevel
-                val savedStacks = controller.backStacks.mapValues { (_, stack) ->
-                    ArrayList(stack)
-                }
-                val savedResults = HashMap(controller.results)
-                listOf(currentLevel, savedStacks, savedResults)
-            }, restore = { savedList ->
-                val controller = NavController(startKey)
-                // Tab
-                val currentLevel = savedList[0] as NavKey
-                controller.currentTopLevel = currentLevel
-
-                // Stack
-                @Suppress("UNCHECKED_CAST") val savedStacks =
-                    savedList[1] as Map<NavKey, List<NavKey>>
-
-                savedStacks.forEach { (route, keys) ->
-                    val targetStack = controller.backStacks[route]
-                    if (targetStack is NavBackStack<NavKey>) {
-                        targetStack.clear()
-                        targetStack.addAll(keys)
-                    }
-                }
-
-                // 3. Results
-                @Suppress("UNCHECKED_CAST") val savedResults = savedList[2] as Map<String, Any?>
-                controller.results.putAll(savedResults)
-                controller
-            })
-    }
 
     fun getTopLevel(key: NavKey?): TopLevelRoute? {
         return if (key == null) null else TopLevelRoute.entries.find { it.navKey == key }
@@ -78,6 +46,13 @@ class NavController(val startKey: NavKey) {
         if (getTopLevel(key) != null) {
             currentTopLevel = key
             return
+        }
+        // eg. foldable devices appProfile to appProfile
+        current()?.let {
+            if (it.javaClass == key.javaClass) {
+                backStacks[currentTopLevel]?.set(backStacks[currentTopLevel]!!.lastIndex, key)
+                return
+            }
         }
         backStacks[currentTopLevel]?.add(key)
     }
@@ -97,30 +72,31 @@ class NavController(val startKey: NavKey) {
         return backStacks[currentTopLevel]!!.lastOrNull()
     }
 
-
-    // Ensure that the data stored is serializable, otherwise the app will crash.
-    fun setResult(key: String, result: Any?, goback: Boolean = true) {
-        results[key] = result
-        if (goback) {
-            popBackStack()
-        }
+    /**
+     * Set a result for the given request
+     */
+    fun <T : Any> setResult(requestKey: String, value: T) {
+        ensureChannel(requestKey).tryEmit(value)
     }
 
-    inline fun <reified T> popResult(key: String): T? {
-        if (results.containsKey(key)) {
-            val value = results[key]
-            results.remove(key)
-            return value as? T
-        }
-        return null
+    /**
+     * Observe results for a given request key as a SharedFlow.
+     */
+    @Suppress("UNCHECKED_CAST")
+    fun <T : Any> observeResult(requestKey: String): SharedFlow<T> {
+        return ensureChannel(requestKey) as SharedFlow<T>
     }
 
-    inline fun <reified T> getResult(key: String): T? {
-        if (results.containsKey(key)) {
-            val value = results[key]
-            return value as? T
-        }
-        return null
+    /**
+     * Clear the last emitted result for the request key.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun clearResult(requestKey: String) {
+        ensureChannel(requestKey).resetReplayCache()
+    }
+
+    private fun ensureChannel(key: String): MutableSharedFlow<Any> {
+        return resultBus.getOrPut(key) { MutableSharedFlow(replay = 1, extraBufferCapacity = 0) }
     }
 
     @Composable
@@ -139,6 +115,35 @@ class NavController(val startKey: NavKey) {
             (stackEntries[startKey] ?: emptyList()) + (stackEntries[currentTopLevel]
                 ?: emptyList())
         }.toMutableStateList()
+    }
+
+    companion object {
+        fun Saver(startKey: NavKey): Saver<NavController, Any> =
+            listSaver(save = { controller ->
+                val currentLevel = controller.currentTopLevel
+                val savedStacks = controller.backStacks.mapValues { (_, stack) ->
+                    ArrayList(stack)
+                }
+                listOf(currentLevel, savedStacks)
+            }, restore = { savedList ->
+                val controller = NavController(startKey)
+                // Tab
+                val currentLevel = savedList[0] as NavKey
+                controller.currentTopLevel = currentLevel
+
+                // Stack
+                @Suppress("UNCHECKED_CAST") val savedStacks =
+                    savedList[1] as Map<NavKey, List<NavKey>>
+
+                savedStacks.forEach { (route, keys) ->
+                    val targetStack = controller.backStacks[route]
+                    if (targetStack is NavBackStack<NavKey>) {
+                        targetStack.clear()
+                        targetStack.addAll(keys)
+                    }
+                }
+                controller
+            })
     }
 }
 

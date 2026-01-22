@@ -66,9 +66,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import me.weishu.kernelsu.R
-import me.weishu.kernelsu.ui.navigation.AppProfileTemplateNavKey
-import me.weishu.kernelsu.ui.navigation.NavController
-import me.weishu.kernelsu.ui.navigation.TemplateEditorNavKey
+import me.weishu.kernelsu.ui.navigation3.NavController
+import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.viewmodel.TemplateViewModel
 
@@ -91,13 +90,12 @@ fun AppProfileTemplateScreen() {
         }
     }
     // handle result from TemplateEditorScreen, refresh if needed
-    var needRefresh by remember { mutableStateOf(false) }
-
-    needRefresh = navigator.popResult<Boolean>(NeedRefreshTemplate) ?: false
-
-    LaunchedEffect(needRefresh) {
-        if (needRefresh) {
-            viewModel.fetchTemplates()
+    LaunchedEffect(Unit) {
+        navigator.observeResult<Boolean>(NeedRefreshTemplate).collect { success ->
+            if (success) {
+                navigator.clearResult(NeedRefreshTemplate)
+                scope.launch { viewModel.fetchTemplates() }
+            }
         }
     }
 
@@ -141,11 +139,7 @@ fun AppProfileTemplateScreen() {
         }, floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = {
-                    navigator.navigateTo(
-                        TemplateEditorNavKey(
-                            TemplateViewModel.TemplateInfo(), false
-                        )
-                    )
+                    navigator.navigateTo(Route.TemplateEditor(TemplateViewModel.TemplateInfo(), false))
                 },
                 icon = { Icon(Icons.Filled.Add, null) },
                 text = { Text(stringResource(id = R.string.app_profile_template_create)) },
@@ -178,9 +172,7 @@ private fun TemplateItem(
     navigator: NavController, template: TemplateViewModel.TemplateInfo
 ) {
     ListItem(
-        modifier = Modifier.clickable {
-            navigator.navigateTo(TemplateEditorNavKey(template, !template.local))
-        },
+        modifier = Modifier.clickable { navigator.navigateTo(Route.TemplateEditor(template, !template.local)) },
         headlineContent = { Text(template.name) },
         supportingContent = {
             Column {
@@ -216,16 +208,12 @@ private fun TopBar(
         title = {
             Text(stringResource(R.string.settings_profile_template))
         }, navigationIcon = {
-            val isNavIconVisible = navigator.current() == AppProfileTemplateNavKey
+            val isNavIconVisible = navigator.current() == Route.AppProfileTemplate
             AnimatedVisibility(
-                visible = isNavIconVisible,
-                enter = fadeIn(animationSpec = motionScheme.defaultEffectsSpec()) + expandHorizontally(
-                    expandFrom = Alignment.Start, animationSpec =
-                        motionScheme.defaultEffectsSpec()
-                ),
-                exit = fadeOut(animationSpec = motionScheme.defaultEffectsSpec()) + shrinkHorizontally(
-                    shrinkTowards = Alignment.Start, animationSpec =
-                        motionScheme.defaultEffectsSpec()
+                visible = isNavIconVisible, enter = fadeIn(animationSpec = motionScheme.defaultEffectsSpec()) + expandHorizontally(
+                    expandFrom = Alignment.Start, animationSpec = motionScheme.defaultEffectsSpec()
+                ), exit = fadeOut(animationSpec = motionScheme.defaultEffectsSpec()) + shrinkHorizontally(
+                    shrinkTowards = Alignment.Start, animationSpec = motionScheme.defaultEffectsSpec()
                 )
             ) {
                 IconButton(

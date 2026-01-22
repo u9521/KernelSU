@@ -71,7 +71,7 @@ import me.weishu.kernelsu.ksuApp
 import me.weishu.kernelsu.ui.component.AppIconImage
 import me.weishu.kernelsu.ui.component.SearchAppBar
 import me.weishu.kernelsu.ui.component.SearchStatus
-import me.weishu.kernelsu.ui.navigation.AppProfileScreenNavKey
+import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.ownerNameForUid
 import me.weishu.kernelsu.ui.util.pickPrimary
@@ -188,7 +188,7 @@ fun SuperUserScreen() {
                                 expandedUids.value = if (expanded) expandedUids.value - group.uid else expandedUids.value + group.uid
                             }
                         }) {
-                        navigator.navigateTo(AppProfileScreenNavKey(group.primary))
+                        navigator.navigateTo(Route.AppProfile(group.primary.packageName))
                         viewModel.markNeedRefresh()
                     }
                     AnimatedVisibility(

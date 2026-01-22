@@ -1,4 +1,4 @@
-package me.weishu.kernelsu.ui.navigation
+package me.weishu.kernelsu.ui.navigation3
 
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
@@ -53,12 +53,12 @@ fun MainNavDisplay(modifier: Modifier = Modifier) {
             )
             if (navbarSwitch) {
                 if (isRail) {
-                    slideVertical(reverseAnim,animationSpec = navAnimSpec)
+                    slideVertical(reverseAnim, animationSpec = navAnimSpec)
                 } else {
-                    slideHorizontal(reverseAnim != isRtl,animationSpec = navAnimSpec)
+                    slideHorizontal(reverseAnim != isRtl, animationSpec = navAnimSpec)
                 }
             } else {
-                slideHorizontal(isRtl,animationSpec = navAnimSpec)
+                slideHorizontal(isRtl, animationSpec = navAnimSpec)
             }
         },
         popTransitionSpec = {
@@ -69,12 +69,12 @@ fun MainNavDisplay(modifier: Modifier = Modifier) {
             )
             if (navbarSwitch) {
                 if (isRail) {
-                    slideVertical(!reverseAnim,animationSpec = navAnimSpec)
+                    slideVertical(!reverseAnim, animationSpec = navAnimSpec)
                 } else {
-                    slideHorizontal(reverseAnim == isRtl,animationSpec = navAnimSpec)
+                    slideHorizontal(reverseAnim == isRtl, animationSpec = navAnimSpec)
                 }
             } else {
-                slideHorizontal(!isRtl,animationSpec = navAnimSpec)
+                slideHorizontal(!isRtl, animationSpec = navAnimSpec)
             }
         },
         predictivePopTransitionSpec = {
@@ -85,12 +85,12 @@ fun MainNavDisplay(modifier: Modifier = Modifier) {
             )
             if (navbarSwitch) {
                 if (isRail) {
-                    slideVertical(!reverseAnim,animationSpec = navAnimSpec)
+                    slideVertical(!reverseAnim, animationSpec = navAnimSpec)
                 } else {
-                    slideHorizontal(reverseAnim == isRtl,animationSpec = navAnimSpec)
+                    slideHorizontal(reverseAnim == isRtl, animationSpec = navAnimSpec)
                 }
             } else {
-                slideHorizontal(!isRtl,animationSpec = navAnimSpec)
+                slideHorizontal(!isRtl, animationSpec = navAnimSpec)
             }
         })
 }
@@ -113,7 +113,7 @@ fun calculateNavTransition(
     }
     val initialTab = navController.getTopLevel(initialNavKey)
     val targetTab = navController.getTopLevel(targetNavKey)
-    if (initialTab == null){
+    if (initialTab == null) {
         return NavTransitionInfo(isTabSwitch = false, isReverse = false)
     }
     if (targetTab == null) {

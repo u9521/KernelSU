@@ -87,8 +87,7 @@ import me.weishu.kernelsu.ui.component.SwitchItem
 import me.weishu.kernelsu.ui.component.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.rememberCustomDialog
 import me.weishu.kernelsu.ui.component.rememberLoadingDialog
-import me.weishu.kernelsu.ui.navigation.AppProfileTemplateNavKey
-import me.weishu.kernelsu.ui.navigation.FlashScreenNavKey
+import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.util.execKsud
@@ -157,7 +156,7 @@ fun SettingScreen() {
                     headlineContent = { Text(profileTemplate) },
                     supportingContent = { Text(stringResource(id = R.string.settings_profile_template_summary)) },
                     modifier = Modifier.clickable {
-                        navigator.navigateTo(AppProfileTemplateNavKey)
+                        navigator.navigateTo(Route.AppProfileTemplate)
                     })
             }
 
@@ -445,11 +444,11 @@ fun UninstallItem(
                     when (uninstallType) {
                         UninstallType.TEMPORARY -> showTodo()
                         UninstallType.PERMANENT -> navigator.navigateTo(
-                            FlashScreenNavKey(FlashIt.FlashUninstall)
+                            Route.Flash(FlashIt.FlashUninstall)
                         )
 
                         UninstallType.RESTORE_STOCK_IMAGE -> navigator.navigateTo(
-                            FlashScreenNavKey(FlashIt.FlashRestore)
+                            Route.Flash(FlashIt.FlashRestore)
                         )
 
                         UninstallType.NONE -> Unit

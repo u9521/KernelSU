@@ -86,6 +86,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
+import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -99,10 +100,9 @@ import me.weishu.kernelsu.ui.component.SearchAppBar
 import me.weishu.kernelsu.ui.component.SearchStatus
 import me.weishu.kernelsu.ui.component.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.rememberLoadingDialog
-import me.weishu.kernelsu.ui.navigation.ExecuteModuleActionNavKey
-import me.weishu.kernelsu.ui.navigation.FlashScreenNavKey
-import me.weishu.kernelsu.ui.navigation.NavController
-import me.weishu.kernelsu.ui.navigation.TopLevelRoute
+import me.weishu.kernelsu.ui.navigation3.NavController
+import me.weishu.kernelsu.ui.navigation3.Route
+import me.weishu.kernelsu.ui.navigation3.TopLevelRoute
 import me.weishu.kernelsu.ui.util.DownloadListener
 import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.LocalSnackbarHost
@@ -225,9 +225,10 @@ fun ModuleScreen() {
             if (!hideInstallButton) {
                 val moduleInstall = stringResource(id = R.string.module_install)
                 val confirmTitle = stringResource(R.string.module)
+                val multiConfirmContent = stringResource(R.string.module_install_prompt_with_name)
                 var zipUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
                 val confirmDialog = rememberConfirmDialog(onConfirm = {
-                    navigator.navigateTo(FlashScreenNavKey(FlashIt.FlashModules(zipUris)))
+                    navigator.navigateTo(Route.Flash(FlashIt.FlashModules(zipUris)))
                     viewModel.markNeedRefresh()
                 })
                 val selectZipLauncher = rememberLauncherForActivityResult(
@@ -266,7 +267,7 @@ fun ModuleScreen() {
                         // multiple files selected
                         viewModel.markNeedRefresh()
                         val moduleNames = uris.mapIndexed { index, uri -> "\n${index + 1}. ${uri.getFileName(context)}" }.joinToString("")
-                        val confirmContent = context.getString(R.string.module_install_prompt_with_name, moduleNames)
+                        val confirmContent = multiConfirmContent.format(moduleNames)
                         zipUris = uris
                         confirmDialog.showConfirm(
                             title = confirmTitle, content = confirmContent, markdown = true
@@ -308,7 +309,7 @@ fun ModuleScreen() {
             else -> {
                 var zipUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
                 val confirmDialog = rememberConfirmDialog(onConfirm = {
-                    navigator.navigateTo(FlashScreenNavKey(FlashIt.FlashModules(zipUris)))
+                    navigator.navigateTo(Route.Flash(FlashIt.FlashModules(zipUris)))
                     viewModel.markNeedRefresh()
                 })
                 val confirmTitle = stringResource(R.string.module)
@@ -335,7 +336,7 @@ fun ModuleScreen() {
                     onClickModule = { id, name, hasWebUi ->
                         if (hasWebUi) {
                             webUILauncher.launch(
-                                Intent(context, WebUIActivity::class.java).setData(Uri.parse("kernelsu://webui/$id")).putExtra("id", id).putExtra("name", name)
+                                Intent(context, WebUIActivity::class.java).setData("kernelsu://webui/$id".toUri()).putExtra("id", id).putExtra("name", name)
                             )
                         }
                     },
@@ -703,7 +704,7 @@ fun ModuleItem(
                 if (module.hasActionScript) {
                     FilledTonalButton(
                         modifier = Modifier.defaultMinSize(52.dp, 32.dp), enabled = !module.remove && module.enabled, onClick = {
-                            navigator.navigateTo(ExecuteModuleActionNavKey(module.id))
+                            navigator.navigateTo(Route.ExecuteModuleAction(module.id))
                             viewModel.markNeedRefresh()
                         }, contentPadding = ButtonDefaults.TextButtonContentPadding
                     ) {

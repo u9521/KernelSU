@@ -125,7 +125,7 @@ fun RootProfileConfig(
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun GroupsPanel(selected: List<Groups>, readOnly: Boolean, closeSelection: (selection: Set<Groups>) -> Unit) {
+fun GroupsPanel(selected: Collection<Groups>, readOnly: Boolean, closeSelection: (selection: Set<Groups>) -> Unit) {
     val scope = rememberCoroutineScope()
     val jumpIndex = remember { mutableIntStateOf(-1) }
     val allOptions = remember(selected) {
@@ -188,11 +188,11 @@ fun CapsPanel(
     val initialSelectionOptions = remember(allOptions, selected) {
         allOptions.filter { it.data in selected }
     }
-    val jumpTarget = remember(allOptions, initialSelectionOptions) {
-        val index = jumpIndex.intValue
-        if (index < 0 || index >= allOptions.size) null else allOptions[jumpIndex.intValue]
-    }
     val selectCapsBottomSheet = rememberCustomDialog { dismiss ->
+        val jumpTarget = remember(allOptions, initialSelectionOptions) {
+            val index = jumpIndex.intValue
+            if (index < 0 || index >= initialSelectionOptions.size) null else initialSelectionOptions[jumpIndex.intValue]
+        }
         MultiSelectSearchBottomSheet(
             title = stringResource(R.string.profile_capabilities),
             options = allOptions,
@@ -221,7 +221,7 @@ private fun SELinuxPanel(
     profile: Natives.Profile, readOnly: Boolean = false, onSELinuxChange: (domain: String, rules: String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    
+
     val editSELinuxBottomSheet = rememberCustomDialog { dismiss ->
         SeLinuxEditBottomSheet(
             readOnly = readOnly,

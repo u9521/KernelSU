@@ -66,7 +66,6 @@ fun TemplateEditorScreen(
 ) {
     val navigator = LocalNavController.current
     val isCreation = initialTemplate.id.isBlank()
-    val autoSave = !isCreation
 
     var template by rememberSaveable {
         mutableStateOf(initialTemplate)
@@ -74,15 +73,10 @@ fun TemplateEditorScreen(
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
 
-    navigator.setResult(NeedRefreshTemplate, !readOnly, goback = false)
-
     Scaffold(
         topBar = {
-            val author =
-                if (initialTemplate.author.isNotEmpty()) "@${initialTemplate.author}" else ""
             val saveTemplateFailed = stringResource(id = R.string.app_profile_template_save_failed)
             val context = LocalContext.current
-
             TopBar(
                 title = if (isCreation) {
                     stringResource(R.string.app_profile_template_create)
@@ -96,11 +90,13 @@ fun TemplateEditorScreen(
                 onDelete = {
                     if (deleteAppProfileTemplate(template.id)) {
                         navigator.setResult(NeedRefreshTemplate, true)
+                        navigator.popBackStack()
                     }
                 },
                 onSave = {
                     if (saveTemplate(template, isCreation)) {
-                        navigator.setResult(NeedRefreshTemplate, true, goback = false)
+                        navigator.setResult(NeedRefreshTemplate, true)
+                        navigator.popBackStack()
                     } else {
                         Toast.makeText(context, saveTemplateFailed, Toast.LENGTH_SHORT).show()
                     }
@@ -154,12 +150,6 @@ fun TemplateEditorScreen(
                 readOnly = readOnly
             ) { value ->
                 template.copy(name = value).run {
-                    if (autoSave) {
-                        if (!saveTemplate(this)) {
-                            // failed
-                            return@run
-                        }
-                    }
                     template = this
                 }
             }
@@ -170,12 +160,6 @@ fun TemplateEditorScreen(
                 readOnly = readOnly
             ) { value ->
                 template.copy(author = value).run {
-                    if (autoSave) {
-                        if (!saveTemplate(this)) {
-                            // failed
-                            return@run
-                        }
-                    }
                     template = this
                 }
             }
@@ -186,12 +170,6 @@ fun TemplateEditorScreen(
                 readOnly = readOnly
             ) { value ->
                 template.copy(description = value).run {
-                    if (autoSave) {
-                        if (!saveTemplate(this)) {
-                            // failed
-                            return@run
-                        }
-                    }
                     template = this
                 }
             }
@@ -208,12 +186,6 @@ fun TemplateEditorScreen(
                         namespace = it.namespace,
                         rules = it.rules.split("\n")
                     ).run {
-                        if (autoSave) {
-                            if (!saveTemplate(this)) {
-                                // failed
-                                return@run
-                            }
-                        }
                         template = this
                     }
                 },

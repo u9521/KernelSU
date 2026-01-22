@@ -30,11 +30,10 @@ import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.NavBarItems
 import me.weishu.kernelsu.ui.component.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.rememberLoadingDialog
-import me.weishu.kernelsu.ui.navigation.ExecuteModuleActionNavKey
-import me.weishu.kernelsu.ui.navigation.FlashScreenNavKey
-import me.weishu.kernelsu.ui.navigation.MainNavDisplay
-import me.weishu.kernelsu.ui.navigation.TopLevelRoute
-import me.weishu.kernelsu.ui.navigation.rememberNavController
+import me.weishu.kernelsu.ui.navigation3.MainNavDisplay
+import me.weishu.kernelsu.ui.navigation3.Route
+import me.weishu.kernelsu.ui.navigation3.TopLevelRoute
+import me.weishu.kernelsu.ui.navigation3.rememberNavController
 import me.weishu.kernelsu.ui.screen.FlashIt
 import me.weishu.kernelsu.ui.theme.KernelSUTheme
 import me.weishu.kernelsu.ui.util.HandleIntentEffect
@@ -116,7 +115,7 @@ private fun ZipFileIntentHandler() {
     val installDialog = rememberConfirmDialog(
         onConfirm = {
             zipUri?.let { uri ->
-                navigator.navigateTo(FlashScreenNavKey(FlashIt.FlashModules(listOf(uri))))
+                navigator.navigateTo(Route.Flash(FlashIt.FlashModules(listOf(uri))))
             }
             clearZipUri()
         },
@@ -165,7 +164,7 @@ private fun URLSchemeIntentHandler() {
         when (uri.host) {
             "action" -> {
                 val moduleId = uri.getQueryParameter("id") ?: return@HandleIntentEffect
-                navigator.navigateTo(ExecuteModuleActionNavKey(moduleId))
+                navigator.navigateTo(Route.ExecuteModuleAction(moduleId))
             }
 
             "webui" -> {

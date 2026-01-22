@@ -1,6 +1,6 @@
 package me.weishu.kernelsu.ui.webui
 
-import androidx.compose.material3.MaterialTheme.colorScheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.graphics.Color
@@ -20,7 +20,7 @@ object MonetColorsProvider {
 
     @Composable
     fun UpdateCss() {
-        val colorScheme = colorScheme
+        val colorScheme = MaterialTheme.colorScheme
 
         LaunchedEffect(colorScheme) {
             // Generate CSS only when colorScheme changes
@@ -72,6 +72,7 @@ object MonetColorsProvider {
                 "filledCardDisabledContentColor" to colorScheme.onSurface.copy(alpha = 0.38f).toCssValue(),
                 "filledCardDisabledContainerColor" to colorScheme.onSurface.copy(alpha = 0.12f).toCssValue()
             )
+
             colorsCss.set(monetColors.toCssVars())
         }
     }
