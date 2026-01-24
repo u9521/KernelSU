@@ -136,9 +136,8 @@ private fun ZipFileIntentHandler() {
             return@HandleIntentEffect
         }
         zipUri = uri
-        val job = viewModel.fetchModuleList()
         val moduleInstallDesc = loadingDialog.withLoading {
-            job.join()
+            viewModel.loadModuleList()
             withContext(Dispatchers.IO) {
                 zipUri?.let { uri ->
                     ModuleParser.getModuleInstallDesc(
@@ -169,14 +168,9 @@ private fun URLSchemeIntentHandler() {
 
             "webui" -> {
                 val moduleId = uri.getQueryParameter("id") ?: return@HandleIntentEffect
-                viewModel.fetchModuleList().join()
-                val moduleInfo = viewModel.moduleList.find { info -> info.id == moduleId } ?: return@HandleIntentEffect
-                if (!moduleInfo.hasWebUi) return@HandleIntentEffect
-                val moduleName = moduleInfo.name
                 val webIntent = Intent(context, WebUIActivity::class.java)
                     .setData("kernelsu://webui/$moduleId".toUri())
                     .putExtra("id", moduleId)
-                    .putExtra("name", moduleName)
                     .putExtra("from_webui_shortcut", true)
                     .addFlags(
                         Intent.FLAG_ACTIVITY_NEW_DOCUMENT or

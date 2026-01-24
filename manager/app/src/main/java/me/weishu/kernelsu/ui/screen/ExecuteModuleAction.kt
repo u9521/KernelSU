@@ -1,6 +1,7 @@
 package me.weishu.kernelsu.ui.screen
 
 import android.os.Environment
+import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -11,6 +12,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -19,6 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.animateFloatingActionButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -26,9 +29,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
@@ -41,14 +46,17 @@ import me.weishu.kernelsu.ui.component.KeyEventBlocker
 import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.util.runModuleAction
+import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ExecuteModuleActionScreen(moduleId: String) {
     val navigator = LocalNavController.current
+    val context = LocalContext.current
     var text by rememberSaveable { mutableStateOf("") }
     var tempText: String
     val logContent = rememberSaveable { StringBuilder() }
@@ -57,8 +65,29 @@ fun ExecuteModuleActionScreen(moduleId: String) {
     val scrollState = rememberScrollState()
     var actionResult: Boolean
     var showCloseFAB by rememberSaveable { mutableStateOf(false) }
+    val noModule = stringResource(R.string.no_such_module)
+    val moduleUnavailable = stringResource(R.string.module_unavailable)
     LaunchedEffect(Unit) {
         if (text.isNotEmpty()) {
+            return@LaunchedEffect
+        }
+        val viewModel = ModuleViewModel()
+        if (viewModel.moduleList.isEmpty()) {
+            viewModel.loadModuleList()
+        }
+        val moduleInfo = viewModel.moduleList.find { info -> info.id == moduleId }
+        if (moduleInfo == null) {
+            Toast.makeText(context, noModule.format(moduleId), Toast.LENGTH_SHORT).show()
+            navigator.popBackStack()
+            return@LaunchedEffect
+        }
+        if (!moduleInfo.hasActionScript) {
+            navigator.popBackStack()
+            return@LaunchedEffect
+        }
+        if (!moduleInfo.enabled || moduleInfo.update || moduleInfo.remove) {
+            Toast.makeText(context, moduleUnavailable.format(moduleInfo.name), Toast.LENGTH_SHORT).show()
+            navigator.popBackStack()
             return@LaunchedEffect
         }
         withContext(Dispatchers.IO) {
@@ -105,10 +134,13 @@ fun ExecuteModuleActionScreen(moduleId: String) {
         },
         snackbarHost = { SnackbarHost(snackBarHost) },
         floatingActionButton = {
-            if (!showCloseFAB) {
-                return@Scaffold
-            }
             ExtendedFloatingActionButton(
+                modifier = Modifier
+                    .padding(bottom = 6.dp + 48.dp + 6.dp /* SnackBar height */)
+                    .animateFloatingActionButton(
+                        visible = showCloseFAB,
+                        alignment = Alignment.CenterEnd,
+                    ),
                 onClick = {
                     navigator.popBackStack()
                 },

@@ -700,6 +700,7 @@ fun ModuleItem(
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically
             ) {
+                // TODO: refactor display logic
 
                 if (module.hasActionScript) {
                     FilledTonalButton(

@@ -54,11 +54,12 @@ fun HandleIntentEffect(onIntent: suspend (Intent) -> Unit) {
     val eventSource = activity as? IntentEventSource ?: return
 
     var lastHandledId by rememberSaveable { mutableLongStateOf(-1L) }
+    val setLastHandledId: (Long) -> Unit = { lastHandledId = it }
 
     LaunchedEffect(eventSource) {
         eventSource.intentFlow.collect { event ->
             if (event.id != lastHandledId) {
-                lastHandledId = event.id
+                setLastHandledId(event.id)
                 onIntent(event.intent)
             }
         }

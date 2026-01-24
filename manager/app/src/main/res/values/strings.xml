@@ -194,6 +194,8 @@
     <string name="module_shortcut_permission_tip_xiaomi">Please enable \"Create desktop shortcuts\" permission for this app in Xiaomi settings.</string>
     <string name="module_shortcut_permission_tip_oppo">Please enable \"Desktop shortcut\" permission for this app in OPPO settings.</string>
     <string name="module_shortcut_permission_tip_default">If shortcut creation fails, please enable desktop shortcut permission for this app in system settings.</string>
+    <string name="no_such_module">Module %s does not exist</string>
+    <string name="module_unavailable">Module %s is disabled, updating, or pending removal</string>
 
     <string name="module_parse_failed">Failed to parse module information, module may be corrupted: %s</string>
     <string name="module_parse_reason">Reason: %s</string>
