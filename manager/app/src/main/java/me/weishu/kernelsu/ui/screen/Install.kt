@@ -22,24 +22,17 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -53,7 +46,6 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SmallExtendedFloatingActionButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -85,9 +77,8 @@ import kotlinx.parcelize.Parcelize
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.getKernelVersion
 import me.weishu.kernelsu.ui.component.BrDropdownMenuItem
-import me.weishu.kernelsu.ui.component.DialogHandle
 import me.weishu.kernelsu.ui.component.rememberConfirmDialog
-import me.weishu.kernelsu.ui.component.rememberCustomDialog
+import me.weishu.kernelsu.ui.component.rememberSelectKmiDialog
 import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.util.LkmSelection
 import me.weishu.kernelsu.ui.util.LocalNavController
@@ -95,7 +86,6 @@ import me.weishu.kernelsu.ui.util.getAvailablePartitions
 import me.weishu.kernelsu.ui.util.getCurrentKmi
 import me.weishu.kernelsu.ui.util.getDefaultPartition
 import me.weishu.kernelsu.ui.util.getSlotSuffix
-import me.weishu.kernelsu.ui.util.getSupportedKmis
 import me.weishu.kernelsu.ui.util.isAbDevice
 import me.weishu.kernelsu.ui.util.rootAvailable
 
@@ -460,79 +450,6 @@ fun LkmSelectorCard(onClick: () -> Unit) {
     }
 }
 
-
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-fun KmiSelectDialog(
-    title: String, defaultKmi: String, options: List<String>, onConfirm: (String) -> Unit, onDismiss: () -> Unit
-) {
-    var selectedOption by remember {
-        mutableStateOf(defaultKmi)
-    }
-    var canConfirm by remember { mutableStateOf(false) }
-    val enableConfirm = { canConfirm = true }
-
-    AlertDialog(onDismissRequest = onDismiss, modifier = Modifier.heightIn(max = 500.dp), title = {
-        Text(text = title, style = MaterialTheme.typography.titleLarge)
-    }, text = {
-        Column(
-            modifier = Modifier
-                .selectableGroup()
-                .verticalScroll(rememberScrollState())
-        ) {
-            options.forEach { text ->
-                val isSelected = (text == selectedOption)
-                if (isSelected) enableConfirm()
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                        .selectable(
-                            selected = isSelected, onClick = { selectedOption = text }, role = Role.RadioButton
-                        )
-                        .padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically
-                ) {
-                    RadioButton(
-                        selected = isSelected, onClick = null
-                    )
-                    Text(
-                        text = text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 16.dp)
-                    )
-                }
-            }
-        }
-    }, confirmButton = {
-        Button(
-            enabled = canConfirm, onClick = {
-                onConfirm(selectedOption)
-            }, shapes = ButtonDefaults.shapes()
-        ) {
-            Text(stringResource(android.R.string.ok))
-        }
-    }, dismissButton = {
-        TextButton(onClick = onDismiss) {
-            Text(stringResource(android.R.string.cancel))
-        }
-    })
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun rememberSelectKmiDialog(defaultKmi: String, onSelected: (String) -> Unit): DialogHandle {
-    return rememberCustomDialog { dismiss ->
-        val supportedKmi by produceState(initialValue = emptyList()) {
-            value = getSupportedKmis()
-        }
-
-        KmiSelectDialog(
-            title = stringResource(R.string.select_kmi), options = supportedKmi, defaultKmi = defaultKmi, onConfirm = { selected ->
-                onSelected(selected)
-                dismiss()
-            }, onDismiss = dismiss
-        )
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TopBar(
@@ -540,10 +457,10 @@ private fun TopBar(
 ) {
     TopAppBar(
         title = { Text(stringResource(R.string.install)) }, navigationIcon = {
-            IconButton(
-                onClick = onBack
-            ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
-        }, windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal), scrollBehavior = scrollBehavior
+        IconButton(
+            onClick = onBack
+        ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
+    }, windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal), scrollBehavior = scrollBehavior
     )
 }
 

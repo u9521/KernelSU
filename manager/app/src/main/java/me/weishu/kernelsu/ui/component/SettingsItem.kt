@@ -61,6 +61,7 @@ import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -162,7 +163,7 @@ fun UninstallSelectionDialog(
     AlertDialog(
         onDismissRequest = {},
         icon = {
-            Icon(Icons.Filled.Delete, contentDescription = null)
+            Icon(Icons.Filled.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         },
         title = {
             Text(text = stringResource(R.string.settings_uninstall))
@@ -301,4 +302,11 @@ fun BrDropdownMenuItem(
             }
         })
     })
+}
+
+
+@Composable
+@Preview
+private fun UninstallDialogPrev() {
+    UninstallSelectionDialog({}) { }
 }
