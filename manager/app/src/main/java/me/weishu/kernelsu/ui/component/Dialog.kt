@@ -1,6 +1,5 @@
 package me.weishu.kernelsu.ui.component
 
-import android.R
 import android.os.Parcelable
 import android.util.Log
 import androidx.compose.foundation.layout.Box
@@ -23,6 +22,8 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -61,7 +62,7 @@ private data class ConfirmDialogVisualsImpl(
     override val dismiss: String?,
 ) : ConfirmDialogVisuals {
     companion object {
-        val Empty: ConfirmDialogVisuals = ConfirmDialogVisualsImpl("", "", false, false, null, null)
+        val Empty: ConfirmDialogVisuals = ConfirmDialogVisualsImpl("", "", isMarkdown = false, isHtml = false, confirm = null, dismiss = null)
     }
 }
 
@@ -369,6 +370,7 @@ private fun LoadingDialog() {
 
 @Composable
 private fun ConfirmDialog(visuals: ConfirmDialogVisuals, confirm: () -> Unit, dismiss: () -> Unit) {
+    val haptic = LocalHapticFeedback.current
     AlertDialog(
         onDismissRequest = {
             dismiss()
@@ -386,13 +388,19 @@ private fun ConfirmDialog(visuals: ConfirmDialogVisuals, confirm: () -> Unit, di
             }
         },
         confirmButton = {
-            TextButton(onClick = confirm) {
-                Text(text = visuals.confirm ?: stringResource(id = R.string.ok))
+            TextButton(onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+                confirm()
+            }) {
+                Text(text = visuals.confirm ?: stringResource(id = android.R.string.ok))
             }
         },
         dismissButton = {
-            TextButton(onClick = dismiss) {
-                Text(text = visuals.dismiss ?: stringResource(id = R.string.cancel))
+            TextButton(onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+                dismiss()
+            }) {
+                Text(text = visuals.dismiss ?: stringResource(id = android.R.string.cancel))
             }
         },
     )

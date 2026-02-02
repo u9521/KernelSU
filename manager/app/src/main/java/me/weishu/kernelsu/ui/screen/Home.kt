@@ -45,8 +45,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -248,6 +250,7 @@ private fun StatusCard(
 @Composable
 private fun ModuleAndSUCards(ksuVersion: Int?) {
     val navigator = LocalNavController.current
+    val haptic = LocalHapticFeedback.current
     if (ksuVersion == null) return
     Row(
         horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()
@@ -257,7 +260,10 @@ private fun ModuleAndSUCards(ksuVersion: Int?) {
             title = stringResource(R.string.superuser),
             count = getSuperuserCount().toString(),
             icon = TopLevelRoute.SuperUser.selectedIcon,
-            onClick = { navigator.navigateTo(TopLevelRoute.SuperUser.navKey) },
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+                navigator.navigateTo(TopLevelRoute.SuperUser.navKey)
+            },
             modifier = Modifier.weight(1f)
         )
         // Module
@@ -265,7 +271,10 @@ private fun ModuleAndSUCards(ksuVersion: Int?) {
             title = stringResource(R.string.module),
             count = getModuleCount().toString(),
             icon = TopLevelRoute.Module.selectedIcon,
-            onClick = { navigator.navigateTo(TopLevelRoute.Module.navKey) },
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+                navigator.navigateTo(TopLevelRoute.Module.navKey)
+            },
             modifier = Modifier.weight(1f)
         )
     }

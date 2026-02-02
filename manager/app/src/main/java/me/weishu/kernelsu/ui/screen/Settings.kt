@@ -6,6 +6,7 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -66,12 +67,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.core.content.edit
-import com.maxkeppeker.sheets.core.models.base.Header
-import com.maxkeppeker.sheets.core.models.base.IconSource
-import com.maxkeppeker.sheets.core.models.base.rememberUseCaseState
-import com.maxkeppeler.sheets.list.ListDialog
-import com.maxkeppeler.sheets.list.models.ListOption
-import com.maxkeppeler.sheets.list.models.ListSelection
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -80,14 +75,17 @@ import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.AboutDialog
 import me.weishu.kernelsu.ui.component.BrDropdownMenuItem
-import me.weishu.kernelsu.ui.component.ConfirmResult
 import me.weishu.kernelsu.ui.component.DialogHandle
 import me.weishu.kernelsu.ui.component.KsuIsValid
 import me.weishu.kernelsu.ui.component.SwitchItem
+import me.weishu.kernelsu.ui.component.UninstallSelectionDialog
 import me.weishu.kernelsu.ui.component.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.rememberCustomDialog
 import me.weishu.kernelsu.ui.component.rememberLoadingDialog
 import me.weishu.kernelsu.ui.navigation3.Route
+import me.weishu.kernelsu.ui.screen.UninstallType.PERMANENT
+import me.weishu.kernelsu.ui.screen.UninstallType.RESTORE_STOCK_IMAGE
+import me.weishu.kernelsu.ui.screen.UninstallType.TEMPORARY
 import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.util.execKsud
@@ -123,16 +121,15 @@ fun SettingScreen() {
             AboutDialog(it)
         }
         val loadingDialog = rememberLoadingDialog()
-
         Column(
             modifier = Modifier
                 .padding(paddingValues)
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
                 .verticalScroll(rememberScrollState())
         ) {
-
+            val logSaved = stringResource(R.string.log_saved)
+            val sendLog = stringResource(R.string.send_log)
             val scope = rememberCoroutineScope()
-
             val exportBugreportLauncher = rememberLauncherForActivityResult(
                 ActivityResultContracts.CreateDocument("application/gzip")
             ) { uri: Uri? ->
@@ -145,8 +142,41 @@ fun SettingScreen() {
                         }
                     }
                     loadingDialog.hide()
-                    snackBarHost.showSnackbar(context.getString(R.string.log_saved))
+                    snackBarHost.currentSnackbarData?.dismiss()
+                    snackBarHost.showSnackbar(logSaved)
                 }
+            }
+
+            var checkUpdate by rememberSaveable {
+                mutableStateOf(
+                    prefs.getBoolean("check_update", true)
+                )
+            }
+            SwitchItem(
+                icon = Icons.Filled.Update,
+                title = stringResource(id = R.string.settings_check_update),
+                summary = stringResource(id = R.string.settings_check_update_summary),
+                checked = checkUpdate
+            ) {
+                prefs.edit { putBoolean("check_update", it) }
+                checkUpdate = it
+            }
+
+            KsuIsValid {
+                var checkModuleUpdate by rememberSaveable {
+                    mutableStateOf(prefs.getBoolean("module_check_update", true))
+                }
+                SwitchItem(
+                    title = stringResource(id = R.string.settings_module_check_update),
+                    summary = stringResource(id = R.string.settings_check_update_summary),
+                    icon = Icons.Rounded.UploadFile,
+                    checked = checkModuleUpdate,
+                    onCheckedChange = {
+                        prefs.edit {
+                            putBoolean("module_check_update", it)
+                        }
+                        checkModuleUpdate = it
+                    })
             }
 
             val profileTemplate = stringResource(id = R.string.settings_profile_template)
@@ -229,7 +259,7 @@ fun SettingScreen() {
             }
 
             var isKernelUmountEnabled by rememberSaveable { mutableStateOf(Natives.isKernelUmountEnabled()) }
-            val umountStatus by produceState(initialValue = "") {
+            val umountStatus by produceState(initialValue = "supported") {
                 value = getFeatureStatus("kernel_umount")
             }
             val umountSummary = when (umountStatus) {
@@ -270,38 +300,6 @@ fun SettingScreen() {
                 }
             }
 
-            var checkUpdate by rememberSaveable {
-                mutableStateOf(
-                    prefs.getBoolean("check_update", true)
-                )
-            }
-            SwitchItem(
-                icon = Icons.Filled.Update,
-                title = stringResource(id = R.string.settings_check_update),
-                summary = stringResource(id = R.string.settings_check_update_summary),
-                checked = checkUpdate
-            ) {
-                prefs.edit { putBoolean("check_update", it) }
-                checkUpdate = it
-            }
-
-            KsuIsValid {
-                var checkModuleUpdate by rememberSaveable {
-                    mutableStateOf(prefs.getBoolean("module_check_update", true))
-                }
-                SwitchItem(
-                    title = stringResource(id = R.string.settings_module_check_update),
-                    summary = stringResource(id = R.string.settings_check_update_summary),
-                    icon = Icons.Rounded.UploadFile,
-                    checked = checkModuleUpdate,
-                    onCheckedChange = {
-                        prefs.edit {
-                            putBoolean("module_check_update", it)
-                        }
-                        checkModuleUpdate = it
-                    })
-            }
-
             var enableWebDebugging by rememberSaveable {
                 mutableStateOf(
                     prefs.getBoolean("enable_web_debugging", false)
@@ -320,17 +318,17 @@ fun SettingScreen() {
                 }
             }
 
-            var showBottomsheet by remember { mutableStateOf(false) }
+            var showBottomSheet by remember { mutableStateOf(false) }
 
             ListItem(leadingContent = {
                 Icon(
                     Icons.Filled.BugReport, stringResource(id = R.string.send_log)
                 )
             }, headlineContent = { Text(stringResource(id = R.string.send_log)) }, modifier = Modifier.clickable {
-                showBottomsheet = true
+                showBottomSheet = true
             })
-            if (showBottomsheet) {
-                ModalBottomSheet(onDismissRequest = { showBottomsheet = false }, content = {
+            if (showBottomSheet) {
+                ModalBottomSheet(onDismissRequest = { showBottomSheet = false }, content = {
                     Row(
                         modifier = Modifier
                             .padding(10.dp)
@@ -345,7 +343,7 @@ fun SettingScreen() {
                                         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH_mm")
                                         val current = LocalDateTime.now().format(formatter)
                                         exportBugreportLauncher.launch("KernelSU_bugreport_${current}.tar.gz")
-                                        showBottomsheet = false
+                                        showBottomSheet = false
                                     }) {
                                 Icon(
                                     Icons.Filled.Save, contentDescription = null, modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -384,7 +382,7 @@ fun SettingScreen() {
 
                                             context.startActivity(
                                                 Intent.createChooser(
-                                                    shareIntent, context.getString(R.string.send_log)
+                                                    shareIntent, sendLog
                                                 )
                                             )
                                         }
@@ -404,11 +402,17 @@ fun SettingScreen() {
                 })
             }
 
-            val lkmMode = Natives.isLkmMode
-            if (lkmMode) {
-                UninstallItem {
-                    loadingDialog.withLoading(it)
-                }
+            if (Natives.isLkmMode) {
+                val uninstallDialog = uninstallDialog()
+                ListItem(
+                    leadingContent = {
+                        Icon(Icons.Filled.Delete, contentDescription = stringResource(id = R.string.settings_uninstall))
+                    },
+                    headlineContent = { Text(stringResource(id = R.string.settings_uninstall)) },
+                    modifier = Modifier.clickable {
+                        uninstallDialog.show()
+                    }
+                )
             }
 
             val about = stringResource(id = R.string.about)
@@ -424,50 +428,62 @@ fun SettingScreen() {
 }
 
 @Composable
-fun UninstallItem(
-    withLoading: suspend (suspend () -> Unit) -> Unit
-) {
+fun uninstallDialog(): DialogHandle {
     val navigator = LocalNavController.current
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val uninstallConfirmDialog = rememberConfirmDialog()
-    val showTodo = {
-        Toast.makeText(context, "TODO", Toast.LENGTH_SHORT).show()
-    }
-    val uninstallDialog = rememberUninstallDialog { uninstallType ->
-        scope.launch {
-            val result = uninstallConfirmDialog.awaitConfirm(
-                title = context.getString(uninstallType.title), content = context.getString(uninstallType.message)
-            )
-            if (result == ConfirmResult.Confirmed) {
-                withLoading {
-                    when (uninstallType) {
-                        UninstallType.TEMPORARY -> showTodo()
-                        UninstallType.PERMANENT -> navigator.navigateTo(
-                            Route.Flash(FlashIt.FlashUninstall)
-                        )
 
-                        UninstallType.RESTORE_STOCK_IMAGE -> navigator.navigateTo(
-                            Route.Flash(FlashIt.FlashRestore)
-                        )
+    var pendingUninstallType by remember { mutableStateOf<UninstallType?>(null) }
 
-                        UninstallType.NONE -> Unit
-                    }
-                }
+    val performUninstall = { type: UninstallType ->
+        when (type) {
+            TEMPORARY -> {
+                Toast.makeText(context, "TODO", Toast.LENGTH_SHORT).show()
+            }
+
+            PERMANENT -> {
+                navigator.navigateTo(Route.Flash(FlashIt.FlashUninstall))
+            }
+
+            RESTORE_STOCK_IMAGE -> {
+                navigator.navigateTo(Route.Flash(FlashIt.FlashRestore))
             }
         }
     }
-    val uninstall = stringResource(id = R.string.settings_uninstall)
-    ListItem(leadingContent = {
-        Icon(
-            Icons.Filled.Delete, uninstall
+
+    val selectionDialog = rememberCustomDialog { dismiss ->
+        UninstallSelectionDialog(
+            onDismissRequest = dismiss,
+            onOptionSelected = {
+                if (it == null) return@UninstallSelectionDialog
+                pendingUninstallType = it
+            }
         )
-    }, headlineContent = { Text(uninstall) }, modifier = Modifier.clickable {
-        uninstallDialog.show()
-    })
+    }
+
+    val confirmDialog = rememberConfirmDialog(
+        onConfirm = {
+            pendingUninstallType?.let { type ->
+                selectionDialog.hide()
+                performUninstall(type)
+                pendingUninstallType = null
+            }
+        }, onDismiss = {
+            pendingUninstallType = null
+        }
+    )
+    if (pendingUninstallType != null) {
+        val type = pendingUninstallType!!
+        val title = stringResource(type.title)
+        val message = stringResource(type.message)
+
+        LaunchedEffect(type) {
+            confirmDialog.showConfirm(title = title, content = message)
+        }
+    }
+    return selectionDialog
 }
 
-enum class UninstallType(val title: Int, val message: Int, val icon: ImageVector) {
+enum class UninstallType(@param:StringRes val title: Int, @param:StringRes val message: Int, val icon: ImageVector) {
     TEMPORARY(
         R.string.settings_uninstall_temporary, R.string.settings_uninstall_temporary_message, Icons.Filled.Delete
     ),
@@ -477,40 +493,6 @@ enum class UninstallType(val title: Int, val message: Int, val icon: ImageVector
     RESTORE_STOCK_IMAGE(
         R.string.settings_restore_stock_image, R.string.settings_restore_stock_image_message, Icons.AutoMirrored.Filled.Undo
     ),
-    NONE(0, 0, Icons.Filled.Delete)
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun rememberUninstallDialog(onSelected: (UninstallType) -> Unit): DialogHandle {
-    return rememberCustomDialog { dismiss ->
-        val options = listOf(
-            // UninstallType.TEMPORARY,
-            UninstallType.PERMANENT, UninstallType.RESTORE_STOCK_IMAGE
-        )
-        val listOptions = options.map {
-            ListOption(
-                titleText = stringResource(it.title), subtitleText = if (it.message != 0) stringResource(it.message) else null, icon = IconSource(it.icon)
-            )
-        }
-
-        var selection = UninstallType.NONE
-        ListDialog(
-            state = rememberUseCaseState(visible = true, onFinishedRequest = {
-                if (selection != UninstallType.NONE) {
-                    onSelected(selection)
-                }
-            }, onCloseRequest = {
-                dismiss()
-            }), header = Header.Default(
-                title = stringResource(R.string.settings_uninstall),
-            ), selection = ListSelection.Single(
-                showRadioButtons = false,
-                options = listOptions,
-            ) { index, _ ->
-                selection = options[index]
-            })
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
