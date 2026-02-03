@@ -445,7 +445,7 @@ fun LkmSelectorCard(onClick: () -> Unit) {
     ) {
         ListItem(
             colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-            leadingContent = { Icon(painterResource(R.drawable.ic_drive_file_move_rounded_24dp), null) },
+            leadingContent = { Icon(painterResource(R.drawable.ic_drive_file_move_rounded), null) },
             headlineContent = { Text(stringResource(id = R.string.install_upload_lkm_file)) })
     }
 }
@@ -457,10 +457,10 @@ private fun TopBar(
 ) {
     TopAppBar(
         title = { Text(stringResource(R.string.install)) }, navigationIcon = {
-        IconButton(
-            onClick = onBack
-        ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
-    }, windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal), scrollBehavior = scrollBehavior
+            IconButton(
+                onClick = onBack
+            ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
+        }, windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal), scrollBehavior = scrollBehavior
     )
 }
 

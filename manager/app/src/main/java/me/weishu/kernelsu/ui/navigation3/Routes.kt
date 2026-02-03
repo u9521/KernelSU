@@ -1,17 +1,8 @@
 package me.weishu.kernelsu.ui.navigation3
 
 import android.os.Parcelable
+import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Extension
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.Extension
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.Shield
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation3.runtime.NavKey
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
@@ -22,22 +13,42 @@ import me.weishu.kernelsu.ui.util.TemplateInfoSerializer
 import me.weishu.kernelsu.ui.viewmodel.TemplateViewModel
 
 enum class TopLevelRoute(
-    @param:StringRes val labelId: Int, val selectedIcon: ImageVector, val defaultIcon: ImageVector, val rootRequired: Boolean, val navKey: NavKey
+    @get:StringRes val labelId: Int, @get:DrawableRes val selectedIcon: Int, @get:DrawableRes val defaultIcon: Int, val
+    rootRequired: Boolean, val navKey: NavKey
 ) {
     Home(
-        labelId = R.string.home, selectedIcon = Icons.Filled.Home, defaultIcon = Icons.Outlined.Home, rootRequired = false, navKey = Route.Home
+        labelId = R.string.home,
+        selectedIcon = R.drawable.ic_cottage_rounded_filled,
+        defaultIcon = R.drawable.ic_cottage_rounded,
+        rootRequired = false,
+        navKey = Route.Home
     ),
 
     SuperUser(
-        labelId = R.string.superuser, selectedIcon = Icons.Filled.Security, defaultIcon = Icons.Outlined.Shield, rootRequired = true, navKey = Route.SuperUser
+        labelId = R.string.superuser,
+        selectedIcon = R.drawable.ic_security_rounded,
+        defaultIcon = R.drawable.ic_shield_rounded,
+        rootRequired = true,
+        navKey = Route
+            .SuperUser
     ),
 
     Module(
-        labelId = R.string.module, selectedIcon = Icons.Filled.Extension, defaultIcon = Icons.Outlined.Extension, rootRequired = true, navKey = Route.Module
+        labelId = R.string.module,
+        selectedIcon = R.drawable.ic_extension_rounded_filled,
+        defaultIcon = R.drawable.ic_extension_rounded,
+        rootRequired = true,
+        navKey =
+            Route.Module
     ),
 
     Setting(
-        labelId = R.string.settings, selectedIcon = Icons.Filled.Settings, defaultIcon = Icons.Outlined.Settings, rootRequired = false, navKey = Route.Settings
+        labelId = R.string.settings,
+        selectedIcon = R.drawable.ic_settings_rounded_filled,
+        defaultIcon = R.drawable.ic_settings_rounded,
+        rootRequired =
+            false,
+        navKey = Route.Settings
     );
 }
 

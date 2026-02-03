@@ -25,8 +25,6 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ImportExport
-import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -59,6 +57,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.dropUnlessResumed
@@ -224,7 +223,7 @@ private fun TopBar(
             }
         }, actions = {
             IconButton(onClick = onSync) {
-                Icon(Icons.Filled.Sync, contentDescription = null)
+                Icon(painter = painterResource(R.drawable.ic_sync_rounded_filled), contentDescription = null)
             }
 
             var showDropdown by remember { mutableStateOf(false) }
@@ -232,7 +231,8 @@ private fun TopBar(
                 showDropdown = true
             }) {
                 Icon(
-                    imageVector = Icons.Filled.ImportExport, contentDescription = stringResource(id = R.string.app_profile_import_export)
+                    painter = painterResource(R.drawable.ic_swap_vert_rounded),
+                    contentDescription = stringResource(id = R.string.app_profile_import_export)
                 )
 
                 DropdownMenu(expanded = showDropdown, onDismissRequest = {

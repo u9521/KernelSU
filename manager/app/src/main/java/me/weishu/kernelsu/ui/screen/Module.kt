@@ -30,12 +30,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Undo
-import androidx.compose.material.icons.automirrored.outlined.Wysiwyg
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -75,6 +71,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -734,7 +731,7 @@ fun ModuleItem(
                         contentPadding = ButtonDefaults.TextButtonContentPadding
                     ) {
                         Icon(
-                            modifier = Modifier.size(20.dp), imageVector = Icons.AutoMirrored.Outlined.Wysiwyg, contentDescription = null
+                            modifier = Modifier.size(20.dp), painter = painterResource(R.drawable.ic_wysiwyg_rounded), contentDescription = null
                         )
                         if (!module.hasActionScript && updateUrl.isEmpty()) {
                             Text(
@@ -758,7 +755,7 @@ fun ModuleItem(
                         contentPadding = ButtonDefaults.TextButtonContentPadding
                     ) {
                         Icon(
-                            modifier = Modifier.size(20.dp), imageVector = Icons.Outlined.Download, contentDescription = null
+                            modifier = Modifier.size(20.dp), painter = painterResource(R.drawable.ic_download_2_rounded), contentDescription = null
                         )
                         if (!module.hasActionScript || !module.hasWebUi) {
                             Text(
@@ -783,10 +780,10 @@ fun ModuleItem(
                     }, contentPadding = ButtonDefaults.TextButtonContentPadding
                 ) {
                     Icon(
-                        modifier = Modifier.size(20.dp), imageVector = if (module.remove) {
-                            Icons.AutoMirrored.Outlined.Undo
+                        modifier = Modifier.size(20.dp), painter = if (module.remove) {
+                            painterResource(id = R.drawable.ic_undo_rounded_filled)
                         } else {
-                            Icons.Outlined.Delete
+                            painterResource(id = R.drawable.ic_delete_rounded_filled)
                         }, contentDescription = null
                     )
                     if (!module.hasActionScript && !module.hasWebUi && updateUrl.isEmpty()) {

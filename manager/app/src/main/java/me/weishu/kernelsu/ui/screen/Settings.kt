@@ -6,6 +6,7 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -19,20 +20,8 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Undo
-import androidx.compose.material.icons.filled.BugReport
-import androidx.compose.material.icons.filled.ContactPage
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DeleteForever
-import androidx.compose.material.icons.filled.DeveloperMode
-import androidx.compose.material.icons.filled.Fence
-import androidx.compose.material.icons.filled.FolderDelete
-import androidx.compose.material.icons.filled.RemoveModerator
-import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Update
-import androidx.compose.material.icons.rounded.RemoveCircle
-import androidx.compose.material.icons.rounded.UploadFile
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -57,9 +46,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -153,7 +142,7 @@ fun SettingScreen() {
                 )
             }
             SwitchItem(
-                icon = Icons.Filled.Update,
+                painterIcon = painterResource(R.drawable.ic_update_rounded_filled),
                 title = stringResource(id = R.string.settings_check_update),
                 summary = stringResource(id = R.string.settings_check_update_summary),
                 checked = checkUpdate
@@ -169,7 +158,7 @@ fun SettingScreen() {
                 SwitchItem(
                     title = stringResource(id = R.string.settings_module_check_update),
                     summary = stringResource(id = R.string.settings_check_update_summary),
-                    icon = Icons.Rounded.UploadFile,
+                    painterIcon = painterResource(R.drawable.ic_upload_file_rounded_filled),
                     checked = checkModuleUpdate,
                     onCheckedChange = {
                         prefs.edit {
@@ -182,7 +171,7 @@ fun SettingScreen() {
             val profileTemplate = stringResource(id = R.string.settings_profile_template)
             KsuIsValid {
                 ListItem(
-                    leadingContent = { Icon(Icons.Filled.Fence, profileTemplate) },
+                    leadingContent = { Icon(painterResource(R.drawable.ic_fence_rounded), profileTemplate) },
                     headlineContent = { Text(profileTemplate) },
                     supportingContent = { Text(stringResource(id = R.string.settings_profile_template_summary)) },
                     modifier = Modifier.clickable {
@@ -221,7 +210,7 @@ fun SettingScreen() {
                     selected = suCompatModeItems.getOrNull(suCompatMode),
                     enabled = suStatus == "supported",
                     summary = suSummary,
-                    icon = { Icon(Icons.Default.RemoveModerator, stringResource(id = R.string.settings_sucompat)) }
+                    icon = { Icon(painterResource(R.drawable.ic_remove_moderator_outlined_filled), stringResource(id = R.string.settings_sucompat)) }
                 ) { dismissMenu ->
                     suCompatModeItems.forEachIndexed { index, name ->
                         DropdownMenuItem(
@@ -270,7 +259,7 @@ fun SettingScreen() {
 
             KsuIsValid {
                 SwitchItem(
-                    icon = Icons.Rounded.RemoveCircle,
+                    painterIcon = painterResource(R.drawable.ic_do_not_disturb_on_rounded_filled),
                     title = stringResource(id = R.string.settings_kernel_umount),
                     summary = umountSummary,
                     enabled = umountStatus == "supported",
@@ -289,7 +278,7 @@ fun SettingScreen() {
 
             KsuIsValid {
                 SwitchItem(
-                    icon = Icons.Filled.FolderDelete,
+                    painterIcon = painterResource(R.drawable.ic_folder_delete_rounded_filled),
                     title = stringResource(id = R.string.settings_umount_modules_default),
                     summary = stringResource(id = R.string.settings_umount_modules_default_summary),
                     checked = umountChecked
@@ -308,7 +297,7 @@ fun SettingScreen() {
 
             KsuIsValid {
                 SwitchItem(
-                    icon = Icons.Filled.DeveloperMode,
+                    painterIcon = painterResource(R.drawable.ic_mobile_code_rounded_filled),
                     title = stringResource(id = R.string.enable_web_debugging),
                     summary = stringResource(id = R.string.enable_web_debugging_summary),
                     checked = enableWebDebugging
@@ -322,7 +311,7 @@ fun SettingScreen() {
 
             ListItem(leadingContent = {
                 Icon(
-                    Icons.Filled.BugReport, stringResource(id = R.string.send_log)
+                    painterResource(R.drawable.ic_bug_report_rounded_filled), stringResource(id = R.string.send_log)
                 )
             }, headlineContent = { Text(stringResource(id = R.string.send_log)) }, modifier = Modifier.clickable {
                 showBottomSheet = true
@@ -346,7 +335,9 @@ fun SettingScreen() {
                                         showBottomSheet = false
                                     }) {
                                 Icon(
-                                    Icons.Filled.Save, contentDescription = null, modifier = Modifier.align(Alignment.CenterHorizontally)
+                                    painterResource(R.drawable.ic_save_rounded_filled),
+                                    contentDescription = null,
+                                    modifier = Modifier.align(Alignment.CenterHorizontally)
                                 )
                                 Text(
                                     text = stringResource(id = R.string.save_log), modifier = Modifier.padding(top = 16.dp), textAlign = TextAlign.Center.also {
@@ -371,7 +362,7 @@ fun SettingScreen() {
                                             }
 
                                             val uri: Uri = FileProvider.getUriForFile(
-                                                context, "${BuildConfig.APPLICATION_ID}.fileprovider", bugreport
+                                                context, "${BuildConfig.APPLICATION_ID}.fileProvider", bugreport
                                             )
 
                                             val shareIntent = Intent(Intent.ACTION_SEND).apply {
@@ -418,7 +409,7 @@ fun SettingScreen() {
             val about = stringResource(id = R.string.about)
             ListItem(leadingContent = {
                 Icon(
-                    Icons.Filled.ContactPage, about
+                    painterResource(R.drawable.ic_contact_page_rounded_filled), about
                 )
             }, headlineContent = { Text(about) }, modifier = Modifier.clickable {
                 aboutDialog.show()
@@ -483,15 +474,15 @@ fun uninstallDialog(): DialogHandle {
     return selectionDialog
 }
 
-enum class UninstallType(@param:StringRes val title: Int, @param:StringRes val message: Int, val icon: ImageVector) {
+enum class UninstallType(@get:StringRes val title: Int, @get:StringRes val message: Int, @get:DrawableRes val icon: Int) {
     TEMPORARY(
-        R.string.settings_uninstall_temporary, R.string.settings_uninstall_temporary_message, Icons.Filled.Delete
+        R.string.settings_uninstall_temporary, R.string.settings_uninstall_temporary_message, R.drawable.ic_delete_rounded_filled
     ),
     PERMANENT(
-        R.string.settings_uninstall_permanent, R.string.settings_uninstall_permanent_message, Icons.Filled.DeleteForever
+        R.string.settings_uninstall_permanent, R.string.settings_uninstall_permanent_message, R.drawable.ic_delete_forever_rounded_filled
     ),
     RESTORE_STOCK_IMAGE(
-        R.string.settings_restore_stock_image, R.string.settings_restore_stock_image_message, Icons.AutoMirrored.Filled.Undo
+        R.string.settings_restore_stock_image, R.string.settings_restore_stock_image_message, R.drawable.ic_undo_rounded_filled
     ),
 }
 

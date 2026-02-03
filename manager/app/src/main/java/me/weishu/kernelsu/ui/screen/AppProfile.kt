@@ -31,8 +31,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Android
-import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -61,6 +60,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -262,7 +262,7 @@ private fun AppProfileInner(
         }
 
         SwitchItem(
-            icon = Icons.Filled.Security,
+            painterIcon = painterResource(R.drawable.ic_security_rounded),
             title = stringResource(id = R.string.superuser),
             checked = isRootGranted,
             onCheckedChange = { onProfileChange(profile.copy(allowSu = it)) },
@@ -527,7 +527,7 @@ private fun AppProfilePreview() {
     AppProfileInner(
         packageName = "icu.nullptr.test",
         appLabel = "Test",
-        appIcon = { Icon(Icons.Filled.Android, null) },
+        appIcon = { Icon(Icons.Filled.Favorite, null) },
         appUid = 1234,
         appVersionName = "test",
         appVersionCode = 1234,

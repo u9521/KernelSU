@@ -18,6 +18,7 @@ fun AppProfileConfig(
     onProfileChange: (Natives.Profile) -> Unit,
 ) {
     SwitchItem(
+        icon = null,
         title = stringResource(R.string.profile_umount_modules),
         summary = stringResource(R.string.profile_umount_modules_summary),
         checked = if (enabled) {

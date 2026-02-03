@@ -15,7 +15,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -39,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.tooling.preview.Preview
@@ -75,7 +75,7 @@ enum class FlashingStatus {
     FAILED
 }
 
-// Lets you flash modules sequentially when mutiple zipUris are selected
+// Lets you flash modules sequentially when multiple zipUris are selected
 fun flashModulesSequentially(
     uris: List<Uri>,
     onStdout: (String) -> Unit,
@@ -267,7 +267,7 @@ private fun TopBar(
         actions = {
             IconButton(onClick = onSave) {
                 Icon(
-                    imageVector = Icons.Filled.Save,
+                    painter = painterResource(R.drawable.ic_save_rounded_filled),
                     contentDescription = stringResource(id = R.string.save_log)
                 )
             }

@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.CardDefaults
@@ -44,12 +43,13 @@ import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -231,7 +231,7 @@ private fun StatusCard(
                 }
 
                 else -> {
-                    Icon(Icons.Outlined.Block, stringResource(R.string.home_unsupported))
+                    Icon(painter = painterResource(R.drawable.ic_block_rounded), stringResource(R.string.home_unsupported))
                     Column(Modifier.padding(start = 20.dp)) {
                         Text(
                             text = stringResource(R.string.home_unsupported), style = MaterialTheme.typography.titleMedium
@@ -259,7 +259,7 @@ private fun ModuleAndSUCards(ksuVersion: Int?) {
         OverviewCard(
             title = stringResource(R.string.superuser),
             count = getSuperuserCount().toString(),
-            icon = TopLevelRoute.SuperUser.selectedIcon,
+            icon = painterResource(TopLevelRoute.SuperUser.selectedIcon),
             onClick = {
                 haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
                 navigator.navigateTo(TopLevelRoute.SuperUser.navKey)
@@ -270,7 +270,7 @@ private fun ModuleAndSUCards(ksuVersion: Int?) {
         OverviewCard(
             title = stringResource(R.string.module),
             count = getModuleCount().toString(),
-            icon = TopLevelRoute.Module.selectedIcon,
+            icon = painterResource(TopLevelRoute.Module.selectedIcon),
             onClick = {
                 haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
                 navigator.navigateTo(TopLevelRoute.Module.navKey)
@@ -282,7 +282,7 @@ private fun ModuleAndSUCards(ksuVersion: Int?) {
 
 @Composable
 private fun OverviewCard(
-    title: String, count: String, icon: ImageVector, onClick: () -> Unit, modifier: Modifier = Modifier
+    title: String, count: String, icon: Painter, onClick: () -> Unit, modifier: Modifier = Modifier
 ) {
     ElevatedCard(
         modifier = modifier
@@ -296,7 +296,7 @@ private fun OverviewCard(
             horizontalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             Icon(
-                imageVector = icon, contentDescription = title, tint = colorScheme.onSurfaceVariant
+                painter = icon, contentDescription = title, tint = colorScheme.onSurfaceVariant
             )
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(

@@ -45,7 +45,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -55,6 +57,7 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.disabled
@@ -71,7 +74,7 @@ import me.weishu.kernelsu.ui.screen.UninstallType
 
 @Composable
 fun SwitchItem(
-    icon: ImageVector? = null, title: String, summary: String? = null, checked: Boolean, enabled: Boolean = true, onCheckedChange: (Boolean) -> Unit
+    painterIcon: Painter? = null, title: String, summary: String? = null, checked: Boolean, enabled: Boolean = true, onCheckedChange: (Boolean) -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
 
@@ -85,8 +88,8 @@ fun SwitchItem(
             onValueChange = onCheckedChange
         ), headlineContent = {
             Text(title)
-        }, leadingContent = icon?.let {
-            { Icon(icon, title) }
+        }, leadingContent = painterIcon?.let {
+            { Icon(painterIcon, title) }
         }, trailingContent = {
             Crossfade(enabled) {
                 Switch(
@@ -101,11 +104,26 @@ fun SwitchItem(
 }
 
 @Composable
+fun SwitchItem(
+    icon: ImageVector? = null, title: String, summary: String? = null, checked: Boolean, enabled: Boolean = true, onCheckedChange: (Boolean) -> Unit
+) {
+    SwitchItem(
+        painterIcon = icon?.let { rememberVectorPainter(it) },
+        title = title,
+        summary = summary,
+        checked = checked,
+        enabled = enabled,
+        onCheckedChange = onCheckedChange
+    )
+}
+
+
+@Composable
 private fun UninstallOptionItem(
     title: String,
     summary: String?,
     selected: Boolean = false,
-    icon: ImageVector,
+    icon: Painter,
     onClick: () -> Unit
 ) {
     Row(
@@ -121,7 +139,7 @@ private fun UninstallOptionItem(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = icon,
+            painter = icon,
             contentDescription = null,
             modifier = Modifier
                 .padding(end = 16.dp)
@@ -171,7 +189,7 @@ fun UninstallSelectionDialog(
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(4.dp) // 选项之间的间距
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 UninstallType.entries.forEach { type ->
                     if (type == UninstallType.TEMPORARY) return@forEach
@@ -179,7 +197,7 @@ fun UninstallSelectionDialog(
                         title = stringResource(type.title),
                         summary = stringResource(type.message),
                         selected = selectedOption == type,
-                        icon = type.icon,
+                        icon = painterResource(type.icon),
                         onClick = {
                             selectedOption = type
                         }
