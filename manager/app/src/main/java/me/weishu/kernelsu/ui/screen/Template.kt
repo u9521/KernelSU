@@ -4,22 +4,29 @@ import android.content.ClipData
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -55,6 +62,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.Dispatchers
@@ -63,6 +71,7 @@ import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.navigation3.NavController
 import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.util.LocalNavController
+import me.weishu.kernelsu.ui.util.isNetworkAvailable
 import me.weishu.kernelsu.ui.viewmodel.TemplateViewModel
 
 /**
@@ -141,19 +150,51 @@ fun AppProfileTemplateScreen() {
         }, contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     ) { innerPadding ->
         val state = rememberPullToRefreshState()
+        val context = LocalContext.current
+        val offline = !isNetworkAvailable(context)
         PullToRefreshBox(modifier = Modifier.padding(innerPadding), isRefreshing = viewModel.isRefreshing, state = state, onRefresh = {
             scope.launch { viewModel.fetchTemplates() }
         }, indicator = {
             PullToRefreshDefaults.LoadingIndicator(state = state, isRefreshing = viewModel.isRefreshing, modifier = Modifier.align(Alignment.TopCenter))
         }) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .nestedScroll(scrollBehavior.nestedScrollConnection), contentPadding = remember {
-                    PaddingValues(bottom = 16.dp + 56.dp + 16.dp /* Scaffold Fab Spacing + Fab container height */)
-                }) {
-                items(viewModel.templateList, key = { it.id }) { app ->
-                    TemplateItem(navigator, app)
+            if (viewModel.templateList.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState()), contentAlignment = Alignment.Center
+                ) {
+                    if (!viewModel.isRefreshing) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            val promptText = if (offline) {
+                                stringResource(R.string.network_offline)
+                            } else {
+                                "No templates found"
+                            }
+                            Text(
+                                text = promptText, color = colorScheme.onSurface, fontSize = 16.sp
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            Button(
+                                onClick = {
+                                    scope.launch { viewModel.fetchTemplates(true) }
+                                },
+                                shapes = ButtonDefaults.shapes(),
+                            ) {
+                                Text(stringResource(R.string.network_retry))
+                            }
+                        }
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .nestedScroll(scrollBehavior.nestedScrollConnection), contentPadding = remember {
+                        PaddingValues(bottom = 16.dp + 56.dp + 16.dp /* Scaffold Fab Spacing + Fab container height */)
+                    }) {
+                    items(viewModel.templateList, key = { it.id }) { app ->
+                        TemplateItem(navigator, app)
+                    }
                 }
             }
         }
@@ -215,8 +256,7 @@ private fun TopBar(
                 showDropdown = true
             }) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_swap_vert_rounded),
-                    contentDescription = stringResource(id = R.string.app_profile_import_export)
+                    painter = painterResource(R.drawable.ic_swap_vert_rounded), contentDescription = stringResource(id = R.string.app_profile_import_export)
                 )
 
                 DropdownMenu(expanded = showDropdown, onDismissRequest = {
