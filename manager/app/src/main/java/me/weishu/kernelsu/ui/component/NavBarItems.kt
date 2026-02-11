@@ -26,6 +26,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import me.weishu.kernelsu.Natives
+import me.weishu.kernelsu.ui.navigation3.NavController
 import me.weishu.kernelsu.ui.navigation3.TopLevelRoute
 import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.isRailNavbar
@@ -41,7 +42,7 @@ fun NavBarItems() {
     TopLevelRoute.entries.forEach { route ->
         if (!isManager && route.rootRequired) return@forEach
         val interactionSource = remember { MutableInteractionSource() }
-        val isSelected = navigator.getTopLevel(navigator.currentTopLevel) == route
+        val isSelected = NavController.getTopLevel(navigator.currentTopLevel) == route
         val onItemClick = {
             if (!isSelected) {
                 haptic.performHapticFeedback(HapticFeedbackType.ContextClick)

@@ -71,6 +71,7 @@ import me.weishu.kernelsu.ksuApp
 import me.weishu.kernelsu.ui.component.AppIconImage
 import me.weishu.kernelsu.ui.component.SearchAppBar
 import me.weishu.kernelsu.ui.component.SearchStatus
+import me.weishu.kernelsu.ui.navigation3.LocalHasDetailPane
 import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.ownerNameForUid
@@ -109,6 +110,9 @@ fun SuperUserScreen() {
         topBar = {
             var showDropdown by remember { mutableStateOf(false) }
             val dissMissMenu = { showDropdown = false }
+            val onBack = if (LocalHasDetailPane.current) {
+                { navigator.popBackStack() }
+            } else null
             SearchAppBar(
                 title = { Text(stringResource(R.string.superuser)) }, searchStatus = searchStatus, dropdownContent = {
                     IconButton(
@@ -138,7 +142,7 @@ fun SuperUserScreen() {
                             )
                         }
                     }
-                }, scrollBehavior = scrollBehavior
+                }, scrollBehavior = scrollBehavior, onBackClick = onBack
             )
         }, contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     ) { innerPadding ->
@@ -170,7 +174,10 @@ fun SuperUserScreen() {
         }
         val state = rememberPullToRefreshState()
         PullToRefreshBox(
-            modifier = Modifier.padding(innerPadding), state = state, onRefresh = { viewModel.loadAppList(true) }, isRefreshing = viewModel.isRefreshing,
+            modifier = Modifier.padding(innerPadding),
+            state = state,
+            onRefresh = { viewModel.loadAppList(true) },
+            isRefreshing = viewModel.isRefreshing,
             indicator = {
                 PullToRefreshDefaults.LoadingIndicator(state = state, isRefreshing = viewModel.isRefreshing, modifier = Modifier.align(Alignment.TopCenter))
             }
@@ -309,10 +316,12 @@ private fun GroupItem(
         headlineContent = { Text(if (group.apps.size > 1) "${ownerNameForUid(group.uid)} (${group.uid})" else group.primary.label) },
         leadingContent = {
             AppIconImage(
-                group.primary.packageInfo, modifier = Modifier
+                group.primary.packageInfo,
+                modifier = Modifier
                     .padding(4.dp)
                     .width(48.dp)
-                    .height(48.dp), contentDescription = if (group.apps.size > 1) "${ownerNameForUid(group.uid)} (${group.uid})" else group.primary.label
+                    .height(48.dp),
+                contentDescription = if (group.apps.size > 1) "${ownerNameForUid(group.uid)} (${group.uid})" else group.primary.label
             )
         },
         supportingContent = {

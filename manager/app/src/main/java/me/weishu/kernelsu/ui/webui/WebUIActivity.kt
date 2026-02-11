@@ -21,7 +21,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import kotlinx.coroutines.delay
 import me.weishu.kernelsu.ui.theme.KernelSUTheme
 
 @SuppressLint("SetJavaScriptEnabled")
@@ -81,7 +80,9 @@ private fun MainContent(activity: ComponentActivity, onFinish: () -> Unit) {
 
     Crossfade(targetState = isLoading, animationSpec = tween(300)) { loading ->
         if (loading) {
-            Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
                 LoadingIndicator()
             }
         } else {

@@ -2,8 +2,10 @@ package me.weishu.kernelsu.ui.component
 
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -14,12 +16,14 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme.motionScheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -54,7 +58,7 @@ class SearchStatus(val label: String) {
 
 private const val TAG = "SearchBar"
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SearchAppBar(
     title: @Composable () -> Unit,
@@ -126,11 +130,19 @@ fun SearchAppBar(
             }
         },
         navigationIcon = {
-            if (onBackClick != null) {
-                IconButton(
-                    onClick = onBackClick,
-                    content = { Icon(Icons.AutoMirrored.Outlined.ArrowBack, null) }
+            val isNavIconVisible = onBackClick != null
+            AnimatedVisibility(
+                visible = isNavIconVisible, enter = fadeIn(animationSpec = motionScheme.defaultEffectsSpec()) + expandHorizontally(
+                    expandFrom = Alignment.Start, animationSpec = motionScheme.defaultEffectsSpec()
+                ), exit = fadeOut(animationSpec = motionScheme.defaultEffectsSpec()) + shrinkHorizontally(
+                    shrinkTowards = Alignment.Start, animationSpec = motionScheme.defaultEffectsSpec()
                 )
+            ) {
+                IconButton(
+                    onClick = onBackClick ?: {},
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                }
             }
         },
         actions = {
@@ -157,7 +169,7 @@ fun SearchAppBar(
 @Preview
 @Composable
 private fun SearchAppBarPreview() {
-    var searchStatus = SearchStatus("")
+    val searchStatus = SearchStatus("")
     SearchAppBar(
         title = { Text("Search text") },
         searchStatus = searchStatus

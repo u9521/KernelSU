@@ -1,8 +1,8 @@
 package me.weishu.kernelsu.ui.navigation3
 
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
-import androidx.compose.material3.adaptive.navigation3.ListDetailSceneStrategy
 import androidx.compose.runtime.Composable
+import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -19,23 +19,21 @@ import me.weishu.kernelsu.ui.screen.TemplateEditorScreen
 
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
-@Composable
 fun getMainEntryProvider(): (NavKey) -> NavEntry<NavKey> {
-
     val mainEntryProvider: (NavKey) -> NavEntry<NavKey> = entryProvider {
-        entry<Route.Home> {
+        topRouteEntry<Route.Home>(homepage = true) {
             HomeScreen()
         }
-        entry<Route.SuperUser>(metadata = ListDetailSceneStrategy.listPane("navbar")) {
+        topRouteEntry<Route.SuperUser>(metadata = BreezeListDetailScene.listPane("navbar")) {
             SuperUserScreen()
         }
-        entry<Route.Module> {
+        topRouteEntry<Route.Module> {
             ModuleScreen()
         }
-        entry<Route.Settings> {
+        topRouteEntry<Route.Settings> {
             SettingScreen()
         }
-        entry<Route.AppProfile>(metadata = ListDetailSceneStrategy.detailPane("navbar")) {
+        entry<Route.AppProfile>(metadata = BreezeListDetailScene.detailPane("navbar")) {
             AppProfileScreen(it.packageName)
         }
         entry<Route.ExecuteModuleAction> {
@@ -47,28 +45,25 @@ fun getMainEntryProvider(): (NavKey) -> NavEntry<NavKey> {
         entry<Route.Install> {
             InstallScreen()
         }
-        entry<Route.AppProfileTemplate>(metadata = ListDetailSceneStrategy.listPane("appProfile")) {
+        entry<Route.AppProfileTemplate>(metadata = BreezeListDetailScene.listPane("appProfile")) {
             AppProfileTemplateScreen()
         }
-        entry<Route.TemplateEditor>(metadata = ListDetailSceneStrategy.detailPane("appProfile")) {
+        entry<Route.TemplateEditor>(metadata = BreezeListDetailScene.detailPane("appProfile")) {
             TemplateEditorScreen(it.initialTemplate, it.readOnly)
         }
     }
-    return mainEntryProvider.injectMetadata()
+    return mainEntryProvider
 }
 
-private fun <T : Any> ((T) -> NavEntry<T>).injectMetadata(): (T) -> NavEntry<T> {
-    return { key ->
-        val originalEntry = this(key)
-        val newMetadata = originalEntry.metadata + ("navKey" to key)
-
-        NavEntry(
-            key = key,
-            contentKey = originalEntry.contentKey,
-            metadata = newMetadata,
-            content = {
-                originalEntry.Content()
-            }
-        )
-    }
+inline fun <reified K : NavKey> EntryProviderScope<NavKey>.topRouteEntry(
+    metadata: Map<String, Any> = emptyMap(),
+    homepage: Boolean = false,
+    noinline content: @Composable (K) -> Unit
+) {
+    val ordinal: ((NavKey) -> Int) = { NavController.getTopLevel(it)?.ordinal ?: 0 }
+    this.addEntryProvider(
+        clazz = K::class,
+        metadata = { metadata + (TopLevelRouteOrdinal to ordinal(it)) + (TopLevelRouteHome to homepage) },
+        content = content
+    )
 }

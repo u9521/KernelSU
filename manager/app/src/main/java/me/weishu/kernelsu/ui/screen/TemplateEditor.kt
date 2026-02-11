@@ -43,7 +43,9 @@ import androidx.lifecycle.compose.dropUnlessResumed
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.OutlinedTextEdit
+import me.weishu.kernelsu.ui.component.SplitScreenRatioButton
 import me.weishu.kernelsu.ui.component.profile.RootProfileConfig
+import me.weishu.kernelsu.ui.navigation3.LocalIsDetailPane
 import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.deleteAppProfileTemplate
 import me.weishu.kernelsu.ui.util.getAppProfileTemplate
@@ -255,10 +257,14 @@ private fun TopBar(
                 }
             }
         }, navigationIcon = {
+            if (LocalIsDetailPane.current) {
+                return@TopAppBar
+            }
             IconButton(
                 onClick = onBack
             ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
         }, actions = {
+            SplitScreenRatioButton()
             if (readOnly) {
                 return@TopAppBar
             }

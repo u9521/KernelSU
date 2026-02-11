@@ -5,7 +5,6 @@ import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
-import androidx.window.core.layout.WindowSizeClass
 
 fun navigationSuiteType(adaptiveInfo: WindowAdaptiveInfo): NavigationSuiteType {
     return with(adaptiveInfo) {
@@ -13,7 +12,7 @@ fun navigationSuiteType(adaptiveInfo: WindowAdaptiveInfo): NavigationSuiteType {
             NavigationSuiteType.ShortNavigationBarCompact
         } else if (windowPosture.isTabletop || windowSizeClass.minHeightDp.dp == 0.dp) {
             NavigationSuiteType.ShortNavigationBarMedium
-        } else if (windowSizeClass.minWidthDp.dp == WindowSizeClass.WIDTH_DP_LARGE_LOWER_BOUND.dp) {
+        } else if (windowSizeClass.minWidthDp.dp == 800.dp) {
             NavigationSuiteType.WideNavigationRailExpanded
         } else {
             NavigationSuiteType.WideNavigationRailCollapsed

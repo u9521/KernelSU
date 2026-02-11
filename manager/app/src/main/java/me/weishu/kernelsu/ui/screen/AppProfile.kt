@@ -74,10 +74,12 @@ import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.AppIconImage
 import me.weishu.kernelsu.ui.component.BrMenuBox
 import me.weishu.kernelsu.ui.component.OutlinedTextEdit
+import me.weishu.kernelsu.ui.component.SplitScreenRatioButton
 import me.weishu.kernelsu.ui.component.SwitchItem
 import me.weishu.kernelsu.ui.component.profile.AppProfileConfig
 import me.weishu.kernelsu.ui.component.profile.RootProfileConfig
 import me.weishu.kernelsu.ui.component.profile.RootTemplateSelector
+import me.weishu.kernelsu.ui.navigation3.LocalIsDetailPane
 import me.weishu.kernelsu.ui.navigation3.slideHorizontal
 import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.LocalSnackbarHost
@@ -297,7 +299,7 @@ private fun AppProfileInner(
                 )
             }
         }
-        affectedAppColumn(affectedApps)
+        AffectedAppColumn(affectedApps)
         Spacer(modifier = Modifier.height(6.dp + 48.dp + 6.dp /* SnackBar height */))
     }
 }
@@ -316,10 +318,13 @@ private fun TopBar(onBack: () -> Unit, scrollBehavior: TopAppBarScrollBehavior? 
         title = {
             Text(stringResource(R.string.profile))
         }, navigationIcon = {
+            if (LocalIsDetailPane.current) return@TopAppBar
             IconButton(
                 onClick = onBack
             ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
-        }, windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal), scrollBehavior = scrollBehavior
+        },
+        actions = { SplitScreenRatioButton() },
+        windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal), scrollBehavior = scrollBehavior
     )
 }
 
@@ -442,12 +447,6 @@ private fun RootTempleInfo(templateId: String?) {
 
 
 @Composable
-private fun AppProfile(profile: Natives.Profile, onProfileChange: (Natives.Profile) -> Unit) {
-
-
-}
-
-@Composable
 private fun AppMenuBox(packageName: String, isUidGroup: Boolean, content: @Composable () -> Unit) {
     if (isUidGroup) {
         content()
@@ -481,7 +480,7 @@ private fun AppMenuBox(packageName: String, isUidGroup: Boolean, content: @Compo
 }
 
 @Composable
-private fun affectedAppColumn(affectedApps: List<SuperUserViewModel.AppInfo> = emptyList()) {
+private fun AffectedAppColumn(affectedApps: List<SuperUserViewModel.AppInfo> = emptyList()) {
     val isUidGroup = affectedApps.size > 1
     if (!isUidGroup) {
         return

@@ -2,11 +2,6 @@ package me.weishu.kernelsu.ui.screen
 
 import android.content.ClipData
 import android.widget.Toast
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandHorizontally
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -201,25 +196,14 @@ private fun TemplateItem(
 private fun TopBar(
     onBack: () -> Unit, onSync: () -> Unit = {}, onImport: () -> Unit = {}, onExport: () -> Unit = {}, scrollBehavior: TopAppBarScrollBehavior? = null
 ) {
-    val navigator = LocalNavController.current
-    val motionScheme = MaterialTheme.motionScheme
     TopAppBar(
         title = {
             Text(stringResource(R.string.settings_profile_template))
         }, navigationIcon = {
-            val isNavIconVisible = navigator.current() == Route.AppProfileTemplate
-            AnimatedVisibility(
-                visible = isNavIconVisible, enter = fadeIn(animationSpec = motionScheme.defaultEffectsSpec()) + expandHorizontally(
-                    expandFrom = Alignment.Start, animationSpec = motionScheme.defaultEffectsSpec()
-                ), exit = fadeOut(animationSpec = motionScheme.defaultEffectsSpec()) + shrinkHorizontally(
-                    shrinkTowards = Alignment.Start, animationSpec = motionScheme.defaultEffectsSpec()
-                )
+            IconButton(
+                onClick = onBack
             ) {
-                IconButton(
-                    onClick = onBack
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                }
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
             }
         }, actions = {
             IconButton(onClick = onSync) {

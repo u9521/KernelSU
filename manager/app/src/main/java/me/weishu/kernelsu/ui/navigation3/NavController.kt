@@ -33,10 +33,6 @@ class NavController(val startKey: NavKey) {
             topLevelState.value = value
         }
 
-    fun getTopLevel(key: NavKey?): TopLevelRoute? {
-        return if (key == null) null else TopLevelRoute.entries.find { it.navKey == key }
-    }
-
     fun isTopLevel(): Boolean {
         return backStacks[currentTopLevel]!!.size == 1
     }
@@ -144,6 +140,14 @@ class NavController(val startKey: NavKey) {
                 }
                 controller
             })
+
+        fun getTopLevel(key: NavKey?): TopLevelRoute? {
+            return if (key == null) null else TopLevelRoute.entries.find { it.navKey == key }
+        }
+
+        fun getTopLevel(key: String?): TopLevelRoute? {
+            return if (key == null) null else TopLevelRoute.entries.find { it.navKey.toString() == key }
+        }
     }
 }
 

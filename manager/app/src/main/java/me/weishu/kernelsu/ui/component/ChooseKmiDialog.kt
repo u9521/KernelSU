@@ -75,7 +75,7 @@ fun KmiSelectDialog(
                         .selectable(
                             selected = isSelected, onClick = { selectedOption = kmi }, role = Role.RadioButton
                         )
-                        .padding(horizontal = 12.dp,vertical = 8.dp),
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     RadioButton(

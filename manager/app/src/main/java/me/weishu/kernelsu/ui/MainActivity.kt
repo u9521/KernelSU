@@ -156,7 +156,6 @@ private fun ZipFileIntentHandler() {
 private fun URLSchemeIntentHandler() {
     val context = LocalContext.current
     val navigator = LocalNavController.current
-    val viewModel = viewModel<ModuleViewModel>()
     HandleIntentEffect { intent ->
         val uri = intent.data ?: return@HandleIntentEffect
         if (uri.scheme != "ksu") return@HandleIntentEffect
