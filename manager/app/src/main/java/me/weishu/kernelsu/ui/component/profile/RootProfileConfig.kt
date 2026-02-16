@@ -1,6 +1,7 @@
 package me.weishu.kernelsu.ui.component.profile
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -266,7 +268,12 @@ fun MultiSelectionCard(
         modifier = modifier
             .fillMaxWidth()
             .animateContentSize(motionScheme.defaultSpatialSpec())
-            .padding(top = 9.dp, bottom = 16.dp)
+            .padding(top = 9.dp, bottom = 16.dp),
+        colors = CardDefaults.outlinedCardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        ),
+        shape = MaterialTheme.shapes.extraSmall,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Column(
             modifier = Modifier
@@ -274,7 +281,7 @@ fun MultiSelectionCard(
                 .clickable(onClick = { onClick(null) })
                 .padding(16.dp)
         ) {
-            Text(text = title, style = MaterialTheme.typography.titleSmall)
+            Text(text = title)
             if (items.isEmpty()) {
                 return@Column
             }

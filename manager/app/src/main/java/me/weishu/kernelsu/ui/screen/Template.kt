@@ -55,10 +55,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -251,31 +253,38 @@ private fun TopBar(
                 Icon(painter = painterResource(R.drawable.ic_sync_rounded_filled), contentDescription = null)
             }
 
-            var showDropdown by remember { mutableStateOf(false) }
-            IconButton(onClick = {
-                showDropdown = true
-            }) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_swap_vert_rounded), contentDescription = stringResource(id = R.string.app_profile_import_export)
-                )
-
-                DropdownMenu(expanded = showDropdown, onDismissRequest = {
-                    showDropdown = false
-                }) {
-                    DropdownMenuItem(text = {
-                        Text(stringResource(id = R.string.app_profile_import_from_clipboard))
-                    }, onClick = {
-                        onImport()
-                        showDropdown = false
-                    })
-                    DropdownMenuItem(text = {
-                        Text(stringResource(id = R.string.app_profile_export_to_clipboard))
-                    }, onClick = {
-                        onExport()
-                        showDropdown = false
-                    })
-                }
-            }
+            ImportExportMenuButton(onImport, onExport)
         }, windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal), scrollBehavior = scrollBehavior
     )
+}
+
+@Composable
+private fun ImportExportMenuButton(onImport: () -> Unit, onExport: () -> Unit) {
+    var showDropdown by remember { mutableStateOf(false) }
+    val haptic = LocalHapticFeedback.current
+    IconButton(onClick = {
+        showDropdown = true
+        haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+    }) {
+        Icon(
+            painter = painterResource(R.drawable.ic_swap_vert_rounded), contentDescription = stringResource(id = R.string.app_profile_import_export)
+        )
+
+        DropdownMenu(expanded = showDropdown, onDismissRequest = {
+            showDropdown = false
+        }) {
+            DropdownMenuItem(text = {
+                Text(stringResource(id = R.string.app_profile_import_from_clipboard))
+            }, onClick = {
+                onImport()
+                showDropdown = false
+            })
+            DropdownMenuItem(text = {
+                Text(stringResource(id = R.string.app_profile_export_to_clipboard))
+            }, onClick = {
+                onExport()
+                showDropdown = false
+            })
+        }
+    }
 }

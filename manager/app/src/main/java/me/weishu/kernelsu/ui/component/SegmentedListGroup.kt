@@ -249,7 +249,9 @@ fun SegmentedListGroup(
     val firstVisibleKey = visibleItems.firstOrNull()?.key
     val lastVisibleKey = visibleItems.lastOrNull()?.key
 
-    Column(modifier = modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+    Column(modifier = modifier
+        .padding(horizontal = 16.dp)
+        .padding(bottom = 16.dp)) {
         if (title.isNotEmpty()) {
             Text(
                 text = title,

@@ -2,8 +2,11 @@ package me.weishu.kernelsu.ui.screen
 
 import android.content.Context
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -35,6 +38,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
@@ -77,6 +81,7 @@ fun SettingScreen() {
         Column(
             modifier = Modifier
                 .padding(paddingValues)
+                .fillMaxSize()
                 .verticalScroll(rememberScrollState())
         ) {
 
@@ -89,6 +94,8 @@ fun SettingScreen() {
             var checkModuleUpdate by rememberSaveable {
                 mutableStateOf(prefs.getBoolean("module_check_update", true))
             }
+
+            Spacer(Modifier.height(16.dp))
 
             SegmentedListGroup {
                 switchItem(
@@ -277,14 +284,14 @@ fun SettingScreen() {
                 }
             }
 
-            val uninstallDialog = uninstallDialog()
-
-            SegmentedListGroup {
-                item(
-                    visible = Natives.isLkmMode,
-                    leadingContent = { Icon(Icons.Filled.Delete, contentDescription = stringResource(id = R.string.settings_uninstall)) },
-                    onClick = { uninstallDialog.show() }) {
-                    Text(stringResource(id = R.string.settings_uninstall))
+            if (Natives.isLkmMode) {
+                val uninstallDialog = uninstallDialog()
+                SegmentedListGroup {
+                    item(
+                        leadingContent = { Icon(Icons.Filled.Delete, contentDescription = stringResource(id = R.string.settings_uninstall)) },
+                        onClick = { uninstallDialog.show() }) {
+                        Text(stringResource(id = R.string.settings_uninstall))
+                    }
                 }
             }
 

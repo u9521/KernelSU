@@ -2,12 +2,11 @@ package me.weishu.kernelsu.ui.screen
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -15,12 +14,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberTopAppBarState
@@ -46,6 +46,7 @@ import me.weishu.kernelsu.ui.component.OutlinedTextEdit
 import me.weishu.kernelsu.ui.component.SplitScreenRatioButton
 import me.weishu.kernelsu.ui.component.profile.RootProfileConfig
 import me.weishu.kernelsu.ui.navigation3.LocalIsDetailPane
+import me.weishu.kernelsu.ui.theme.defaultTopAppBarColors
 import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.deleteAppProfileTemplate
 import me.weishu.kernelsu.ui.util.getAppProfileTemplate
@@ -72,9 +73,10 @@ fun TemplateEditorScreen(
         mutableStateOf(initialTemplate)
     }
 
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             val saveTemplateFailed = stringResource(id = R.string.app_profile_template_save_failed)
             val context = LocalContext.current
@@ -105,15 +107,17 @@ fun TemplateEditorScreen(
                 scrollBehavior = scrollBehavior
             )
         },
-        contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+        containerColor = MaterialTheme.colorScheme.surfaceContainer
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp)
+                .fillMaxSize()
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
                 .verticalScroll(rememberScrollState())
         ) {
+            Spacer(Modifier.height(16.dp))
             val idConflictError = stringResource(id = R.string.app_profile_template_id_exist)
             val idInvalidError = stringResource(id = R.string.app_profile_template_id_invalid)
             val idTooLongError = stringResource(id = R.string.app_profile_template_id_too_long)
@@ -234,31 +238,22 @@ fun saveTemplate(template: TemplateViewModel.TemplateInfo, isCreation: Boolean =
     return setAppProfileTemplate(template.id, json.toString())
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun TopBar(
     title: String,
     readOnly: Boolean,
-    summary: String = "",
     onBack: () -> Unit,
     onDelete: () -> Unit = {},
     onSave: () -> Unit = {},
-    scrollBehavior: TopAppBarScrollBehavior? = null
+    scrollBehavior: TopAppBarScrollBehavior
 ) {
-    TopAppBar(
+    LargeFlexibleTopAppBar(
         title = {
-            Column {
-                Text(title)
-                if (summary.isNotBlank()) {
-                    Text(
-                        text = summary,
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
-            }
+            Text(title)
         }, navigationIcon = {
             if (LocalIsDetailPane.current) {
-                return@TopAppBar
+                return@LargeFlexibleTopAppBar
             }
             IconButton(
                 onClick = onBack
@@ -266,7 +261,7 @@ private fun TopBar(
         }, actions = {
             SplitScreenRatioButton()
             if (readOnly) {
-                return@TopAppBar
+                return@LargeFlexibleTopAppBar
             }
             IconButton(onClick = onDelete) {
                 Icon(
@@ -281,7 +276,7 @@ private fun TopBar(
                 )
             }
         },
-        windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
+        colors = defaultTopAppBarColors(),
         scrollBehavior = scrollBehavior
     )
 }
