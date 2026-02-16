@@ -203,6 +203,7 @@
     <string name="select_file_tip_nogki">请选择要修补的 GKI 设备镜像文件</string>
     <string name="current_kmi">本设备 KMI 版本: %s</string>
     <string name="current_device_kmi">当前设备的 KMI</string>
+    <string name="module_action_success">模块 action 执行成功。</string>
     <string name="module_update_prompt_with_name">将会更新下面的模块: %1$s</string>
     <string name="module_parse_failed">处理模块信息失败，模块可能损坏: %s</string>
     <string name="module_parse_reason">原因: %s</string>
