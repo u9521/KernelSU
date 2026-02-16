@@ -72,15 +72,15 @@ import kotlinx.coroutines.launch
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.AppIconImage
-import me.weishu.kernelsu.ui.component.BrMenuBox
 import me.weishu.kernelsu.ui.component.OutlinedTextEdit
 import me.weishu.kernelsu.ui.component.SplitScreenRatioButton
 import me.weishu.kernelsu.ui.component.SwitchItem
+import me.weishu.kernelsu.ui.component.popUps.BrMenuBox
 import me.weishu.kernelsu.ui.component.profile.AppProfileConfig
 import me.weishu.kernelsu.ui.component.profile.RootProfileConfig
 import me.weishu.kernelsu.ui.component.profile.RootTemplateSelector
+import me.weishu.kernelsu.ui.component.slideHorizontal
 import me.weishu.kernelsu.ui.navigation3.LocalIsDetailPane
-import me.weishu.kernelsu.ui.navigation3.slideHorizontal
 import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.util.forceStopApp
@@ -267,8 +267,7 @@ private fun AppProfileInner(
             painterIcon = painterResource(R.drawable.ic_security_rounded),
             title = stringResource(id = R.string.superuser),
             checked = isRootGranted,
-            onCheckedChange = { onProfileChange(profile.copy(allowSu = it)) },
-        )
+        ) { onProfileChange(profile.copy(allowSu = it)) }
 
         ProfileBox(currentMode, isRootGranted) { newMode ->
             if (isRootGranted) {
@@ -475,7 +474,7 @@ private fun AppMenuBox(packageName: String, isUidGroup: Boolean, content: @Compo
                     restartApp(packageName)
                 },
             )
-        }, description = null
+        }
     )
 }
 

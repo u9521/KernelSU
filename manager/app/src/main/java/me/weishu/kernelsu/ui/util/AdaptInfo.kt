@@ -9,7 +9,7 @@ import androidx.compose.ui.unit.dp
 fun navigationSuiteType(adaptiveInfo: WindowAdaptiveInfo): NavigationSuiteType {
     return with(adaptiveInfo) {
         if (windowSizeClass.minWidthDp.dp == 0.dp) {
-            NavigationSuiteType.ShortNavigationBarCompact
+            NavigationSuiteType.NavigationBar
         } else if (windowPosture.isTabletop || windowSizeClass.minHeightDp.dp == 0.dp) {
             NavigationSuiteType.ShortNavigationBarMedium
         } else if (windowSizeClass.minWidthDp.dp == 800.dp) {

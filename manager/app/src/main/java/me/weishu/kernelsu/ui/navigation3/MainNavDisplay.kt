@@ -10,6 +10,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.ui.NavDisplay
+import me.weishu.kernelsu.ui.component.slideHorizontal
 import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.isRailNavbar
 

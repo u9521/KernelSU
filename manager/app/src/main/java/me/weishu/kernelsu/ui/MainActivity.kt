@@ -7,8 +7,10 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteDefaults
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.material3.adaptive.navigationsuite.rememberNavigationSuiteScaffoldState
 import androidx.compose.runtime.Composable
@@ -83,7 +85,11 @@ class MainActivity : ComponentActivity(), IntentEventSource by IntentHelperImpl(
                     if (isManager) ZipFileIntentHandler()
                     if (isManager) URLSchemeIntentHandler()
                     NavigationSuiteScaffold(
-                        navigationItems = { NavBarItems() }, state = state, navigationSuiteType = navigationSuiteType(currentWindowAdaptiveInfo())
+                        navigationItems = { NavBarItems() }, state = state, navigationSuiteType = navigationSuiteType(currentWindowAdaptiveInfo()),
+                        navigationSuiteColors = NavigationSuiteDefaults.colors(
+                            navigationBarContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            navigationRailContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                        )
                     ) {
                         MainNavDisplay()
                     }

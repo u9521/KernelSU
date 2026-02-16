@@ -1,4 +1,4 @@
-package me.weishu.kernelsu.ui.component
+package me.weishu.kernelsu.ui.component.popUps
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column

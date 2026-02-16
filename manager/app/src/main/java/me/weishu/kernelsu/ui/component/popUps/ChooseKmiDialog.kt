@@ -1,14 +1,9 @@
-package me.weishu.kernelsu.ui.component
+package me.weishu.kernelsu.ui.component.popUps
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -16,8 +11,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -29,9 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import me.weishu.kernelsu.R
@@ -49,7 +44,7 @@ fun KmiSelectDialog(
     var canConfirm by remember { mutableStateOf(false) }
     val enableConfirm = { canConfirm = true }
 
-    AlertDialog(onDismissRequest = onDismiss, modifier = Modifier.heightIn(max = 500.dp), title = {
+    AlertDialog(onDismissRequest = onDismiss, modifier = Modifier.heightIn(max = 500.dp), containerColor = MaterialTheme.colorScheme.surfaceContainer, title = {
         Column {
             Text(text = title, style = MaterialTheme.typography.titleLarge)
             Text(text = stringResource(R.string.current_kmi, currentKmi.let { it.ifBlank { "Unknown" } }), style = MaterialTheme.typography.bodyMedium)
@@ -58,50 +53,45 @@ fun KmiSelectDialog(
         Column(
             modifier = Modifier
                 .selectableGroup()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)
         ) {
-            options.forEach { kmi ->
+            options.forEachIndexed { index, kmi ->
                 val isSelected = (kmi == selectedOption)
-
                 LaunchedEffect(isSelected) {
                     if (isSelected) enableConfirm()
                 }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(MaterialTheme.shapes.medium)
-                        .heightIn(min = 56.dp)
-                        .selectable(
-                            selected = isSelected, onClick = { selectedOption = kmi }, role = Role.RadioButton
+                SegmentedListItem(
+                    modifier = Modifier.heightIn(64.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    selected = isSelected, onClick = {
+                        selectedOption = kmi
+                        enableConfirm()
+                    },
+                    colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceBright),
+                    shapes = ListItemDefaults.segmentedShapes(index, options.size),
+                    leadingContent = {
+                        RadioButton(
+                            selected = isSelected, onClick = null
                         )
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    RadioButton(
-                        selected = isSelected, onClick = null
-                    )
-
-                    Column(
-                        modifier = Modifier
-                            .padding(start = 16.dp)
-                            .weight(1f)
-                    ) {
-                        Text(
-                            text = kmi,
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-
-                        if (kmi == currentKmi) {
-                            Spacer(modifier = Modifier.height(4.dp))
+                    }, content = {
+                        Column {
+                            Text(
+                                text = kmi,
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                        }
+                    },
+                    supportingContent = if (kmi == currentKmi) {
+                        {
                             Text(
                                 text = stringResource(R.string.current_device_kmi),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
-                    }
-                }
+                    } else null
+                )
             }
         }
     }, confirmButton = {
@@ -122,8 +112,8 @@ fun KmiSelectDialog(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun rememberSelectKmiDialog(defaultKmi: String, onSelected: (String) -> Unit): DialogHandle {
-    return rememberCustomDialog { dismiss ->
+fun rememberSelectKmiDialog(defaultKmi: String, onSelected: (String) -> Unit): me.weishu.kernelsu.ui.component.DialogHandle {
+    return _root_ide_package_.me.weishu.kernelsu.ui.component.rememberCustomDialog { dismiss ->
         val supportedKmi by produceState(initialValue = emptyList()) {
             value = getSupportedKmis()
         }

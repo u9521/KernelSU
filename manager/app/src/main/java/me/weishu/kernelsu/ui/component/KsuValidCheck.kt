@@ -14,3 +14,10 @@ fun KsuIsValid(
         content()
     }
 }
+
+fun ksuIsValid(): Boolean {
+    val isManager = Natives.isManager
+    val ksuVersion = if (isManager) Natives.version else null
+    return ksuVersion != null
+}
+

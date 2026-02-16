@@ -5,10 +5,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,6 +16,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -38,10 +37,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -55,7 +55,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -92,8 +91,7 @@ fun MultiSelectSearchBottomSheet(
     val filteredList = remember(options, searchQuery) {
         if (searchQuery.isBlank()) options
         else options.filter {
-            it.titleText.contains(searchQuery, ignoreCase = true) ||
-                    (it.subtitleText?.contains(searchQuery, ignoreCase = true) == true)
+            it.titleText.contains(searchQuery, ignoreCase = true) || (it.subtitleText?.contains(searchQuery, ignoreCase = true) == true)
         }
     }
 
@@ -128,6 +126,7 @@ fun MultiSelectSearchBottomSheet(
         sheetState = sheetState,
         contentWindowInsets = { WindowInsets(left = 16.dp, right = 16.dp).union(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom)) },
         dragHandle = { BottomSheetDefaults.DragHandle() },
+        containerColor = MaterialTheme.colorScheme.surfaceContainer
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically
@@ -140,9 +139,7 @@ fun MultiSelectSearchBottomSheet(
 
             // Buttons Area
             Row(
-                modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically
             ) {
                 val showToggleButton: Boolean
                 val isDeselectMode: Boolean
@@ -173,17 +170,14 @@ fun MultiSelectSearchBottomSheet(
 
                 // Confirm Button
                 Button(
-                    enabled = !isLimitEnabled || selectedItems.size <= maxSelection,
-                    shapes = ButtonDefaults.shapes(),
-                    onClick = {
+                    enabled = !isLimitEnabled || selectedItems.size <= maxSelection, shapes = ButtonDefaults.shapes(), onClick = {
                         if (readOnly) {
                             closeSheet()
                         } else {
                             onConfirm(selectedItems.toSet())
                             closeSheet()
                         }
-                    }
-                ) {
+                    }) {
                     Text(stringResource(if (readOnly) R.string.close else android.R.string.ok))
                 }
             }
@@ -217,67 +211,51 @@ fun MultiSelectSearchBottomSheet(
 
         // List
         LazyColumn(
-            state = listState,
-            modifier = Modifier.weight(1f, fill = true)
+            state = listState, modifier = Modifier.weight(1f, fill = true), verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)
         ) {
             items(filteredList, key = { it.titleText + (it.subtitleText ?: "") }) { item ->
                 val isSelected = selectedItems.contains(item)
                 val canToggle = isSelected || (!isLimitEnabled || selectedItems.size < maxSelection)
-                val textAlpha = if (canToggle) 1f else 0.38f
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(MaterialTheme.shapes.medium)
-                        .clickable(enabled = canToggle && !readOnly) {
-                            if (isSelected) {
-                                selectedItems.remove(item)
-                            } else {
-                                if (!isLimitEnabled || selectedItems.size < maxSelection) {
-                                    selectedItems.add(item)
-                                }
+                SegmentedListItem(
+                    modifier = Modifier.heightIn(min = 72.dp),
+                    checked = isSelected,
+                    colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceBright),
+                    enabled = canToggle && !readOnly,
+                    onCheckedChange = { checked ->
+                        if (!checked) {
+                            selectedItems.remove(item)
+                        } else {
+                            if (!isLimitEnabled || selectedItems.size < maxSelection) {
+                                selectedItems.add(item)
                             }
                         }
-                        .padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Checkbox(
-                        checked = isSelected,
-                        enabled = canToggle && !readOnly,
-                        onCheckedChange = { checked ->
-                            if (checked) {
-                                if (!isLimitEnabled || selectedItems.size < maxSelection) {
-                                    selectedItems.add(item)
-                                }
-                            } else {
-                                selectedItems.remove(item)
-                            }
-                        }
-                    )
-                    Column(
-                        modifier = Modifier
-                            .padding(start = 16.dp)
-                            .weight(1f)
-                    ) {
+                    },
+                    shapes = ListItemDefaults.segmentedShapes(filteredList.indexOf(item), filteredList.size),
+                    verticalAlignment = Alignment.CenterVertically,
+                    leadingContent = {
+                        Checkbox(
+                            checked = isSelected, enabled = canToggle && !readOnly, onCheckedChange = null
+                        )
+                    },
+                    content = {
                         Text(
                             text = item.titleText,
-                            style = MaterialTheme.typography.labelLarge,
-                            color = LocalContentColor.current.copy(alpha = textAlpha)
                         )
-                        if (!item.subtitleText.isNullOrEmpty()) {
+                    },
+                    supportingContent = if (!item.subtitleText.isNullOrEmpty()) {
+                        {
                             Text(
                                 text = item.subtitleText,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = LocalContentColor.current.copy(alpha = textAlpha)
                             )
                         }
-                    }
-                }
+                    } else {
+                        null
+                    })
             }
         }
         if (filteredList.isEmpty()) {
             Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
+                modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
             ) {
                 Text(stringResource(R.string.no_result), color = Color.Gray)
             }
@@ -289,18 +267,12 @@ fun MultiSelectSearchBottomSheet(
 @Composable
 private fun MultiSelectSearchBottomSheetPreview() {
     val allOptions = remember {
-        Capabilities.entries
-            .sortedBy { it.name }
-            .map { cap ->
-                ListOption(
-                    titleText = cap.display,
-                    subtitleText = cap.desc,
-                    data = cap
-                )
-            }
+        Capabilities.entries.sortedBy { it.name }.map { cap ->
+            ListOption(
+                titleText = cap.display, subtitleText = cap.desc, data = cap
+            )
+        }
     }
     MultiSelectSearchBottomSheet(
-        stringResource(R.string.profile_capabilities), options = allOptions, initialSelection = emptyList(),
-        onDismissRequest = {}
-    ) {}
+        stringResource(R.string.profile_capabilities), options = allOptions, initialSelection = emptyList(), onDismissRequest = {}) {}
 }

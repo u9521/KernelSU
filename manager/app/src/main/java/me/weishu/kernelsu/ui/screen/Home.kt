@@ -13,13 +13,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -28,12 +24,12 @@ import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberTopAppBarState
@@ -62,10 +58,11 @@ import me.weishu.kernelsu.KernelVersion
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.getKernelVersion
-import me.weishu.kernelsu.ui.component.RebootListPopup
+import me.weishu.kernelsu.ui.component.popUps.RebootListPopup
 import me.weishu.kernelsu.ui.component.rememberConfirmDialog
 import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.navigation3.TopLevelRoute
+import me.weishu.kernelsu.ui.theme.defaultTopAppBarColors
 import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.checkNewVersion
 import me.weishu.kernelsu.ui.util.getModuleCount
@@ -78,17 +75,18 @@ import me.weishu.kernelsu.ui.util.rootAvailable
 @Composable
 fun HomeScreen() {
     val kernelVersion = getKernelVersion()
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val navigator = LocalNavController.current
 
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = { TopBar(scrollBehavior = scrollBehavior) },
-        contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+        containerColor = MaterialTheme.colorScheme.surfaceContainer
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .padding(innerPadding)
-                .nestedScroll(scrollBehavior.nestedScrollConnection)
+//                .nestedScroll(scrollBehavior.nestedScrollConnection)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -150,7 +148,7 @@ fun UpdateCard() {
     ) {
         val updateDialog = rememberConfirmDialog(onConfirm = { uriHandler.openUri(newVersionUrl) })
         WarningCard(
-            message = stringResource(id = R.string.new_version_available).format(newVersionCode), colorScheme.outlineVariant
+            message = stringResource(id = R.string.new_version_available).format(newVersionCode), MaterialTheme.colorScheme.outlineVariant
         ) {
             if (changelog.isEmpty()) {
                 uriHandler.openUri(newVersionUrl)
@@ -163,12 +161,13 @@ fun UpdateCard() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun TopBar(scrollBehavior: TopAppBarScrollBehavior? = null) {
-    TopAppBar(
+    LargeFlexibleTopAppBar(
         title = { Text(stringResource(R.string.app_name)) }, actions = { RebootListPopup() },
-        windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal), scrollBehavior = scrollBehavior
+        colors = defaultTopAppBarColors(),
+        scrollBehavior = scrollBehavior
     )
 }
 
@@ -178,8 +177,8 @@ private fun StatusCard(
 ) {
     ElevatedCard(
         colors = CardDefaults.elevatedCardColors(containerColor = run {
-            if (ksuVersion != null) colorScheme.secondaryContainer
-            else colorScheme.errorContainer
+            if (ksuVersion != null) MaterialTheme.colorScheme.secondaryContainer
+            else MaterialTheme.colorScheme.errorContainer
         })
     ) {
         Row(
@@ -208,7 +207,7 @@ private fun StatusCard(
                             Text(
                                 text = stringResource(id = R.string.home_working), style = MaterialTheme.typography.titleMedium
                             )
-                            safeMode?.let { StatusTag(it, 12.sp, colorScheme.onError, colorScheme.error) }
+                            safeMode?.let { StatusTag(it, 12.sp, MaterialTheme.colorScheme.onError, MaterialTheme.colorScheme.error) }
                             StatusTag(workingMode, 12.sp)
                         }
                         Text(
@@ -285,7 +284,7 @@ private fun OverviewCard(
     title: String, count: String, icon: Painter, onClick: () -> Unit, modifier: Modifier = Modifier
 ) {
     ElevatedCard(
-        modifier = modifier
+        modifier = modifier, colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceBright)
     ) {
         Row(
             modifier = Modifier
@@ -296,7 +295,7 @@ private fun OverviewCard(
             horizontalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             Icon(
-                painter = icon, contentDescription = title, tint = colorScheme.onSurfaceVariant
+                painter = icon, contentDescription = title, tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
@@ -312,7 +311,7 @@ private fun OverviewCard(
 
 @Composable
 fun WarningCard(
-    message: String, color: Color = colorScheme.error, onClick: (() -> Unit)? = null
+    message: String, color: Color = MaterialTheme.colorScheme.error, onClick: (() -> Unit)? = null
 ) {
     ElevatedCard(
         colors = CardDefaults.elevatedCardColors(
@@ -336,8 +335,7 @@ fun LearnMoreCard() {
     val uriHandler = LocalUriHandler.current
     val url = stringResource(R.string.home_learn_kernelsu_url)
 
-    ElevatedCard {
-
+    ElevatedCard(colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceBright)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -361,8 +359,7 @@ fun LearnMoreCard() {
 @Composable
 fun DonateCard() {
     val uriHandler = LocalUriHandler.current
-
-    ElevatedCard {
+    ElevatedCard(colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceBright)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -386,7 +383,7 @@ fun DonateCard() {
 @Composable
 private fun InfoCard() {
     val context = LocalContext.current
-    ElevatedCard {
+    ElevatedCard(colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceBright)) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -438,6 +435,6 @@ private fun WarningCardPreview() {
     Column {
         WarningCard(message = "Warning message")
         WarningCard(
-            message = "Warning message ", colorScheme.outlineVariant, onClick = {})
+            message = "Warning message ", MaterialTheme.colorScheme.outlineVariant, onClick = {})
     }
 }

@@ -1,17 +1,7 @@
 package me.weishu.kernelsu.ui.screen
 
 import android.content.Context
-import android.content.Intent
-import android.net.Uri
-import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.DrawableRes
-import androidx.annotation.StringRes
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
@@ -21,18 +11,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.LargeFlexibleTopAppBar
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -40,141 +28,108 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.LineHeightStyle
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.core.content.FileProvider
 import androidx.core.content.edit
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import me.weishu.kernelsu.BuildConfig
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
-import me.weishu.kernelsu.ui.component.AboutDialog
-import me.weishu.kernelsu.ui.component.BrDropdownMenuItem
-import me.weishu.kernelsu.ui.component.DialogHandle
-import me.weishu.kernelsu.ui.component.KsuIsValid
-import me.weishu.kernelsu.ui.component.SwitchItem
-import me.weishu.kernelsu.ui.component.UninstallSelectionDialog
-import me.weishu.kernelsu.ui.component.rememberConfirmDialog
+import me.weishu.kernelsu.ui.component.SegmentedListGroup
+import me.weishu.kernelsu.ui.component.ksuIsValid
+import me.weishu.kernelsu.ui.component.popUps.AboutDialog
+import me.weishu.kernelsu.ui.component.popUps.sendLogBottomSheet
+import me.weishu.kernelsu.ui.component.popUps.uninstallDialog
 import me.weishu.kernelsu.ui.component.rememberCustomDialog
-import me.weishu.kernelsu.ui.component.rememberLoadingDialog
 import me.weishu.kernelsu.ui.navigation3.Route
-import me.weishu.kernelsu.ui.screen.UninstallType.PERMANENT
-import me.weishu.kernelsu.ui.screen.UninstallType.RESTORE_STOCK_IMAGE
-import me.weishu.kernelsu.ui.screen.UninstallType.TEMPORARY
+import me.weishu.kernelsu.ui.theme.defaultTopAppBarColors
 import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.util.execKsud
-import me.weishu.kernelsu.ui.util.getBugreportFile
 import me.weishu.kernelsu.ui.util.getFeaturePersistValue
 import me.weishu.kernelsu.ui.util.getFeatureStatus
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 
-/**
- * @author weishu
- * @date 2023/1/1.
- */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SettingScreen() {
     val navigator = LocalNavController.current
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val snackBarHost = LocalSnackbarHost.current
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopBar(
-                scrollBehavior = scrollBehavior
+            LargeFlexibleTopAppBar(
+                colors = defaultTopAppBarColors(), title = {
+                    Text(stringResource(R.string.settings))
+                }, scrollBehavior = scrollBehavior
             )
         },
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         snackbarHost = { SnackbarHost(snackBarHost) },
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     ) { paddingValues ->
-        val aboutDialog = rememberCustomDialog {
-            AboutDialog(it)
-        }
-        val loadingDialog = rememberLoadingDialog()
         Column(
             modifier = Modifier
                 .padding(paddingValues)
-                .nestedScroll(scrollBehavior.nestedScrollConnection)
                 .verticalScroll(rememberScrollState())
         ) {
-            val logSaved = stringResource(R.string.log_saved)
-            val sendLog = stringResource(R.string.send_log)
-            val scope = rememberCoroutineScope()
-            val exportBugreportLauncher = rememberLauncherForActivityResult(
-                ActivityResultContracts.CreateDocument("application/gzip")
-            ) { uri: Uri? ->
-                if (uri == null) return@rememberLauncherForActivityResult
-                scope.launch(Dispatchers.IO) {
-                    loadingDialog.show()
-                    context.contentResolver.openOutputStream(uri)?.use { output ->
-                        getBugreportFile(context).inputStream().use {
-                            it.copyTo(output)
-                        }
-                    }
-                    loadingDialog.hide()
-                    snackBarHost.currentSnackbarData?.dismiss()
-                    snackBarHost.showSnackbar(logSaved)
-                }
-            }
 
             var checkUpdate by rememberSaveable {
                 mutableStateOf(
                     prefs.getBoolean("check_update", true)
                 )
             }
-            SwitchItem(
-                painterIcon = painterResource(R.drawable.ic_update_rounded_filled),
-                title = stringResource(id = R.string.settings_check_update),
-                summary = stringResource(id = R.string.settings_check_update_summary),
-                checked = checkUpdate
-            ) {
-                prefs.edit { putBoolean("check_update", it) }
-                checkUpdate = it
+
+            var checkModuleUpdate by rememberSaveable {
+                mutableStateOf(prefs.getBoolean("module_check_update", true))
             }
 
-            KsuIsValid {
-                var checkModuleUpdate by rememberSaveable {
-                    mutableStateOf(prefs.getBoolean("module_check_update", true))
-                }
-                SwitchItem(
-                    title = stringResource(id = R.string.settings_module_check_update),
-                    summary = stringResource(id = R.string.settings_check_update_summary),
-                    painterIcon = painterResource(R.drawable.ic_upload_file_rounded_filled),
-                    checked = checkModuleUpdate,
+            SegmentedListGroup {
+                switchItem(
+                    leadingContent = {
+                        Icon(
+                            painterResource(R.drawable.ic_update_rounded_filled), contentDescription = stringResource(id = R.string.settings_check_update)
+                        )
+                    },
+                    title = { stringResource(id = R.string.settings_check_update) },
+                    summary = { stringResource(id = R.string.settings_check_update_summary) },
+                    checked = checkUpdate,
                     onCheckedChange = {
-                        prefs.edit {
-                            putBoolean("module_check_update", it)
-                        }
-                        checkModuleUpdate = it
+                        prefs.edit { putBoolean("check_update", it) }
+                        checkUpdate = it
                     })
+
+                switchItem(
+                    visible = ksuIsValid(),
+                    leadingContent = {
+                        Icon(
+                            painterResource(R.drawable.ic_upload_file_rounded_filled), contentDescription = stringResource(id = R.string.settings_check_update)
+                        )
+                    },
+                    title = { stringResource(id = R.string.settings_module_check_update) },
+                    summary = { stringResource(id = R.string.settings_check_update_summary) },
+                    checked = checkModuleUpdate
+                ) {
+                    prefs.edit {
+                        putBoolean("module_check_update", it)
+                    }
+                    checkModuleUpdate = it
+                }
             }
 
-            val profileTemplate = stringResource(id = R.string.settings_profile_template)
-            KsuIsValid {
-                ListItem(
-                    leadingContent = { Icon(painterResource(R.drawable.ic_fence_rounded), profileTemplate) },
-                    headlineContent = { Text(profileTemplate) },
+            SegmentedListGroup {
+                item(
+                    visible = ksuIsValid(),
+                    leadingContent = { Icon(painterResource(R.drawable.ic_fence_rounded), stringResource(id = R.string.settings_profile_template)) },
+                    content = { Text(stringResource(id = R.string.settings_profile_template)) },
                     supportingContent = { Text(stringResource(id = R.string.settings_profile_template_summary)) },
-                    modifier = Modifier.clickable {
+                    onClick = {
                         navigator.navigateTo(Route.AppProfileTemplate)
                     })
             }
@@ -190,7 +145,7 @@ fun SettingScreen() {
                 }
             }
 
-            val suStatus by produceState(initialValue = "") {
+            val suStatus by produceState(initialValue = "supported") {
                 value = getFeatureStatus("su_compat")
             }
             val suSummary = when (suStatus) {
@@ -204,66 +159,71 @@ fun SettingScreen() {
                 stringResource(id = R.string.settings_mode_disable_always),
             )
 
-            KsuIsValid {
-                BrDropdownMenuItem(
-                    title = stringResource(id = R.string.settings_sucompat),
-                    selected = suCompatModeItems.getOrNull(suCompatMode),
-                    enabled = suStatus == "supported",
-                    summary = suSummary,
-                    icon = { Icon(painterResource(R.drawable.ic_remove_moderator_outlined_filled), stringResource(id = R.string.settings_sucompat)) }
-                ) { dismissMenu ->
-                    suCompatModeItems.forEachIndexed { index, name ->
-                        DropdownMenuItem(
-                            text = { Text(name) },
-                            onClick = {
-                                when (index) {
-                                    // Default: enable and save to persist
-                                    0 -> if (Natives.setSuEnabled(true)) {
-                                        execKsud("feature save", true)
-                                        prefs.edit { putInt("su_compat_mode", 0) }
-                                        suCompatMode = 0
-                                    }
-
-                                    // Temporarily disable: save enabled state first, then disable
-                                    1 -> if (Natives.setSuEnabled(true)) {
-                                        execKsud("feature save", true)
-                                        if (Natives.setSuEnabled(false)) {
-                                            prefs.edit { putInt("su_compat_mode", 0) }
-                                            suCompatMode = 1
-                                        }
-                                    }
-
-                                    // Permanently disable: disable and save
-                                    2 -> if (Natives.setSuEnabled(false)) {
-                                        execKsud("feature save", true)
-                                        prefs.edit { putInt("su_compat_mode", 2) }
-                                        suCompatMode = 2
-                                    }
-                                }
-                                dismissMenu()
-                            },
-                        )
-                    }
-                }
-            }
-
             var isKernelUmountEnabled by rememberSaveable { mutableStateOf(Natives.isKernelUmountEnabled()) }
             val umountStatus by produceState(initialValue = "supported") {
                 value = getFeatureStatus("kernel_umount")
             }
+
             val umountSummary = when (umountStatus) {
                 "unsupported" -> stringResource(id = R.string.feature_status_unsupported_summary)
                 "managed" -> stringResource(id = R.string.feature_status_managed_summary)
                 else -> stringResource(id = R.string.settings_kernel_umount_summary)
             }
 
-            KsuIsValid {
-                SwitchItem(
-                    painterIcon = painterResource(R.drawable.ic_do_not_disturb_on_rounded_filled),
-                    title = stringResource(id = R.string.settings_kernel_umount),
-                    summary = umountSummary,
-                    enabled = umountStatus == "supported",
+            SegmentedListGroup {
+                menuItem(
+                    visible = ksuIsValid(),
+                    content = { Text(stringResource(id = R.string.settings_sucompat)) },
+                    selected = suCompatModeItems.getOrNull(suCompatMode),
+                    enabled = suStatus == "supported",
+                    leadingContent = {
+                        Icon(
+                            painterResource(R.drawable.ic_remove_moderator_outlined_filled), stringResource(id = R.string.settings_sucompat)
+                        )
+                    },
+                    supportingContent = { Text(suSummary) }) { dismissMenu ->
+                    suCompatModeItems.forEachIndexed { index, name ->
+                        DropdownMenuItem(text = { Text(name) }, onClick = {
+                            when (index) {
+                                // Default: enable and save to persist
+                                0 -> if (Natives.setSuEnabled(true)) {
+                                    execKsud("feature save", true)
+                                    prefs.edit { putInt("su_compat_mode", 0) }
+                                    suCompatMode = 0
+                                }
+
+                                // Temporarily disable: save enabled state first, then disable
+                                1 -> if (Natives.setSuEnabled(true)) {
+                                    execKsud("feature save", true)
+                                    if (Natives.setSuEnabled(false)) {
+                                        prefs.edit { putInt("su_compat_mode", 0) }
+                                        suCompatMode = 1
+                                    }
+                                }
+
+                                // Permanently disable: disable and save
+                                2 -> if (Natives.setSuEnabled(false)) {
+                                    execKsud("feature save", true)
+                                    prefs.edit { putInt("su_compat_mode", 2) }
+                                    suCompatMode = 2
+                                }
+                            }
+                            dismissMenu()
+                        })
+                    }
+                }
+
+                switchItem(
+                    visible = ksuIsValid(),
+                    leadingContent = {
+                        Icon(
+                            painterResource(R.drawable.ic_do_not_disturb_on_rounded_filled), stringResource(id = R.string.settings_kernel_umount)
+                        )
+                    },
+                    title = { stringResource(id = R.string.settings_kernel_umount) },
+                    summary = { umountSummary },
                     checked = isKernelUmountEnabled,
+                    enabled = umountStatus == "supported",
                 ) { checked ->
                     if (Natives.setKernelUmountEnabled(checked)) {
                         execKsud("feature save", true)
@@ -276,30 +236,40 @@ fun SettingScreen() {
                 mutableStateOf(Natives.isDefaultUmountModules())
             }
 
-            KsuIsValid {
-                SwitchItem(
-                    painterIcon = painterResource(R.drawable.ic_folder_delete_rounded_filled),
-                    title = stringResource(id = R.string.settings_umount_modules_default),
-                    summary = stringResource(id = R.string.settings_umount_modules_default_summary),
-                    checked = umountChecked
-                ) {
-                    if (Natives.setDefaultUmountModules(it)) {
-                        umountChecked = it
-                    }
-                }
-            }
-
             var enableWebDebugging by rememberSaveable {
                 mutableStateOf(
                     prefs.getBoolean("enable_web_debugging", false)
                 )
             }
 
-            KsuIsValid {
-                SwitchItem(
-                    painterIcon = painterResource(R.drawable.ic_mobile_code_rounded_filled),
-                    title = stringResource(id = R.string.enable_web_debugging),
-                    summary = stringResource(id = R.string.enable_web_debugging_summary),
+            SegmentedListGroup {
+                switchItem(
+                    visible = ksuIsValid(),
+                    leadingContent = {
+                        Icon(
+                            painterResource(R.drawable.ic_folder_delete_rounded_filled), stringResource(R.string.settings_umount_modules_default)
+                        )
+                    },
+                    title = { stringResource(R.string.settings_umount_modules_default) },
+                    summary = { stringResource(R.string.settings_umount_modules_default_summary) },
+                    checked = umountChecked
+                ) {
+                    if (Natives.setDefaultUmountModules(it)) {
+                        umountChecked = it
+                    }
+                }
+
+                switchItem(
+                    visible = ksuIsValid(),
+                    leadingContent = {
+                        Icon(
+                            painterResource(R.drawable.ic_mobile_code_rounded_filled), stringResource(
+                                id = R.string.enable_web_debugging
+                            )
+                        )
+                    },
+                    title = { stringResource(id = R.string.enable_web_debugging) },
+                    summary = { stringResource(id = R.string.enable_web_debugging_summary) },
                     checked = enableWebDebugging
                 ) {
                     prefs.edit { putBoolean("enable_web_debugging", it) }
@@ -307,200 +277,35 @@ fun SettingScreen() {
                 }
             }
 
-            var showBottomSheet by remember { mutableStateOf(false) }
+            val uninstallDialog = uninstallDialog()
 
-            ListItem(leadingContent = {
-                Icon(
-                    painterResource(R.drawable.ic_bug_report_rounded_filled), stringResource(id = R.string.send_log)
-                )
-            }, headlineContent = { Text(stringResource(id = R.string.send_log)) }, modifier = Modifier.clickable {
-                showBottomSheet = true
-            })
-            if (showBottomSheet) {
-                ModalBottomSheet(onDismissRequest = { showBottomSheet = false }, content = {
-                    Row(
-                        modifier = Modifier
-                            .padding(10.dp)
-                            .align(Alignment.CenterHorizontally)
-
-                    ) {
-                        Box {
-                            Column(
-                                modifier = Modifier
-                                    .padding(16.dp)
-                                    .clickable {
-                                        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH_mm")
-                                        val current = LocalDateTime.now().format(formatter)
-                                        exportBugreportLauncher.launch("KernelSU_bugreport_${current}.tar.gz")
-                                        showBottomSheet = false
-                                    }) {
-                                Icon(
-                                    painterResource(R.drawable.ic_save_rounded_filled),
-                                    contentDescription = null,
-                                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                                )
-                                Text(
-                                    text = stringResource(id = R.string.save_log), modifier = Modifier.padding(top = 16.dp), textAlign = TextAlign.Center.also {
-                                        LineHeightStyle(
-                                            alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.None
-                                        )
-                                    }
-
-                                )
-                            }
-                        }
-                        Box {
-                            Column(
-                                modifier = Modifier
-                                    .padding(16.dp)
-                                    .clickable {
-                                        scope.launch {
-                                            val bugreport = loadingDialog.withLoading {
-                                                withContext(Dispatchers.IO) {
-                                                    getBugreportFile(context)
-                                                }
-                                            }
-
-                                            val uri: Uri = FileProvider.getUriForFile(
-                                                context, "${BuildConfig.APPLICATION_ID}.fileProvider", bugreport
-                                            )
-
-                                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                                putExtra(Intent.EXTRA_STREAM, uri)
-                                                setDataAndType(uri, "application/gzip")
-                                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                            }
-
-                                            context.startActivity(
-                                                Intent.createChooser(
-                                                    shareIntent, sendLog
-                                                )
-                                            )
-                                        }
-                                    }) {
-                                Icon(
-                                    Icons.Filled.Share, contentDescription = null, modifier = Modifier.align(Alignment.CenterHorizontally)
-                                )
-                                Text(
-                                    text = stringResource(id = R.string.send_log), modifier = Modifier.padding(top = 16.dp), textAlign = TextAlign.Center.also {
-                                        LineHeightStyle(
-                                            alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.None
-                                        )
-                                    })
-                            }
-                        }
-                    }
-                })
+            SegmentedListGroup {
+                item(
+                    visible = Natives.isLkmMode,
+                    leadingContent = { Icon(Icons.Filled.Delete, contentDescription = stringResource(id = R.string.settings_uninstall)) },
+                    onClick = { uninstallDialog.show() }) {
+                    Text(stringResource(id = R.string.settings_uninstall))
+                }
             }
 
-            if (Natives.isLkmMode) {
-                val uninstallDialog = uninstallDialog()
-                ListItem(
-                    leadingContent = {
-                        Icon(Icons.Filled.Delete, contentDescription = stringResource(id = R.string.settings_uninstall))
-                    },
-                    headlineContent = { Text(stringResource(id = R.string.settings_uninstall)) },
-                    modifier = Modifier.clickable {
-                        uninstallDialog.show()
-                    }
-                )
+            val sendLogBottomSheet = sendLogBottomSheet()
+            val aboutDialog = rememberCustomDialog {
+                AboutDialog(it)
             }
 
-            val about = stringResource(id = R.string.about)
-            ListItem(leadingContent = {
-                Icon(
-                    painterResource(R.drawable.ic_contact_page_rounded_filled), about
-                )
-            }, headlineContent = { Text(about) }, modifier = Modifier.clickable {
-                aboutDialog.show()
-            })
-        }
-    }
-}
+            SegmentedListGroup {
+                item(leadingContent = {
+                    Icon(
+                        painterResource(R.drawable.ic_bug_report_rounded_filled), stringResource(id = R.string.send_log)
+                    )
+                }, onClick = { sendLogBottomSheet.show() }) { Text(stringResource(id = R.string.send_log)) }
 
-@Composable
-fun uninstallDialog(): DialogHandle {
-    val navigator = LocalNavController.current
-    val context = LocalContext.current
-
-    var pendingUninstallType by remember { mutableStateOf<UninstallType?>(null) }
-
-    val performUninstall = { type: UninstallType ->
-        when (type) {
-            TEMPORARY -> {
-                Toast.makeText(context, "TODO", Toast.LENGTH_SHORT).show()
-            }
-
-            PERMANENT -> {
-                navigator.navigateTo(Route.Flash(FlashIt.FlashUninstall))
-            }
-
-            RESTORE_STOCK_IMAGE -> {
-                navigator.navigateTo(Route.Flash(FlashIt.FlashRestore))
+                item(leadingContent = {
+                    Icon(
+                        painterResource(R.drawable.ic_contact_page_rounded_filled), stringResource(id = R.string.about)
+                    )
+                }, onClick = { aboutDialog.show() }) { Text(stringResource(id = R.string.about)) }
             }
         }
     }
-
-    val selectionDialog = rememberCustomDialog { dismiss ->
-        UninstallSelectionDialog(
-            onDismissRequest = dismiss,
-            onOptionSelected = {
-                if (it == null) return@UninstallSelectionDialog
-                pendingUninstallType = it
-            }
-        )
-    }
-
-    val confirmDialog = rememberConfirmDialog(
-        onConfirm = {
-            pendingUninstallType?.let { type ->
-                selectionDialog.hide()
-                performUninstall(type)
-                pendingUninstallType = null
-            }
-        }, onDismiss = {
-            pendingUninstallType = null
-        }
-    )
-    if (pendingUninstallType != null) {
-        val type = pendingUninstallType!!
-        val title = stringResource(type.title)
-        val message = stringResource(type.message)
-
-        LaunchedEffect(type) {
-            confirmDialog.showConfirm(title = title, content = message)
-        }
-    }
-    return selectionDialog
-}
-
-enum class UninstallType(@get:StringRes val title: Int, @get:StringRes val message: Int, @get:DrawableRes val icon: Int) {
-    TEMPORARY(
-        R.string.settings_uninstall_temporary, R.string.settings_uninstall_temporary_message, R.drawable.ic_delete_rounded_filled
-    ),
-    PERMANENT(
-        R.string.settings_uninstall_permanent, R.string.settings_uninstall_permanent_message, R.drawable.ic_delete_forever_rounded_filled
-    ),
-    RESTORE_STOCK_IMAGE(
-        R.string.settings_restore_stock_image, R.string.settings_restore_stock_image_message, R.drawable.ic_undo_rounded_filled
-    ),
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun TopBar(
-    scrollBehavior: TopAppBarScrollBehavior? = null
-) {
-    TopAppBar(
-        title = {
-            Text(stringResource(R.string.settings))
-        }, windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal), scrollBehavior = scrollBehavior
-    )
-}
-
-
-@Preview
-@Composable
-private fun SettingsPreview() {
-    SettingScreen()
 }

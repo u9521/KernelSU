@@ -47,6 +47,8 @@ import androidx.window.core.layout.WindowSizeClass
 import androidx.window.core.layout.WindowSizeClass.Companion.WIDTH_DP_MEDIUM_LOWER_BOUND
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import me.weishu.kernelsu.ui.component.slideHorizontal
+import me.weishu.kernelsu.ui.component.slideVertical
 import me.weishu.kernelsu.ui.navigation3.BreezeListDetailScene.Companion.BINDING_KEY
 import me.weishu.kernelsu.ui.navigation3.BreezeListDetailScene.Companion.DETAIL_KEY
 import me.weishu.kernelsu.ui.navigation3.BreezeListDetailScene.Companion.LIST_KEY

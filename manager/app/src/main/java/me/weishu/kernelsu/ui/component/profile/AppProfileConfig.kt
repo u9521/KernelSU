@@ -1,12 +1,7 @@
 package me.weishu.kernelsu.ui.component.profile
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.SwitchItem
@@ -26,23 +21,13 @@ fun AppProfileConfig(
         } else {
             Natives.isDefaultUmountModules()
         },
-        enabled = enabled,
-        onCheckedChange = {
-            onProfileChange(
-                profile.copy(
-                    umountModules = it,
-                    nonRootUseDefault = false
-                )
+        enabled = enabled
+    ) {
+        onProfileChange(
+            profile.copy(
+                umountModules = it,
+                nonRootUseDefault = false
             )
-        }
-    )
-}
-
-@Preview
-@Composable
-private fun AppProfileConfigPreview() {
-    var profile by remember { mutableStateOf(Natives.Profile("")) }
-    AppProfileConfig(enabled = false, profile = profile) {
-        profile = it
+        )
     }
 }

@@ -1,4 +1,4 @@
-package me.weishu.kernelsu.ui.component
+package me.weishu.kernelsu.ui.component.popUps
 
 import android.content.Context
 import android.os.Build
@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ui.component.KsuIsValid
 import me.weishu.kernelsu.ui.util.reboot
 
 
@@ -72,7 +73,7 @@ fun RebootListPopup(
             if (isRebootingUserspaceSupported) {
                 rebootOptions.add(1, Pair(R.string.reboot_userspace, "userspace"))
             }
-            rebootOptions.forEachIndexed { idx, (id, reason) ->
+            rebootOptions.forEach { (id, reason) ->
                 RebootDropdownItem(
                     id = id,
                     reason = reason,
