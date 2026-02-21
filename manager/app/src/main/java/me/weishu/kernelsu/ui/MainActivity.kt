@@ -9,6 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.WideNavigationRailDefaults
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteDefaults
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
@@ -87,8 +88,11 @@ class MainActivity : ComponentActivity(), IntentEventSource by IntentHelperImpl(
                     NavigationSuiteScaffold(
                         navigationItems = { NavBarItems() }, state = state, navigationSuiteType = navigationSuiteType(currentWindowAdaptiveInfo()),
                         navigationSuiteColors = NavigationSuiteDefaults.colors(
-                            navigationBarContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            navigationRailContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                            shortNavigationBarContainerColor = MaterialTheme.colorScheme.surfaceBright,
+                            wideNavigationRailColors = WideNavigationRailDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceBright),
+                            navigationBarContainerColor = MaterialTheme.colorScheme.surfaceBright,
+                            navigationRailContainerColor = MaterialTheme.colorScheme.surfaceBright,
+                            navigationDrawerContainerColor = MaterialTheme.colorScheme.surfaceBright,
                         )
                     ) {
                         MainNavDisplay()

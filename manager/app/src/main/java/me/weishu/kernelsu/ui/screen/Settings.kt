@@ -1,15 +1,16 @@
 package me.weishu.kernelsu.ui.screen
 
 import android.content.Context
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -21,6 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -55,6 +57,7 @@ import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.util.execKsud
 import me.weishu.kernelsu.ui.util.getFeaturePersistValue
 import me.weishu.kernelsu.ui.util.getFeatureStatus
+import me.weishu.kernelsu.ui.util.isRailNavbar
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -76,15 +79,20 @@ fun SettingScreen() {
         },
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         snackbarHost = { SnackbarHost(snackBarHost) },
-        contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .padding(paddingValues)
+                .padding(horizontal = 16.dp)
+                .consumeWindowInsets(paddingValues)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
+                .padding(top = 16.dp)
+                .navigationBarsPadding()
+                .imePadding(),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-
             var checkUpdate by rememberSaveable {
                 mutableStateOf(
                     prefs.getBoolean("check_update", true)
@@ -94,8 +102,6 @@ fun SettingScreen() {
             var checkModuleUpdate by rememberSaveable {
                 mutableStateOf(prefs.getBoolean("module_check_update", true))
             }
-
-            Spacer(Modifier.height(16.dp))
 
             SegmentedListGroup {
                 switchItem(
@@ -313,6 +319,8 @@ fun SettingScreen() {
                     )
                 }, onClick = { aboutDialog.show() }) { Text(stringResource(id = R.string.about)) }
             }
+
+            if (!isRailNavbar()) Spacer(Modifier)
         }
     }
 }

@@ -123,19 +123,20 @@ class SegmentedListScope {
     fun menuItem(
         key: Any? = null,
         visible: Boolean = true,
-        content: @Composable () -> Unit,
+        content: @Composable (() -> Unit),
         selected: String? = null,
         modifier: Modifier = Modifier,
         enabled: Boolean = true,
         leadingContent: @Composable (() -> Unit)? = null,
         overlineContent: @Composable (() -> Unit)? = null,
         supportingContent: @Composable (() -> Unit)? = null,
+        trailingContent: @Composable (() -> Unit)? = null,
         verticalAlignment: Alignment.Vertical = Alignment.CenterVertically,
         colors: ListItemColors? = null,
         elevation: ListItemElevation? = null,
         contentPadding: PaddingValues? = null,
         interactionSource: MutableInteractionSource? = null,
-        menuContent: @Composable ColumnScope.(dismissMenu: () -> Unit) -> Unit
+        menuContent: @Composable (ColumnScope.(dismissMenu: () -> Unit) -> Unit)?
     ) {
         items.add(
             SegmentedItemData(
@@ -145,9 +146,10 @@ class SegmentedListScope {
                 modifier = modifier,
                 enabled = enabled,
                 leadingContent = leadingContent,
-                trailingContent = {
-                    // Display the selected value text if provided
-                    selected?.let {
+                trailingContent = trailingContent ?:
+                // Display the selected value text if provided
+                selected?.let {
+                    {
                         Text(
                             selected, style = MaterialTheme.typography.bodyMedium, color = if (enabled) {
                                 MaterialTheme.colorScheme.onSurface
@@ -249,9 +251,7 @@ fun SegmentedListGroup(
     val firstVisibleKey = visibleItems.firstOrNull()?.key
     val lastVisibleKey = visibleItems.lastOrNull()?.key
 
-    Column(modifier = modifier
-        .padding(horizontal = 16.dp)
-        .padding(bottom = 16.dp)) {
+    Column(modifier = modifier) {
         if (title.isNotEmpty()) {
             Text(
                 text = title,

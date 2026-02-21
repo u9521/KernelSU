@@ -8,6 +8,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -211,7 +212,10 @@ fun MultiSelectSearchBottomSheet(
 
         // List
         LazyColumn(
-            state = listState, modifier = Modifier.weight(1f, fill = true), verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)
+            state = listState,
+            modifier = Modifier.weight(1f, fill = true),
+            verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
+            contentPadding = PaddingValues(bottom = 16.dp)
         ) {
             items(filteredList, key = { it.titleText + (it.subtitleText ?: "") }) { item ->
                 val isSelected = selectedItems.contains(item)

@@ -1,8 +1,6 @@
 package me.weishu.kernelsu.ui.screen
 
 import android.content.ClipData
-import android.widget.Toast
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,11 +10,14 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -34,25 +35,24 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
+import androidx.compose.material3.LargeFlexibleTopAppBar
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
+import androidx.compose.material3.SegmentedListItem
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -67,12 +67,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import me.weishu.kernelsu.R
-import me.weishu.kernelsu.ui.navigation3.NavController
 import me.weishu.kernelsu.ui.navigation3.Route
+import me.weishu.kernelsu.ui.theme.defaultTopAppBarColors
 import me.weishu.kernelsu.ui.util.LocalNavController
+import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.util.isNetworkAvailable
 import me.weishu.kernelsu.ui.viewmodel.TemplateViewModel
 
@@ -87,7 +87,8 @@ fun AppProfileTemplateScreen() {
     val navigator = LocalNavController.current
     val viewModel = viewModel<TemplateViewModel>()
     val scope = rememberCoroutineScope()
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val snackBarHostState = LocalSnackbarHost.current
 
     LaunchedEffect(Unit) {
         if (viewModel.templateList.isEmpty()) {
@@ -105,51 +106,19 @@ fun AppProfileTemplateScreen() {
     }
 
     Scaffold(
-        topBar = {
-            val clipboard = LocalClipboard.current
-            val context = LocalContext.current
-            val showToast = fun(msg: String) {
-                scope.launch(Dispatchers.Main) {
-                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-                }
-            }
-            TopBar(
-                onBack = dropUnlessResumed { navigator.popBackStack() }, onSync = {
-                    scope.launch { viewModel.fetchTemplates(true) }
-                }, onImport = {
-                    scope.launch {
-                        clipboard.getClipEntry()?.clipData?.getItemAt(0)?.text?.toString()?.let {
-                            if (it.isEmpty()) {
-                                showToast(context.getString(R.string.app_profile_template_import_empty))
-                                return@let
-                            }
-                            viewModel.importTemplates(
-                                it, {
-                                    showToast(context.getString(R.string.app_profile_template_import_success))
-                                    viewModel.fetchTemplates(false)
-                                }, showToast
-                            )
-                        }
-                    }
-                }, onExport = {
-                    scope.launch {
-                        viewModel.exportTemplates({
-                            showToast(context.getString(R.string.app_profile_template_export_empty))
-                        }, {
-                            clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("template", it)))
-                        })
-                    }
-                }, scrollBehavior = scrollBehavior
-            )
-        }, floatingActionButton = {
+        topBar = { TopBar(scrollBehavior = scrollBehavior) },
+        snackbarHost = { SnackbarHost(snackBarHostState) },
+        floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = {
+                onClick = dropUnlessResumed {
                     navigator.navigateTo(Route.TemplateEditor(TemplateViewModel.TemplateInfo(), false))
                 },
                 icon = { Icon(Icons.Filled.Add, null) },
                 text = { Text(stringResource(id = R.string.app_profile_template_create)) },
             )
-        }, contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+        },
+        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
+        containerColor = MaterialTheme.colorScheme.surfaceContainer
     ) { innerPadding ->
         val state = rememberPullToRefreshState()
         val context = LocalContext.current
@@ -173,7 +142,7 @@ fun AppProfileTemplateScreen() {
                                 "No templates found"
                             }
                             Text(
-                                text = promptText, color = colorScheme.onSurface, fontSize = 16.sp
+                                text = promptText, color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp
                             )
                             Spacer(Modifier.height(12.dp))
                             Button(
@@ -188,14 +157,16 @@ fun AppProfileTemplateScreen() {
                     }
                 }
             } else {
+                val bottomPadding = WindowInsets.navigationBars.union(WindowInsets.ime).asPaddingValues().calculateBottomPadding()
                 LazyColumn(
                     modifier = Modifier
+                        .padding(horizontal = 16.dp)
                         .fillMaxSize()
                         .nestedScroll(scrollBehavior.nestedScrollConnection), contentPadding = remember {
-                        PaddingValues(bottom = 16.dp + 56.dp + 16.dp /* Scaffold Fab Spacing + Fab container height */)
+                        PaddingValues(top = 16.dp, bottom = 16.dp + 56.dp + 16.dp + bottomPadding /* Scaffold Fab Spacing + Fab container height */)
                     }) {
-                    items(viewModel.templateList, key = { it.id }) { app ->
-                        TemplateItem(navigator, app)
+                    items(viewModel.templateList, key = { it.id }) { template ->
+                        TemplateItem(template, viewModel.templateList.indexOf(template), viewModel.templateList.size)
                     }
                 }
             }
@@ -203,14 +174,17 @@ fun AppProfileTemplateScreen() {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun TemplateItem(
-    navigator: NavController, template: TemplateViewModel.TemplateInfo
+    template: TemplateViewModel.TemplateInfo, index: Int, count: Int
 ) {
-    ListItem(
-        modifier = Modifier.clickable { navigator.navigateTo(Route.TemplateEditor(template, !template.local)) },
-        headlineContent = { Text(template.name) },
+    val navigator = LocalNavController.current
+    SegmentedListItem(
+        onClick = { navigator.navigateTo(Route.TemplateEditor(template, !template.local)) },
+        shapes = ListItemDefaults.segmentedShapes(index, count).let { it.copy(pressedShape = it.shape) },
+        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceBright),
+        content = { Text(template.name) },
         supportingContent = {
             Column {
                 Text(
@@ -221,8 +195,16 @@ private fun TemplateItem(
                 Text(template.description)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     StatusTag(label = "UID: ${template.uid}")
-                    StatusTag(label = "GID: ${template.gid}", contentColor = colorScheme.onSecondaryContainer, backgroundColor = colorScheme.secondaryContainer)
-                    StatusTag(label = template.context, contentColor = colorScheme.onTertiaryContainer, backgroundColor = colorScheme.tertiaryContainer)
+                    StatusTag(
+                        label = "GID: ${template.gid}",
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        backgroundColor = MaterialTheme.colorScheme
+                            .secondaryContainer
+                    )
+                    StatusTag(
+                        label = template.context, contentColor = MaterialTheme.colorScheme.onTertiaryContainer, backgroundColor = MaterialTheme.colorScheme
+                            .tertiaryContainer
+                    )
                     if (template.local) {
                         StatusTag(label = "local")
                     } else {
@@ -230,60 +212,93 @@ private fun TemplateItem(
                     }
                 }
             }
-        },
+        }
     )
+    if (index != count - 1) Spacer(Modifier.height(ListItemDefaults.SegmentedGap))
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun TopBar(
-    onBack: () -> Unit, onSync: () -> Unit = {}, onImport: () -> Unit = {}, onExport: () -> Unit = {}, scrollBehavior: TopAppBarScrollBehavior? = null
+    scrollBehavior: TopAppBarScrollBehavior
 ) {
-    TopAppBar(
+    val scope = rememberCoroutineScope()
+    val navigator = LocalNavController.current
+    val viewModel = viewModel<TemplateViewModel>()
+    val clipboard = LocalClipboard.current
+    val snackBarHost = LocalSnackbarHost.current
+
+    LargeFlexibleTopAppBar(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        colors = defaultTopAppBarColors(),
         title = {
             Text(stringResource(R.string.settings_profile_template))
         }, navigationIcon = {
             IconButton(
-                onClick = onBack
-            ) {
+                onClick = dropUnlessResumed { navigator.popBackStack() }) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
             }
         }, actions = {
-            IconButton(onClick = onSync) {
+            IconButton(onClick = {
+                scope.launch { viewModel.fetchTemplates(true) }
+            }) {
                 Icon(painter = painterResource(R.drawable.ic_sync_rounded_filled), contentDescription = null)
             }
-
-            ImportExportMenuButton(onImport, onExport)
-        }, windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal), scrollBehavior = scrollBehavior
+            val emptyClipboard = stringResource(R.string.app_profile_template_import_empty)
+            val importSuccess = stringResource(R.string.app_profile_template_import_success)
+            val exportEmpty = stringResource(R.string.app_profile_template_export_empty)
+            ImportExportMenuButton(onImport = {
+                scope.launch {
+                    clipboard.getClipEntry()?.clipData?.getItemAt(0)?.text?.toString()?.let {
+                        if (it.isEmpty()) {
+                            snackBarHost.showSnackbar(emptyClipboard)
+                            return@let
+                        }
+                        viewModel.importTemplates(it, onSuccess = {
+                            snackBarHost.showSnackbar(importSuccess)
+                            viewModel.fetchTemplates(false)
+                        }, onFailure = { e -> snackBarHost.showSnackbar(e) })
+                    }
+                }
+            }, onExport = {
+                scope.launch {
+                    viewModel.exportTemplates(onTemplateEmpty = {
+                        snackBarHost.showSnackbar(exportEmpty)
+                    }, {
+                        clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("template", it)))
+                    })
+                }
+            })
+        }, scrollBehavior = scrollBehavior
     )
 }
 
 @Composable
 private fun ImportExportMenuButton(onImport: () -> Unit, onExport: () -> Unit) {
-    var showDropdown by remember { mutableStateOf(false) }
+    val showDropdown = remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
     IconButton(onClick = {
-        showDropdown = true
+        showDropdown.value = true
         haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
     }) {
         Icon(
             painter = painterResource(R.drawable.ic_swap_vert_rounded), contentDescription = stringResource(id = R.string.app_profile_import_export)
         )
 
-        DropdownMenu(expanded = showDropdown, onDismissRequest = {
-            showDropdown = false
+        DropdownMenu(expanded = showDropdown.value, onDismissRequest = {
+            showDropdown.value = false
         }) {
             DropdownMenuItem(text = {
                 Text(stringResource(id = R.string.app_profile_import_from_clipboard))
             }, onClick = {
                 onImport()
-                showDropdown = false
+                showDropdown.value = false
             })
             DropdownMenuItem(text = {
                 Text(stringResource(id = R.string.app_profile_export_to_clipboard))
             }, onClick = {
                 onExport()
-                showDropdown = false
+                showDropdown.value = false
             })
         }
     }

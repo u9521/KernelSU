@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -241,13 +243,19 @@ fun InstallScreen() {
         Column(
             modifier = Modifier
                 .padding(innerPadding)
+                .padding(horizontal = 16.dp)
                 .fillMaxSize()
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
                 .verticalScroll(rememberScrollState())
+                .navigationBarsPadding()
         ) {
+            Spacer(Modifier.height(16.dp))
+
             InstallMethodSelector(
                 options = availableMethods, selectedOption = installMethod, onOptionClick = handleMethodSelection
             )
+
+            Spacer(Modifier.height(16.dp))
 
             InstallConfigGroup(
                 currentMethod = installMethod,
