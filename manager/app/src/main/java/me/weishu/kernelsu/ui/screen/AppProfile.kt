@@ -43,7 +43,6 @@ import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -69,6 +68,7 @@ import kotlinx.coroutines.launch
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.AppIconImage
+import me.weishu.kernelsu.ui.component.BreezeSnackBarHost
 import me.weishu.kernelsu.ui.component.OutlinedTextEdit
 import me.weishu.kernelsu.ui.component.SegmentedListGroup
 import me.weishu.kernelsu.ui.component.SplitScreenRatioButton
@@ -140,7 +140,7 @@ fun AppProfileScreen(
                 onBack = dropUnlessResumed { navigator.popBackStack() }, scrollBehavior = scrollBehavior
             )
         },
-        snackbarHost = { SnackbarHost(hostState = snackBarHost) },
+        snackbarHost = { BreezeSnackBarHost(hostState = snackBarHost) },
         contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
         containerColor = MaterialTheme.colorScheme.surfaceContainer
     ) { paddingValues ->

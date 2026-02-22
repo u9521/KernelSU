@@ -41,7 +41,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SegmentedListItem
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -69,6 +68,7 @@ import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ui.component.BreezeSnackBarHost
 import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.theme.defaultTopAppBarColors
 import me.weishu.kernelsu.ui.util.LocalNavController
@@ -107,7 +107,7 @@ fun AppProfileTemplateScreen() {
 
     Scaffold(
         topBar = { TopBar(scrollBehavior = scrollBehavior) },
-        snackbarHost = { SnackbarHost(snackBarHostState) },
+        snackbarHost = { BreezeSnackBarHost(snackBarHostState) },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = dropUnlessResumed {

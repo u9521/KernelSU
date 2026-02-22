@@ -23,7 +23,6 @@ import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
@@ -44,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ui.component.BreezeSnackBarHost
 import me.weishu.kernelsu.ui.component.SegmentedListGroup
 import me.weishu.kernelsu.ui.component.ksuIsValid
 import me.weishu.kernelsu.ui.component.popUps.AboutDialog
@@ -78,7 +78,7 @@ fun SettingScreen() {
             )
         },
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        snackbarHost = { SnackbarHost(snackBarHost) },
+        snackbarHost = { BreezeSnackBarHost(snackBarHost) },
         contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
     ) { paddingValues ->
         Column(
