@@ -69,6 +69,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.BreezeSnackBarHost
+import me.weishu.kernelsu.ui.component.StatusTag
 import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.theme.defaultTopAppBarColors
 import me.weishu.kernelsu.ui.util.LocalNavController
@@ -160,10 +161,12 @@ fun AppProfileTemplateScreen() {
                 val bottomPadding = WindowInsets.navigationBars.union(WindowInsets.ime).asPaddingValues().calculateBottomPadding()
                 LazyColumn(
                     modifier = Modifier
-                        .padding(horizontal = 16.dp)
                         .fillMaxSize()
                         .nestedScroll(scrollBehavior.nestedScrollConnection), contentPadding = remember {
-                        PaddingValues(top = 16.dp, bottom = 16.dp + 56.dp + 16.dp + bottomPadding /* Scaffold Fab Spacing + Fab container height */)
+                        PaddingValues(
+                            start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp + 56.dp + 16.dp + bottomPadding /* Scaffold Fab Spacing + Fab
+                        container height */
+                        )
                     }) {
                     items(viewModel.templateList, key = { it.id }) { template ->
                         TemplateItem(template, viewModel.templateList.indexOf(template), viewModel.templateList.size)

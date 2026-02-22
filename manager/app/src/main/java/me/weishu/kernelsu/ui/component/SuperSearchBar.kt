@@ -23,10 +23,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme.motionScheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -41,10 +40,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import me.weishu.kernelsu.ui.theme.defaultTopAppBarColors
 
 // Search Status Class
 @Stable
@@ -66,7 +66,7 @@ fun SearchAppBar(
     onBackClick: (() -> Unit)? = null,
     onConfirm: (() -> Unit)? = null,
     dropdownContent: @Composable (() -> Unit)? = null,
-    scrollBehavior: TopAppBarScrollBehavior? = null
+    scrollBehavior: TopAppBarScrollBehavior
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
@@ -81,7 +81,9 @@ fun SearchAppBar(
         }
     }
 
-    TopAppBar(
+    LargeFlexibleTopAppBar(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        colors = defaultTopAppBarColors(),
         title = {
             Box {
                 AnimatedVisibility(
@@ -164,15 +166,3 @@ fun SearchAppBar(
         scrollBehavior = scrollBehavior
     )
 }
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Preview
-@Composable
-private fun SearchAppBarPreview() {
-    val searchStatus = SearchStatus("")
-    SearchAppBar(
-        title = { Text("Search text") },
-        searchStatus = searchStatus
-    )
-}
-

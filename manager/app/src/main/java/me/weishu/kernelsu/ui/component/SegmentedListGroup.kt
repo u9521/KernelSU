@@ -271,7 +271,6 @@ fun SegmentedListGroup(
                 ) {
                     val isFirst = itemData.key == firstVisibleKey
                     val isLast = itemData.key == lastVisibleKey
-                    MaterialTheme.shapes.extraSmall
                     // Use 'Large' shape (16.dp) for outer corners and 'ExtraSmall' shape (4.dp) for inner/connected corners
                     val targetTopRadius = if (isFirst) 16.dp else 4.dp
                     val targetBottomRadius = if (isLast) 16.dp else 4.dp

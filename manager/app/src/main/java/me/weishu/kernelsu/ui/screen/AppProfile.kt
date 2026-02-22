@@ -72,6 +72,7 @@ import me.weishu.kernelsu.ui.component.BreezeSnackBarHost
 import me.weishu.kernelsu.ui.component.OutlinedTextEdit
 import me.weishu.kernelsu.ui.component.SegmentedListGroup
 import me.weishu.kernelsu.ui.component.SplitScreenRatioButton
+import me.weishu.kernelsu.ui.component.StatusTag
 import me.weishu.kernelsu.ui.component.profile.NonRootProfileConfig
 import me.weishu.kernelsu.ui.component.profile.RootProfileConfig
 import me.weishu.kernelsu.ui.component.profile.RootTemplateSelector

@@ -120,9 +120,9 @@ fun TemplateEditorScreen(
             modifier = Modifier
                 .padding(innerPadding)
                 .consumeWindowInsets(innerPadding)
-                .padding(horizontal = 16.dp)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp)
                 .navigationBarsPadding()
                 .imePadding()
         ) {

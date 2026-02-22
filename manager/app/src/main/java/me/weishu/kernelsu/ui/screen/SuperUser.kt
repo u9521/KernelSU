@@ -1,29 +1,29 @@
 package me.weishu.kernelsu.ui.screen
 
 import android.content.Context
+import android.content.pm.PackageInfo
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
@@ -36,15 +36,17 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.MaterialTheme.colorScheme
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.ListItemShapes
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
+import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
@@ -55,15 +57,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
+import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
@@ -71,6 +71,7 @@ import me.weishu.kernelsu.ksuApp
 import me.weishu.kernelsu.ui.component.AppIconImage
 import me.weishu.kernelsu.ui.component.SearchAppBar
 import me.weishu.kernelsu.ui.component.SearchStatus
+import me.weishu.kernelsu.ui.component.StatusTag
 import me.weishu.kernelsu.ui.navigation3.LocalHasDetailPane
 import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.util.LocalNavController
@@ -83,7 +84,7 @@ import me.weishu.kernelsu.ui.viewmodel.SuperUserViewModel
 fun SuperUserScreen() {
     val navigator = LocalNavController.current
     val viewModel = viewModel<SuperUserViewModel>()
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val listState = rememberLazyListState()
     val searchStatus by viewModel.searchStatus
     val context = LocalContext.current
@@ -111,7 +112,7 @@ fun SuperUserScreen() {
             var showDropdown by remember { mutableStateOf(false) }
             val dissMissMenu = { showDropdown = false }
             val onBack = if (LocalHasDetailPane.current) {
-                { navigator.popBackStack() }
+                dropUnlessResumed { navigator.popBackStack() }
             } else null
             SearchAppBar(
                 title = { Text(stringResource(R.string.superuser)) }, searchStatus = searchStatus, dropdownContent = {
@@ -144,7 +145,9 @@ fun SuperUserScreen() {
                     }
                 }, scrollBehavior = scrollBehavior, onBackClick = onBack
             )
-        }, contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+        },
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     ) { innerPadding ->
         val displayAppList = when (viewModel.searchStatus.value.resultStatus) {
             SearchStatus.ResultStatus.SHOW, SearchStatus.ResultStatus.EMPTY -> viewModel.searchResults.value.filter { it.packageName != ksuApp.packageName }
@@ -153,86 +156,109 @@ fun SuperUserScreen() {
         val groups = remember(displayAppList) {
             buildGroups(displayAppList)
         }
-        val expandedUids = rememberSaveable { mutableStateOf(setOf<Int>()) }
+        var expandedUids by rememberSaveable { mutableStateOf(setOf<Int>()) }
 
         LaunchedEffect(viewModel.searchStatus.value.resultStatus, viewModel.searchResults.value) {
             when (viewModel.searchStatus.value.resultStatus) {
                 SearchStatus.ResultStatus.SHOW -> {
-                    // 搜索状态下，默认展开有多个应用的搜索结果组
                     val searchResultsByUid = viewModel.searchResults.value.groupBy { it.uid }
-                    expandedUids.value = groups.filter { group ->
-                        // 只展开有多个应用且出现在搜索结果中的组
+                    expandedUids = groups.filter { group ->
                         val appsInGroup = searchResultsByUid[group.uid] ?: emptyList()
                         appsInGroup.size > 1
                     }.map { it.uid }.toSet()
                 }
 
-                SearchStatus.ResultStatus.EMPTY, SearchStatus.ResultStatus.DEFAULT -> expandedUids.value = emptySet()
+                SearchStatus.ResultStatus.EMPTY, SearchStatus.ResultStatus.DEFAULT -> expandedUids = emptySet()
 
                 SearchStatus.ResultStatus.LOAD -> {}
             }
         }
         val state = rememberPullToRefreshState()
         PullToRefreshBox(
-            modifier = Modifier.padding(innerPadding),
+            modifier = Modifier
+                .padding(innerPadding)
+                .consumeWindowInsets(innerPadding),
             state = state,
             onRefresh = { viewModel.loadAppList(true) },
             isRefreshing = viewModel.isRefreshing,
             indicator = {
                 PullToRefreshDefaults.LoadingIndicator(state = state, isRefreshing = viewModel.isRefreshing, modifier = Modifier.align(Alignment.TopCenter))
-            }
-        ) {
+            }) {
+            val bottomPadding = WindowInsets.safeDrawing.asPaddingValues().calculateBottomPadding()
             LazyColumn(
-                state = listState, modifier = Modifier
+                state = listState,
+                modifier = Modifier
                     .fillMaxSize()
-                    .nestedScroll(scrollBehavior.nestedScrollConnection)
+                    .nestedScroll(scrollBehavior.nestedScrollConnection),
+                contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp + bottomPadding, start = 16.dp, end = 16.dp)
             ) {
-                items(groups, key = { it.uid }) { group ->
-                    val expanded = expandedUids.value.contains(group.uid)
+                itemsIndexed(groups, key = { _, group -> group.uid }) { index, group ->
+                    val count = groups.size
+                    val isExpanded = expandedUids.contains(group.uid)
+                    val isPrevExpanded = if (index > 0) expandedUids.contains(groups[index - 1].uid) else true
+                    val isNextExpanded = if (index < count - 1) expandedUids.contains(groups[index + 1].uid) else true
+
+                    val targetTopRadius = if (isExpanded || isPrevExpanded) 16.dp else 4.dp
+                    val targetBottomRadius = if (isExpanded) 4.dp else if (isNextExpanded) 16.dp else 4.dp
+                    val targetTopPadding = if (index == 0) 0.dp else if (isExpanded || isPrevExpanded) 16.dp else ListItemDefaults.SegmentedGap
+
+                    val animatedTopRadius by animateDpAsState(
+                        targetValue = targetTopRadius, animationSpec = MaterialTheme.motionScheme.slowSpatialSpec(), label = "TopCorner"
+                    )
+                    val animatedBottomRadius by animateDpAsState(
+                        targetValue = targetBottomRadius, animationSpec = MaterialTheme.motionScheme.slowSpatialSpec(), label = "BottomCorner"
+                    )
+                    val animatedTopPadding by animateDpAsState(
+                        targetValue = targetTopPadding, animationSpec = MaterialTheme.motionScheme.slowSpatialSpec(), label = "TopPadding"
+                    )
+
+                    val itemShape = RoundedCornerShape(
+                        topStart = animatedTopRadius, topEnd = animatedTopRadius, bottomStart = animatedBottomRadius, bottomEnd = animatedBottomRadius
+                    )
+
                     GroupItem(
-                        group = group, onToggleExpand = {
-                            if (group.apps.size > 1) {
-                                expandedUids.value = if (expanded) expandedUids.value - group.uid else expandedUids.value + group.uid
+                        group = group, shape = itemShape, onToggleExpand = if (group.apps.size > 1) {
+                            {
+                                expandedUids = if (isExpanded) expandedUids - group.uid else expandedUids + group.uid
                             }
-                        }) {
-                        navigator.navigateTo(Route.AppProfile(group.primary.packageName))
-                        viewModel.markNeedRefresh()
-                    }
-                    AnimatedVisibility(
-                        visible = expanded && group.apps.size > 1, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()
-                    ) {
-                        Column {
-                            group.apps.forEach { app ->
-                                SimpleAppItem(app)
-                            }
-                        }
-                    }
+                        } else null, onClickPrimary = {
+                            navigator.navigateTo(Route.AppProfile(group.primary.packageName))
+                            viewModel.markNeedRefresh()
+                        }, modifier = Modifier.padding(top = animatedTopPadding), expanded = isExpanded
+                    )
                 }
             }
         }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun SimpleAppItem(
-    app: SuperUserViewModel.AppInfo
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+private fun AppIconItem(
+    modifier: Modifier = Modifier,
+    title: @Composable () -> Unit,
+    supportingContent: @Composable () -> Unit,
+    shapes: ListItemShapes,
+    packageInfo: PackageInfo,
+    onClick: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null
 ) {
-    ListItem(
-        headlineContent = { Text(app.label) },
-        supportingContent = {
-            Column {
-                Text(app.packageName)
-            }
-        },
+    SegmentedListItem(
+        modifier = modifier,
+        onClick = onClick ?: {},
+        onLongClick = onLongClick,
+        verticalAlignment = Alignment.CenterVertically,
+        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceBright),
+        shapes = shapes,
         leadingContent = {
             AppIconImage(
-                app.packageInfo, modifier = Modifier
+                packageInfo = packageInfo, modifier = Modifier
                     .padding(4.dp)
-                    .width(32.dp)
-                    .height(32.dp)
+                    .size(48.dp)
             )
         },
+        content = title,
+        supportingContent = supportingContent
     )
 }
 
@@ -283,84 +309,73 @@ private fun buildGroups(apps: List<SuperUserViewModel.AppInfo>): List<GroupedApp
     })
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun GroupItem(
     group: GroupedApps,
-    onToggleExpand: () -> Unit,
+    shape: Shape,
+    expanded: Boolean,
+    onToggleExpand: (() -> Unit)?,
     onClickPrimary: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    val userId = group.uid / 100000
-    val colorScheme = colorScheme
-    val tags = remember(group.uid, group.anyAllowSu, group.anyCustom, colorScheme) {
-        buildList {
-            if (userId != 0) {
-                add(StatusMeta("UID$userId", colorScheme.primary, colorScheme.onPrimary))
-            }
-            if (group.anyAllowSu) {
-                add(StatusMeta("ROOT", colorScheme.tertiaryContainer, colorScheme.onTertiaryContainer))
-            } else if (Natives.uidShouldUmount(group.uid)) {
-                add(StatusMeta("UMOUNT", colorScheme.secondaryContainer, colorScheme.onSecondaryContainer))
-            }
-            if (group.anyCustom) {
-                add(StatusMeta("CUSTOM", colorScheme.primaryContainer, colorScheme.onPrimaryContainer))
-            }
-        }
+    val isGroup = group.apps.size > 1
+    val title = if (isGroup) {
+        "${ownerNameForUid(group.uid)} (${group.uid})"
+    } else {
+        group.primary.label
     }
-    val summaryText = if (group.apps.size > 1) {
+    val summaryText = if (isGroup) {
         stringResource(R.string.group_contains_apps, group.apps.size)
     } else {
         group.primary.packageName
     }
-    ListItem(
-        modifier = Modifier.combinedClickable(onClick = onClickPrimary, onLongClick = onToggleExpand),
-        headlineContent = { Text(if (group.apps.size > 1) "${ownerNameForUid(group.uid)} (${group.uid})" else group.primary.label) },
-        leadingContent = {
-            AppIconImage(
-                group.primary.packageInfo,
-                modifier = Modifier
-                    .padding(4.dp)
-                    .width(48.dp)
-                    .height(48.dp),
-                contentDescription = if (group.apps.size > 1) "${ownerNameForUid(group.uid)} (${group.uid})" else group.primary.label
-            )
-        },
-        supportingContent = {
-            Column {
-                Text(summaryText)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    tags.forEach { meta ->
-                        StatusTag(
-                            label = meta.label, contentColor = meta.fg, backgroundColor = meta.bg
-                        )
-                    }
+
+    Column(modifier = modifier) {
+        AppIconItem(
+            onClick = onClickPrimary,
+            onLongClick = onToggleExpand,
+            shapes = ListItemDefaults.shapes(shape = shape, pressedShape = shape),
+            packageInfo = group.primary.packageInfo,
+            title = { Text(title) },
+            supportingContent = {
+                Column {
+                    Text(summaryText)
+                    GroupTags(group)
+                }
+            },
+        )
+        AnimatedVisibility(
+            visible = expanded && group.apps.size > 1,
+            enter = expandVertically(MaterialTheme.motionScheme.defaultEffectsSpec()) + fadeIn(MaterialTheme.motionScheme.slowSpatialSpec()),
+            exit = shrinkVertically(MaterialTheme.motionScheme.defaultEffectsSpec()) + fadeOut(MaterialTheme.motionScheme.fastEffectsSpec())
+        ) {
+            Column(
+                modifier = Modifier.padding(top = ListItemDefaults.SegmentedGap), verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)
+            ) {
+                group.apps.forEachIndexed { appIndex, app ->
+                    val shapes = ListItemDefaults.segmentedShapes(appIndex + 1, group.apps.size + 1).let { it.copy(pressedShape = it.shape) }
+                    AppIconItem(title = { Text(app.label) }, supportingContent = { Text(app.packageName) }, shapes = shapes, packageInfo = app.packageInfo)
                 }
             }
-        })
-}
-
-@Composable
-fun StatusTag(
-    label: String, textSize: TextUnit = 10.sp, contentColor: Color = colorScheme.onPrimary, backgroundColor: Color = colorScheme.primary
-) {
-    Box(
-        modifier = Modifier.background(
-            color = backgroundColor, shape = RoundedCornerShape(6.dp)
-        ), propagateMinConstraints = true
-    ) {
-        Text(
-            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
-            text = label,
-            color = contentColor,
-            fontSize = textSize,
-            fontWeight = FontWeight.Bold,
-            maxLines = 1,
-            softWrap = false,
-            lineHeight = textSize,
-        )
+        }
     }
 }
 
-@Immutable
-private data class StatusMeta(
-    val label: String, val bg: Color, val fg: Color
-)
+@Composable
+private fun GroupTags(group: GroupedApps) {
+    val userId = group.uid / 100000
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        if (userId != 0) {
+            StatusTag(label = "UID$userId", contentColor = MaterialTheme.colorScheme.onPrimary, backgroundColor = MaterialTheme.colorScheme.primary)
+        }
+        if (group.anyAllowSu) {
+            StatusTag("ROOT", contentColor = MaterialTheme.colorScheme.onTertiaryContainer, backgroundColor = MaterialTheme.colorScheme.tertiaryContainer)
+        } else if (Natives.uidShouldUmount(group.uid)) {
+            StatusTag("UMOUNT", contentColor = MaterialTheme.colorScheme.onSecondaryContainer, backgroundColor = MaterialTheme.colorScheme.secondaryContainer)
+        }
+        if (group.anyCustom) {
+            StatusTag("CUSTOM", contentColor = MaterialTheme.colorScheme.onPrimaryContainer, backgroundColor = MaterialTheme.colorScheme.primaryContainer)
+        }
+    }
+}
