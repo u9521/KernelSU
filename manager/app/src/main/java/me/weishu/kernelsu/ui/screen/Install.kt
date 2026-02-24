@@ -31,13 +31,13 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SmallExtendedFloatingActionButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -223,7 +223,7 @@ fun InstallScreen() {
     Scaffold(topBar = {
         TopBar(onBack = dropUnlessResumed { navigator.popBackStack() }, scrollBehavior = scrollBehavior)
     }, containerColor = MaterialTheme.colorScheme.surfaceContainer, floatingActionButton = {
-        SmallExtendedFloatingActionButton(
+        ExtendedFloatingActionButton(
             content = {
                 Text(stringResource(id = R.string.install_next))
                 Spacer(Modifier.width(2.dp))

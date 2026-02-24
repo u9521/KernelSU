@@ -79,8 +79,8 @@ fun WebUIScreen(webUIState: WebUIState) {
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .padding(innerPadding)
-            .background(MaterialTheme.colorScheme.background)
     ) {
         if (webUIState.webView != null) {
             AndroidView(

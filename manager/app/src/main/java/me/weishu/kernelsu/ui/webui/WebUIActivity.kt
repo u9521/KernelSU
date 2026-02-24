@@ -82,7 +82,8 @@ private fun MainContent(activity: ComponentActivity, onFinish: () -> Unit) {
         if (loading) {
             Box(modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
+                .background(MaterialTheme.colorScheme.surfaceContainer), contentAlignment = Alignment.Center
+            ) {
                 LoadingIndicator()
             }
         } else {
