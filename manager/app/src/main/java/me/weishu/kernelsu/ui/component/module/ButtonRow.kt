@@ -32,7 +32,7 @@ enum class ButtonType {
     PRIMARY, TONAL
 }
 
-enum class ButtonGroup {
+enum class ButtonPosition {
     START, END
 }
 
@@ -45,7 +45,7 @@ data class ButtonSpec(
     val isVisible: Boolean = true,
     val isEnabled: Boolean = true,
     val type: ButtonType = ButtonType.TONAL,
-    val buttonGroup: ButtonGroup
+    val buttonPosition: ButtonPosition
 )
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -58,15 +58,15 @@ fun ActionButton(
     visible: Boolean = true,
     isExpanded: Boolean,
     buttonType: ButtonType = ButtonType.TONAL,
-    buttonGroup: ButtonGroup,
+    buttonPosition: ButtonPosition,
     onClick: () -> Unit,
 ) {
     val visibleState = remember { MutableTransitionState(visible) }
     visibleState.targetState = visible
 
-    val animationAlignment = when (buttonGroup) {
-        ButtonGroup.START -> Alignment.Start
-        ButtonGroup.END -> Alignment.End
+    val animationAlignment = when (buttonPosition) {
+        ButtonPosition.START -> Alignment.Start
+        ButtonPosition.END -> Alignment.End
     }
 
     val button: @Composable (Boolean) -> Unit = when (buttonType) {
@@ -200,21 +200,18 @@ fun EnumeratedPriorityButtonRow(
             (expandedPlaceables[index].width - collapsedPlaceables[index].width).coerceAtLeast(0)
         }
 
-        // Generate the threshold table
-        val thresholds = ArrayList<Int>(calcAllButtonsPriority.size + 1)
-        var currentWidthAcc = baseWidth
-        thresholds.add(currentWidthAcc) // 0 expanded
-
-        for (cost in expansionCosts) {
-            currentWidthAcc += cost
-            thresholds.add(currentWidthAcc)
-        }
-
-        // --- Phase D: Decision ---
         var expandedCount = 0
-        for (i in thresholds.indices.reversed()) {
-            if (thresholds[i] <= constraints.maxWidth) {
-                expandedCount = i
+        var currentWidth = baseWidth
+
+        // Greedily try to expand buttons one by one as long as they fit.
+        for (cost in expansionCosts) {
+            // Calculate the potential width if we expand this next button
+            val nextWidth = currentWidth + cost
+
+            if (nextWidth <= constraints.maxWidth) {
+                currentWidth = nextWidth
+                expandedCount++
+            } else {
                 break
             }
         }
@@ -222,7 +219,7 @@ fun EnumeratedPriorityButtonRow(
         // Get the set of IDs for buttons that are "approved to expand"
         val expandedButtonIds = calcAllButtonsPriority.take(expandedCount).map { it.id }.toSet()
 
-        // --- Phase E: Final Render and Measurement (For all buttons, including those animating out) ---
+        // --- Phase D: Final Render and Measurement (For all buttons, including those animating out) ---
 
         // 1. Render Start group
         val finalStartPlaceables = subcompose("final_start") {
@@ -245,7 +242,7 @@ fun EnumeratedPriorityButtonRow(
         val allFinalPlaceables = finalStartPlaceables + finalEndPlaceables
         val maxHeight = if (allFinalPlaceables.isNotEmpty()) allFinalPlaceables.maxOf { it.height } else 0
 
-        // --- Phase F: Layout ---
+        // --- Phase E: Layout ---
         layout(constraints.maxWidth, maxHeight) {
             var currentX = 0
 

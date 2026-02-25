@@ -1,6 +1,7 @@
 package me.weishu.kernelsu.ui
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
@@ -21,30 +22,24 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.NavBarItems
-import me.weishu.kernelsu.ui.component.rememberConfirmDialog
-import me.weishu.kernelsu.ui.component.rememberLoadingDialog
+import me.weishu.kernelsu.ui.component.module.InstallModuleDialog
 import me.weishu.kernelsu.ui.navigation3.MainNavDisplay
 import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.navigation3.TopLevelRoute
 import me.weishu.kernelsu.ui.navigation3.rememberNavController
-import me.weishu.kernelsu.ui.screen.FlashIt
 import me.weishu.kernelsu.ui.theme.KernelSUTheme
 import me.weishu.kernelsu.ui.util.HandleIntentEffect
 import me.weishu.kernelsu.ui.util.IntentEventSource
 import me.weishu.kernelsu.ui.util.IntentHelperImpl
 import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.LocalSnackbarHost
-import me.weishu.kernelsu.ui.util.ModuleParser
 import me.weishu.kernelsu.ui.util.install
 import me.weishu.kernelsu.ui.util.navigationSuiteType
 import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel
@@ -116,23 +111,15 @@ class MainActivity : ComponentActivity(), IntentEventSource by IntentHelperImpl(
 @Composable
 private fun ZipFileIntentHandler() {
     val context = LocalContext.current
-    var zipUri by remember { mutableStateOf<android.net.Uri?>(null) }
+    val urisToInstall = remember { mutableStateOf<List<Uri>>(emptyList()) }
     val isSafeMode = Natives.isSafeMode
-    val clearZipUri = { zipUri = null }
-    val navigator = LocalNavController.current
+
     val inSafeMode = stringResource(R.string.safe_mode_module_disabled)
-    val moduleTitle = stringResource(R.string.module)
-    val installDialog = rememberConfirmDialog(
-        onConfirm = {
-            zipUri?.let { uri ->
-                navigator.navigateTo(Route.Flash(FlashIt.FlashModules(listOf(uri))))
-            }
-            clearZipUri()
-        },
-        onDismiss = clearZipUri
-    )
-    val loadingDialog = rememberLoadingDialog()
     val viewModel = viewModel<ModuleViewModel>()
+    InstallModuleDialog(urisToInstall.value, viewModel) {
+        urisToInstall.value = emptyList()
+    }
+
 
     HandleIntentEffect { intent ->
         val uri = intent.data ?: return@HandleIntentEffect
@@ -145,20 +132,7 @@ private fun ZipFileIntentHandler() {
             Toast.makeText(context, inSafeMode, Toast.LENGTH_SHORT).show()
             return@HandleIntentEffect
         }
-        zipUri = uri
-        val moduleInstallDesc = loadingDialog.withLoading {
-            viewModel.loadModuleList()
-            withContext(Dispatchers.IO) {
-                zipUri?.let { uri ->
-                    ModuleParser.getModuleInstallDesc(
-                        context, uri, viewModel.moduleList
-                    )
-                }
-            }
-        }
-        installDialog.showConfirm(
-            title = moduleTitle, content = moduleInstallDesc!!, markdown = true
-        )
+        urisToInstall.value = listOf(uri)
     }
 }
 

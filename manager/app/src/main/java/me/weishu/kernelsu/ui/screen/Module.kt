@@ -63,12 +63,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -80,57 +79,44 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
-import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
-import me.weishu.kernelsu.ksuApp
 import me.weishu.kernelsu.ui.component.BreezeSnackBarHost
-import me.weishu.kernelsu.ui.component.ConfirmResult
 import me.weishu.kernelsu.ui.component.SearchAppBar
 import me.weishu.kernelsu.ui.component.SearchStatus
 import me.weishu.kernelsu.ui.component.StatusTag
 import me.weishu.kernelsu.ui.component.module.ActionButton
-import me.weishu.kernelsu.ui.component.module.ButtonGroup
+import me.weishu.kernelsu.ui.component.module.ButtonPosition
 import me.weishu.kernelsu.ui.component.module.ButtonSpec
 import me.weishu.kernelsu.ui.component.module.ButtonType
 import me.weishu.kernelsu.ui.component.module.EnumeratedPriorityButtonRow
+import me.weishu.kernelsu.ui.component.module.InstallModuleDialog
 import me.weishu.kernelsu.ui.component.popUps.RebootListPopup
 import me.weishu.kernelsu.ui.component.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.rememberLoadingDialog
-import me.weishu.kernelsu.ui.navigation3.NavController
 import me.weishu.kernelsu.ui.navigation3.Route
-import me.weishu.kernelsu.ui.util.DownloadListener
 import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.LocalSnackbarHost
-import me.weishu.kernelsu.ui.util.ModuleParser
 import me.weishu.kernelsu.ui.util.download
-import me.weishu.kernelsu.ui.util.getFileName
 import me.weishu.kernelsu.ui.util.hasMagisk
 import me.weishu.kernelsu.ui.util.reboot
-import me.weishu.kernelsu.ui.util.toggleModule
-import me.weishu.kernelsu.ui.util.undoUninstallModule
-import me.weishu.kernelsu.ui.util.uninstallModule
 import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel
 import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel.ModuleInfo
-import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel.ModuleUpdateInfo
-import me.weishu.kernelsu.ui.webui.WebUIActivity
-import okhttp3.Request
+import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel.ModuleIntent
+import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel.ModuleUiEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModuleScreen() {
-    val navigator = LocalNavController.current
     val viewModel = viewModel<ModuleViewModel>()
     val context = LocalContext.current
     val snackBarHost = LocalSnackbarHost.current
-    val scope = rememberCoroutineScope()
     val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
     val searchStatus by viewModel.searchStatus
-
 
     LaunchedEffect(Unit) {
         when {
@@ -138,17 +124,17 @@ fun ModuleScreen() {
                 viewModel.checkModuleUpdate = prefs.getBoolean("module_check_update", true)
                 viewModel.sortEnabledFirst = prefs.getBoolean("module_sort_enabled_first", false)
                 viewModel.sortActionFirst = prefs.getBoolean("module_sort_action_first", false)
-                viewModel.fetchModuleList()
+                viewModel.onIntent(ModuleIntent.Refresh(checkUpdate = true))
             }
 
             viewModel.isNeedRefresh -> {
-                viewModel.fetchModuleList()
+                viewModel.onIntent(ModuleIntent.Refresh())
             }
         }
     }
 
     LaunchedEffect(searchStatus.searchText, viewModel.moduleList) {
-        viewModel.updateSearchText(searchStatus.searchText)
+        viewModel.onIntent(ModuleIntent.Search(searchStatus.searchText))
     }
 
     val isSafeMode = Natives.isSafeMode
@@ -157,12 +143,6 @@ fun ModuleScreen() {
     }
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-
-    val webUILauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { viewModel.fetchModuleList() }
-
-    val loadingDialog = rememberLoadingDialog()
 
     Scaffold(
         topBar = {
@@ -195,38 +175,10 @@ fun ModuleScreen() {
             return@Scaffold
         }
 
-        var zipUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
-        val confirmDialog = rememberConfirmDialog(onConfirm = {
-            navigator.navigateTo(Route.Flash(FlashIt.FlashModules(zipUris)))
-            viewModel.markNeedRefresh()
-        })
-        val confirmTitle = stringResource(R.string.module)
         ModuleList(
-            navigator,
             viewModel = viewModel,
             modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
             boxModifier = Modifier.padding(innerPadding),
-            onInstallModule = {
-                zipUris = listOf(it)
-                scope.launch {
-                    val moduleInstallDesc = loadingDialog.withLoading {
-                        withContext(Dispatchers.IO) {
-                            ModuleParser.getModuleInstallDesc(context, it, viewModel.moduleList)
-                        }
-                    }
-                    confirmDialog.showConfirm(
-                        title = confirmTitle, content = moduleInstallDesc, markdown = true
-                    )
-                }
-            },
-            onClickModule = { id, name, hasWebUi ->
-                if (hasWebUi) {
-                    webUILauncher.launch(
-                        Intent(context, WebUIActivity::class.java).setData("kernelsu://webui/$id".toUri()).putExtra("id", id).putExtra("name", name)
-                    )
-                }
-            },
-            context = context,
             snackBarHost = snackBarHost
         )
     }
@@ -235,148 +187,99 @@ fun ModuleScreen() {
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ModuleList(
-    navigator: NavController,
     viewModel: ModuleViewModel,
     modifier: Modifier = Modifier,
     boxModifier: Modifier = Modifier,
-    onInstallModule: (Uri) -> Unit,
-    onClickModule: (id: String, name: String, hasWebUi: Boolean) -> Unit,
-    context: Context,
     snackBarHost: SnackbarHostState
 ) {
-    val failedEnable = stringResource(R.string.module_failed_to_enable)
-    val failedDisable = stringResource(R.string.module_failed_to_disable)
-    val failedUndoUninstall = stringResource(R.string.module_undo_uninstall_failed)
-    val successUndoUninstall = stringResource(R.string.module_undo_uninstall_success)
-    val failedUninstall = stringResource(R.string.module_uninstall_failed)
-    val successUninstall = stringResource(R.string.module_uninstall_success)
-    val reboot = stringResource(R.string.reboot)
-    val rebootToApply = stringResource(R.string.reboot_to_apply)
-    val moduleStr = stringResource(R.string.module)
-    val uninstall = stringResource(R.string.uninstall)
-    val cancel = stringResource(android.R.string.cancel)
-    val moduleUninstallConfirm = stringResource(R.string.module_uninstall_confirm)
-    val metaModuleUninstallConfirm = stringResource(R.string.metamodule_uninstall_confirm)
-    val updateText = stringResource(R.string.module_update)
-    val changelogText = stringResource(R.string.module_changelog)
-    val downloadingText = stringResource(R.string.module_downloading)
-    val startDownloadingText = stringResource(R.string.module_start_downloading)
+    val context = LocalContext.current
+    val resources = LocalResources.current
+    val navigator = LocalNavController.current
 
     val loadingDialog = rememberLoadingDialog()
-    val confirmDialog = rememberConfirmDialog()
+    val confirmDialog =
+        rememberConfirmDialog(onConfirm = { viewModel.onIntent(ModuleIntent.ConfirmAction) }, onDismiss = { viewModel.onIntent(ModuleIntent.DismissAction) })
+    val installModuleUris = remember { mutableStateOf<List<Uri>>(emptyList()) }
 
-    suspend fun onModuleUpdate(
-        module: ModuleInfo, changelogUrl: String, downloadUrl: String, fileName: String
-    ) {
-        val changelogResult = loadingDialog.withLoading {
-            withContext(Dispatchers.IO) {
-                runCatching {
-                    ksuApp.okhttpClient.newCall(
-                        Request.Builder().url(changelogUrl).build()
-                    ).execute().body.string()
+    val webUILauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { viewModel.onIntent(ModuleIntent.Refresh()) }
+
+    LaunchedEffect(viewModel.actionLoading) {
+        if (viewModel.actionLoading) {
+            loadingDialog.showLoading()
+        } else {
+            loadingDialog.hide()
+        }
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.effect.collect { effect ->
+            when (effect) {
+                is ModuleUiEffect.ShowSnackbar -> {
+                    val message = resources.getString(effect.messageRes, *effect.formatArgs.toTypedArray())
+                    val actionLabel = effect.actionLabelRes?.let { resources.getString(it) }
+                    val result = snackBarHost.showSnackbar(
+                        message = message,
+                        actionLabel = actionLabel,
+                        duration = SnackbarDuration.Short
+                    )
+                    if (result == SnackbarResult.ActionPerformed && effect.withReboot) {
+                        reboot()
+                    }
+                }
+
+                is ModuleUiEffect.ShowToast -> {
+                    Toast.makeText(context, resources.getString(effect.messageRes), Toast.LENGTH_SHORT).show()
+                }
+
+                is ModuleUiEffect.ShowConfirmDialog -> {
+                    confirmDialog.showConfirm(
+                        title = resources.getString(effect.titleRes),
+                        content = effect.content,
+                        markdown = effect.markdown,
+                        confirm = effect.confirmTextRes?.let { resources.getString(it) },
+                        dismiss = effect.dismissTextRes?.let { resources.getString(it) }
+                    )
+                }
+
+                is ModuleUiEffect.StartDownload -> {
+                    val downloadingMsg = resources.getString(R.string.module_start_downloading, effect.moduleName)
+                    withContext(Dispatchers.IO) {
+                        download(
+                            url = effect.url,
+                            fileName = effect.fileName,
+                            onDownloaded = { uri -> installModuleUris.value = listOf(uri) },
+                            onDownloading = {
+                                launch(Dispatchers.Main) {
+                                    snackBarHost.showSnackbar(message = downloadingMsg, duration = SnackbarDuration.Short)
+                                }
+                            }
+                        )
+                    }
+                }
+
+                is ModuleUiEffect.RunModuleAction -> {
+                    navigator.navigateTo(Route.ExecuteModuleAction(effect.moduleId))
+                }
+
+                is ModuleUiEffect.LaunchIntent -> {
+                    webUILauncher.launch(effect.intent)
                 }
             }
         }
-
-        val showToast: suspend (String) -> Unit = { msg ->
-            withContext(Dispatchers.Main) {
-                Toast.makeText(
-                    context, msg, Toast.LENGTH_SHORT
-                ).show()
-            }
-        }
-
-        val changelog = changelogResult.getOrElse { "" }
-
-        // changelog is not empty, show it and wait for confirm
-        val confirmResult = confirmDialog.awaitConfirm(
-            changelogText,
-            content = changelog,
-            markdown = true,
-            confirm = updateText,
-        )
-
-        if (confirmResult != ConfirmResult.Confirmed) {
-            return
-        }
-
-        showToast(startDownloadingText.format(module.name))
-
-        val downloading = downloadingText.format(module.name)
-        withContext(Dispatchers.IO) {
-            download(
-                downloadUrl, fileName, onDownloaded = onInstallModule, onDownloading = {
-                    launch(Dispatchers.Main) {
-                        snackBarHost.showSnackbar(
-                            message = downloading, duration = SnackbarDuration.Short
-                        )
-                    }
-                })
-        }
     }
 
-    suspend fun onModuleUndoUninstall(module: ModuleInfo) {
-        val success = loadingDialog.withLoading {
-            withContext(Dispatchers.IO) {
-                undoUninstallModule(module.id)
-            }
-        }
-
-        if (success) {
-            viewModel.fetchModuleList()
-        }
-        val message = if (success) {
-            successUndoUninstall.format(module.name)
-        } else {
-            failedUndoUninstall.format(module.name)
-        }
-        snackBarHost.showSnackbar(
-            message = message, duration = SnackbarDuration.Short
-        )
-    }
-
-
-    suspend fun onModuleUninstall(module: ModuleInfo) {
-        val formatter = if (module.metamodule) metaModuleUninstallConfirm else moduleUninstallConfirm
-        val confirmResult = confirmDialog.awaitConfirm(
-            moduleStr, content = formatter.format(module.name), confirm = uninstall, dismiss = cancel
-        )
-        if (confirmResult != ConfirmResult.Confirmed) {
-            return
-        }
-
-        val success = loadingDialog.withLoading {
-            withContext(Dispatchers.IO) {
-                uninstallModule(module.id)
-            }
-        }
-
-        if (success) {
-            viewModel.fetchModuleList()
-        }
-        val message = if (success) {
-            successUninstall.format(module.name)
-        } else {
-            failedUninstall.format(module.name)
-        }
-        val actionLabel = if (success) {
-            reboot
-        } else {
-            null
-        }
-        val result = snackBarHost.showSnackbar(
-            message = message, actionLabel = actionLabel, duration = SnackbarDuration.Short
-        )
-        if (result == SnackbarResult.ActionPerformed) {
-            reboot()
-        }
+    InstallModuleDialog(installModuleUris.value, viewModel) {
+        installModuleUris.value = emptyList()
     }
 
     val state = rememberPullToRefreshState()
     PullToRefreshBox(
-        modifier = boxModifier, state = state, onRefresh = {
-            viewModel.fetchModuleList()
-        }, indicator = {
+        modifier = boxModifier,
+        state = state,
+        onRefresh = { viewModel.onIntent(ModuleIntent.Refresh(checkUpdate = true)) },
+        indicator = {
             PullToRefreshDefaults.LoadingIndicator(
                 state = state, isRefreshing = viewModel.isRefreshing, modifier = Modifier.align(Alignment.TopCenter)
             )
@@ -390,7 +293,7 @@ private fun ModuleList(
                     start = 16.dp,
                     top = 16.dp,
                     end = 16.dp,
-                    bottom = 16.dp + 56.dp + 16.dp + 48.dp + 6.dp /* Scaffold Fab Spacing + Fab container height + SnackBar height */
+                    bottom = 16.dp + 56.dp + 16.dp + 48.dp + 6.dp
                 )
             },
         ) {
@@ -404,75 +307,32 @@ private fun ModuleList(
                         Box(
                             modifier = Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center
                         ) {
-                            if (viewModel.searchStatus.value.resultStatus == SearchStatus.ResultStatus.EMPTY) {
-                                Text(
-                                    "no modules found", textAlign = TextAlign.Center
-                                )
+                            val text = if (viewModel.searchStatus.value.resultStatus == SearchStatus.ResultStatus.EMPTY) {
+                                "no modules found"
                             } else {
-                                Text(
-                                    stringResource(R.string.module_empty), textAlign = TextAlign.Center
-                                )
+                                stringResource(R.string.module_empty)
                             }
+                            Text(text, textAlign = TextAlign.Center)
                         }
                     }
                 }
 
                 else -> {
-                    items(displayModuleList) { module ->
-                        val scope = rememberCoroutineScope()
-                        val updatedModule by produceState(ModuleUpdateInfo.Empty) {
-                            scope.launch(Dispatchers.IO) {
-                                value = viewModel.checkUpdate(module)
-                            }
-                        }
-
-                        ModuleItem(module = module, hasUpdate = updatedModule.downloadUrl.isNotEmpty(), onEnableChanged = {
-                            scope.launch {
-                                val success = loadingDialog.withLoading {
-                                    withContext(Dispatchers.IO) {
-                                        toggleModule(module.id, !module.enabled)
-                                    }
-                                }
-                                if (success) {
-                                    viewModel.fetchModuleList()
-
-                                    val result = snackBarHost.showSnackbar(
-                                        message = rebootToApply, actionLabel = reboot, duration = SnackbarDuration.Short
-                                    )
-                                    if (result == SnackbarResult.ActionPerformed) {
-                                        reboot()
-                                    }
-                                } else {
-                                    val message = if (module.enabled) failedDisable else failedEnable
-                                    snackBarHost.showSnackbar(message.format(module.name))
-                                }
-                            }
-                        }, onModuleAction = {
-                            navigator.navigateTo(Route.ExecuteModuleAction(module.id))
-                            viewModel.markNeedRefresh()
-                        }, onOpenWebUI = {
-                            onClickModule(module.id, module.name, module.hasWebUi)
-                        }, onUndoUninstall = {
-                            scope.launch { onModuleUndoUninstall(module) }
-                        }, onUninstall = {
-                            scope.launch { onModuleUninstall(module) }
-                        }) {
-                            scope.launch {
-                                onModuleUpdate(
-                                    module, updatedModule.changelog, updatedModule.downloadUrl, "${module.name}-${updatedModule.version}.zip"
-                                )
-                            }
-                        }
-
-                        // fix last item shadow incomplete in LazyColumn
-                        Spacer(Modifier.height(1.dp))
+                    items(displayModuleList, key = { it.id }) { module ->
+                        ModuleItem(
+                            module = module,
+                            hasUpdate = viewModel.updateInfo[module.id]?.downloadUrl?.isNotEmpty() ?: false,
+                            onEnableChanged = { viewModel.onIntent(ModuleIntent.Toggle(module)) },
+                            onModuleAction = { viewModel.onIntent(ModuleIntent.OpenAction(module)) },
+                            onOpenWebUI = { viewModel.onIntent(ModuleIntent.OpenWebUI(module)) },
+                            onUndoUninstall = { viewModel.onIntent(ModuleIntent.RequestUndoUninstall(module)) },
+                            onUninstall = { viewModel.onIntent(ModuleIntent.RequestUninstall(module)) },
+                            onUpdate = { viewModel.onIntent(ModuleIntent.RequestUpdate(module, viewModel.updateInfo[module.id])) }
+                        )
                     }
                 }
             }
         }
-
-        DownloadListener(context, onInstallModule)
-
     }
 }
 
@@ -504,7 +364,7 @@ fun ModuleItem(
         Column(
             modifier = Modifier.padding(22.dp, 18.dp, 22.dp, 18.dp)
         ) {
-            // tiele and switch
+            // title and switch
             Row(
                 modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically
             ) {
@@ -583,6 +443,7 @@ private fun ModuleButtonRow(
     onUninstall: () -> Unit
 ) {
     val iconSize = ButtonDefaults.iconSizeFor(ButtonDefaults.MinHeight)
+    val moduleStable = !(module.remove || module.update)
 
     val startButtons = remember(module) {
         val list = mutableListOf<ButtonSpec>()
@@ -591,7 +452,7 @@ private fun ModuleButtonRow(
                 id = "action",
                 text = { stringResource(R.string.action) },
                 isVisible = module.hasActionScript,
-                isEnabled = !module.remove && module.enabled,
+                isEnabled = moduleStable && module.enabled,
                 icon = {
                     Icon(
                         modifier = Modifier.size(iconSize),
@@ -600,7 +461,7 @@ private fun ModuleButtonRow(
                     )
                 },
                 onClick = onModuleAction,
-                buttonGroup = ButtonGroup.START
+                buttonPosition = ButtonPosition.START
             )
         )
 
@@ -609,7 +470,7 @@ private fun ModuleButtonRow(
                 id = "webui",
                 text = { stringResource(R.string.open) },
                 isVisible = module.hasWebUi,
-                isEnabled = !module.remove && module.enabled,
+                isEnabled = moduleStable && module.enabled,
                 icon = {
                     Icon(
                         modifier = Modifier.size(iconSize),
@@ -618,7 +479,7 @@ private fun ModuleButtonRow(
                     )
                 },
                 onClick = onOpenWebUI,
-                buttonGroup = ButtonGroup.START
+                buttonPosition = ButtonPosition.START
             )
         )
         list
@@ -641,7 +502,7 @@ private fun ModuleButtonRow(
                     )
                 },
                 onClick = onUpdate,
-                buttonGroup = ButtonGroup.END
+                buttonPosition = ButtonPosition.END
             )
         )
 
@@ -659,7 +520,7 @@ private fun ModuleButtonRow(
                     )
                 },
                 onClick = { if (module.remove) onUndoUninstall() else onUninstall() },
-                buttonGroup = ButtonGroup.END
+                buttonPosition = ButtonPosition.END
             )
         )
         list
@@ -677,9 +538,9 @@ private fun ModuleButtonRow(
             startButtons = startButtons,
             endButtons = endButtons,
             buttonFactory = { spec, isExpanded ->
-                val isLastVisibleInGroup = when (spec.buttonGroup) {
-                    ButtonGroup.START -> spec.id == lastVisibleStartButtonId
-                    ButtonGroup.END -> spec.id == lastVisibleEndButtonId
+                val isLastVisibleInGroup = when (spec.buttonPosition) {
+                    ButtonPosition.START -> spec.id == lastVisibleStartButtonId
+                    ButtonPosition.END -> spec.id == lastVisibleEndButtonId
                 }
 
                 val targetPadding = if (isLastVisibleInGroup) 0.dp else 8.dp
@@ -698,7 +559,7 @@ private fun ModuleButtonRow(
                     enabled = spec.isEnabled,
                     isExpanded = isExpanded,
                     buttonType = spec.type,
-                    buttonGroup = spec.buttonGroup
+                    buttonPosition = spec.buttonPosition
                 )
             }
         )
@@ -709,7 +570,6 @@ private fun ModuleButtonRow(
 @Composable
 private fun ShortByMenuButton(viewModel: ModuleViewModel, prefs: SharedPreferences) {
     val showDropdown = remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
 
     IconButton(
         onClick = { showDropdown.value = true },
@@ -731,9 +591,7 @@ private fun ShortByMenuButton(viewModel: ModuleViewModel, prefs: SharedPreferenc
                         "module_sort_action_first", viewModel.sortActionFirst
                     )
                 }
-                scope.launch {
-                    viewModel.fetchModuleList()
-                }
+                viewModel.onIntent(ModuleIntent.Refresh())
             })
             DropdownMenuItem(text = {
                 Text(stringResource(R.string.module_sort_enabled_first))
@@ -746,9 +604,7 @@ private fun ShortByMenuButton(viewModel: ModuleViewModel, prefs: SharedPreferenc
                         "module_sort_enabled_first", viewModel.sortEnabledFirst
                     )
                 }
-                scope.launch {
-                    viewModel.fetchModuleList()
-                }
+                viewModel.onIntent(ModuleIntent.Refresh())
             })
         }
     }
@@ -757,17 +613,11 @@ private fun ShortByMenuButton(viewModel: ModuleViewModel, prefs: SharedPreferenc
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun InstallModuleFAB(visible: Boolean, viewModel: ModuleViewModel) {
-    val navigator = LocalNavController.current
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val loadingDialog = rememberLoadingDialog()
-    val confirmTitle = stringResource(R.string.module)
-    val multiConfirmContent = stringResource(R.string.module_install_prompt_with_name)
-    var zipUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
-    val confirmDialog = rememberConfirmDialog(onConfirm = {
-        navigator.navigateTo(Route.Flash(FlashIt.FlashModules(zipUris)))
-        viewModel.markNeedRefresh()
-    })
+    val zipUris = remember { mutableStateOf<List<Uri>>(emptyList()) }
+
+    InstallModuleDialog(zipUris.value, viewModel) {
+        zipUris.value = emptyList()
+    }
     val selectZipLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) {
@@ -785,24 +635,7 @@ private fun InstallModuleFAB(visible: Boolean, viewModel: ModuleViewModel) {
         } else {
             data.data?.let { uri -> uris.add(uri) }
         }
-        scope.launch {
-            var confirmContent = ""
-            if (uris.size == 1) {
-                zipUris = uris
-                confirmContent = loadingDialog.withLoading {
-                    withContext(Dispatchers.IO) {
-                        ModuleParser.getModuleInstallDesc(context, uris.first(), viewModel.moduleList)
-                    }
-                }
-            } else if (uris.size > 1) {
-                // multiple files selected
-                viewModel.markNeedRefresh()
-                val moduleNames = uris.mapIndexed { index, uri -> "\n${index + 1}. ${uri.getFileName(context)}" }.joinToString("")
-                confirmContent = multiConfirmContent.format(moduleNames)
-                zipUris = uris
-            }
-            confirmDialog.showConfirm(title = confirmTitle, content = confirmContent, markdown = true)
-        }
+        zipUris.value = uris
     }
 
     ExtendedFloatingActionButton(
