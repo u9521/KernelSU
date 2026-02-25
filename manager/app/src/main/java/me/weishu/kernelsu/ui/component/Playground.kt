@@ -172,8 +172,8 @@ fun SegmentedListGroupPreview() {
                 switchItem(
                     visible = isMiddleItemVisible,
                     leadingContent = { Icon(Icons.Default.Notifications, contentDescription = "Notifications") },
-                    title = { "接收通知 (Notifications)" },
-                    summary = { if (switchChecked) "已开启推送" else "已关闭推送" },
+                    title = "接收通知 (Notifications)",
+                    summary = if (switchChecked) "已开启推送" else "已关闭推送",
                     checked = switchChecked,
                     onCheckedChange = { switchChecked = it }
                 )

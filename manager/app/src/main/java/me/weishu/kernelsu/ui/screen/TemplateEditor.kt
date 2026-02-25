@@ -1,6 +1,5 @@
 package me.weishu.kernelsu.ui.screen
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -33,12 +32,12 @@ import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -46,14 +45,17 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.dropUnlessResumed
+import kotlinx.coroutines.launch
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ui.component.BreezeSnackBarHost
 import me.weishu.kernelsu.ui.component.OutlinedTextEdit
 import me.weishu.kernelsu.ui.component.SplitScreenRatioButton
 import me.weishu.kernelsu.ui.component.profile.RootProfileConfig
 import me.weishu.kernelsu.ui.navigation3.LocalIsDetailPane
 import me.weishu.kernelsu.ui.theme.defaultTopAppBarColors
 import me.weishu.kernelsu.ui.util.LocalNavController
+import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.util.deleteAppProfileTemplate
 import me.weishu.kernelsu.ui.util.getAppProfileTemplate
 import me.weishu.kernelsu.ui.util.setAppProfileTemplate
@@ -73,6 +75,8 @@ fun TemplateEditorScreen(
     readOnly: Boolean = true,
 ) {
     val navigator = LocalNavController.current
+    val snackBarHost = LocalSnackbarHost.current
+    val scope = rememberCoroutineScope()
     val isCreation = initialTemplate.id.isBlank()
 
     var template by rememberSaveable {
@@ -83,9 +87,9 @@ fun TemplateEditorScreen(
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        snackbarHost = { BreezeSnackBarHost(snackBarHost) },
         topBar = {
             val saveTemplateFailed = stringResource(id = R.string.app_profile_template_save_failed)
-            val context = LocalContext.current
             TopBar(
                 title = if (isCreation) {
                     stringResource(R.string.app_profile_template_create)
@@ -107,7 +111,9 @@ fun TemplateEditorScreen(
                         navigator.setResult(NeedRefreshTemplate, true)
                         navigator.popBackStack()
                     } else {
-                        Toast.makeText(context, saveTemplateFailed, Toast.LENGTH_SHORT).show()
+                        scope.launch {
+                            snackBarHost.showSnackbar(saveTemplateFailed)
+                        }
                     }
                 },
                 scrollBehavior = scrollBehavior

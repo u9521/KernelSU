@@ -58,6 +58,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.LayoutDirection
@@ -276,6 +277,7 @@ private fun AppInfoGroup(
     mode: String,
     onAllowSuChange: (Boolean) -> Unit,
 ) {
+    val resources = LocalResources.current
     val isUidGroup = affectedAppCount > 1
     SegmentedListGroup(modifier = Modifier.padding(all = 16.dp)) {
         menuItem(
@@ -294,7 +296,7 @@ private fun AppInfoGroup(
             menuContent = if (isUidGroup) null else appMenuContent(packageName)
         )
         switchItem(
-            title = { stringResource(id = R.string.superuser) },
+            title = resources.getString(R.string.superuser),
             leadingContent = { Icon(painterResource(R.drawable.ic_security_rounded), stringResource(id = R.string.superuser)) },
             checked = isRootGranted,
             onCheckedChange = onAllowSuChange

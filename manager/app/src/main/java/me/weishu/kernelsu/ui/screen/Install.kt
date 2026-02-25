@@ -6,7 +6,6 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Parcelable
 import android.provider.OpenableColumns
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
@@ -38,6 +37,7 @@ import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -48,6 +48,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -56,14 +57,17 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.dropUnlessResumed
+import kotlinx.coroutines.launch
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.getKernelVersion
+import me.weishu.kernelsu.ui.component.BreezeSnackBarHost
 import me.weishu.kernelsu.ui.component.SegmentedListGroup
 import me.weishu.kernelsu.ui.component.SegmentedListScope
 import me.weishu.kernelsu.ui.component.popUps.rememberSelectKmiDialog
@@ -72,6 +76,7 @@ import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.theme.defaultTopAppBarColors
 import me.weishu.kernelsu.ui.util.LkmSelection
 import me.weishu.kernelsu.ui.util.LocalNavController
+import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.util.getAvailablePartitions
 import me.weishu.kernelsu.ui.util.getCurrentKmi
 import me.weishu.kernelsu.ui.util.getDefaultPartition
@@ -111,8 +116,11 @@ sealed class InstallMethod : Parcelable {
 @Composable
 fun InstallScreen() {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val navigator = LocalNavController.current
     val hapticFeedback = LocalHapticFeedback.current
+    val snackBarHost = LocalSnackbarHost.current
+    val scope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
     var installMethod by rememberSaveable { mutableStateOf<InstallMethod?>(null) }
@@ -134,7 +142,9 @@ fun InstallScreen() {
                     lkmSelection = LkmSelection.LkmUri(uri)
                 } else {
                     lkmSelection = LkmSelection.KmiNone
-                    Toast.makeText(context, R.string.install_only_support_ko_file, Toast.LENGTH_SHORT).show()
+                    scope.launch {
+                        snackBarHost.showSnackbar(resources.getString(R.string.install_only_support_ko_file), duration = SnackbarDuration.Short)
+                    }
                 }
             }
         }
@@ -220,27 +230,30 @@ fun InstallScreen() {
         }
     }
 
-    Scaffold(topBar = {
-        TopBar(onBack = dropUnlessResumed { navigator.popBackStack() }, scrollBehavior = scrollBehavior)
-    }, containerColor = MaterialTheme.colorScheme.surfaceContainer, floatingActionButton = {
-        ExtendedFloatingActionButton(
-            content = {
-                Text(stringResource(id = R.string.install_next))
-                Spacer(Modifier.width(2.dp))
-                Icon(Icons.AutoMirrored.Filled.ArrowForward, stringResource(id = R.string.install_next))
-            },
-            modifier = Modifier
-                .padding(bottom = 80.dp) // Adjusted padding
-                .animateFloatingActionButton(
-                    visible = installMethod != null,
-                    alignment = Alignment.CenterEnd,
-                ),
-            onClick = {
-                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                checkAndInstall()
-            },
-        )
-    }) { innerPadding ->
+    Scaffold(
+        topBar = {
+            TopBar(onBack = dropUnlessResumed { navigator.popBackStack() }, scrollBehavior = scrollBehavior)
+        }, containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        snackbarHost = { BreezeSnackBarHost(snackBarHost) },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                content = {
+                    Text(stringResource(id = R.string.install_next))
+                    Spacer(Modifier.width(2.dp))
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, stringResource(id = R.string.install_next))
+                },
+                modifier = Modifier
+                    .padding(bottom = 80.dp) // Adjusted padding
+                    .animateFloatingActionButton(
+                        visible = installMethod != null,
+                        alignment = Alignment.CenterEnd,
+                    ),
+                onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    checkAndInstall()
+                },
+            )
+        }) { innerPadding ->
         Column(
             modifier = Modifier
                 .padding(innerPadding)

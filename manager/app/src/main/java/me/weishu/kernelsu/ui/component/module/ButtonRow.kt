@@ -39,7 +39,7 @@ enum class ButtonPosition {
 @Immutable
 data class ButtonSpec(
     val id: String,
-    val text: @Composable () -> String,
+    val text: String? = null,
     val icon: @Composable () -> Unit,
     val onClick: () -> Unit,
     val isVisible: Boolean = true,
@@ -52,7 +52,7 @@ data class ButtonSpec(
 @Composable
 fun ActionButton(
     modifier: Modifier = Modifier,
-    text: String,
+    text: String? = null,
     icon: (@Composable () -> Unit)? = null,
     enabled: Boolean = true,
     visible: Boolean = true,
@@ -112,7 +112,7 @@ private fun buttonContent(
     icon: @Composable (() -> Unit)?,
     isExpanded: Boolean,
     skipAnimation: Boolean = false,
-    text: String
+    text: String? = null
 ): @Composable (RowScope.() -> Unit) {
     val expandedState = remember { MutableTransitionState(isExpanded) }
     expandedState.targetState = isExpanded
@@ -124,12 +124,14 @@ private fun buttonContent(
             enter = if (skipAnimation) fadeIn() else fadeIn() + expandHorizontally(expandFrom = Alignment.Start, animationSpec = animationSpec),
             exit = if (skipAnimation) fadeOut() else fadeOut() + shrinkHorizontally(shrinkTowards = Alignment.Start, animationSpec = animationSpec)
         ) {
-            if (icon != null) Spacer(Modifier.size(ButtonDefaults.iconSpacingFor(ButtonDefaults.MinHeight)))
-            Text(
-                text = text,
-                style = MaterialTheme.typography.labelMedium,
-                softWrap = false
-            )
+            if (icon != null && text != null) Spacer(Modifier.size(ButtonDefaults.iconSpacingFor(ButtonDefaults.MinHeight)))
+            text?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.labelMedium,
+                    softWrap = false
+                )
+            }
         }
     }
     return content

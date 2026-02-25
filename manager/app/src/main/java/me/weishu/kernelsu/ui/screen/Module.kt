@@ -442,6 +442,7 @@ private fun ModuleButtonRow(
     onUndoUninstall: () -> Unit,
     onUninstall: () -> Unit
 ) {
+    val resources = LocalResources.current
     val iconSize = ButtonDefaults.iconSizeFor(ButtonDefaults.MinHeight)
     val moduleStable = !(module.remove || module.update)
 
@@ -450,7 +451,7 @@ private fun ModuleButtonRow(
         list.add(
             ButtonSpec(
                 id = "action",
-                text = { stringResource(R.string.action) },
+                text = resources.getString(R.string.action),
                 isVisible = module.hasActionScript,
                 isEnabled = moduleStable && module.enabled,
                 icon = {
@@ -468,7 +469,7 @@ private fun ModuleButtonRow(
         list.add(
             ButtonSpec(
                 id = "webui",
-                text = { stringResource(R.string.open) },
+                text = resources.getString(R.string.open),
                 isVisible = module.hasWebUi,
                 isEnabled = moduleStable && module.enabled,
                 icon = {
@@ -490,7 +491,7 @@ private fun ModuleButtonRow(
         list.add(
             ButtonSpec(
                 id = "update",
-                text = { stringResource(R.string.module_update) },
+                text = resources.getString(R.string.module_update),
                 isVisible = hasUpdate,
                 isEnabled = !module.remove,
                 type = ButtonType.PRIMARY,
@@ -509,7 +510,7 @@ private fun ModuleButtonRow(
         list.add(
             ButtonSpec(
                 id = "uninstall",
-                text = { stringResource(if (module.remove) R.string.undo else R.string.uninstall) },
+                text = resources.getString(if (module.remove) R.string.undo else R.string.uninstall),
                 isVisible = true,
                 isEnabled = true,
                 icon = {
@@ -552,7 +553,7 @@ private fun ModuleButtonRow(
 
                 ActionButton(
                     modifier = Modifier.padding(end = animatedEndPadding),
-                    text = spec.text(),
+                    text = spec.text,
                     icon = spec.icon,
                     onClick = spec.onClick,
                     visible = spec.isVisible,

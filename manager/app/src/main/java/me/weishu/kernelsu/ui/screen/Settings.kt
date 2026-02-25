@@ -37,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -66,6 +67,7 @@ fun SettingScreen() {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val snackBarHost = LocalSnackbarHost.current
     val context = LocalContext.current
+    val resources = LocalResources.current
     val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
     Scaffold(
@@ -89,8 +91,7 @@ fun SettingScreen() {
                 .verticalScroll(rememberScrollState())
                 .padding(all = 16.dp)
                 .navigationBarsPadding()
-                .imePadding(),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .imePadding(), verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             var checkUpdate by rememberSaveable {
                 mutableStateOf(
@@ -109,8 +110,8 @@ fun SettingScreen() {
                             painterResource(R.drawable.ic_update_rounded_filled), contentDescription = stringResource(id = R.string.settings_check_update)
                         )
                     },
-                    title = { stringResource(id = R.string.settings_check_update) },
-                    summary = { stringResource(id = R.string.settings_check_update_summary) },
+                    title = resources.getString(R.string.settings_check_update),
+                    summary = resources.getString(R.string.settings_check_update_summary),
                     checked = checkUpdate,
                     onCheckedChange = {
                         prefs.edit { putBoolean("check_update", it) }
@@ -124,8 +125,8 @@ fun SettingScreen() {
                             painterResource(R.drawable.ic_upload_file_rounded_filled), contentDescription = stringResource(id = R.string.settings_check_update)
                         )
                     },
-                    title = { stringResource(id = R.string.settings_module_check_update) },
-                    summary = { stringResource(id = R.string.settings_check_update_summary) },
+                    title = resources.getString(R.string.settings_module_check_update),
+                    summary = resources.getString(R.string.settings_check_update_summary),
                     checked = checkModuleUpdate
                 ) {
                     prefs.edit {
@@ -232,8 +233,8 @@ fun SettingScreen() {
                             painterResource(R.drawable.ic_do_not_disturb_on_rounded_filled), stringResource(id = R.string.settings_kernel_umount)
                         )
                     },
-                    title = { stringResource(id = R.string.settings_kernel_umount) },
-                    summary = { umountSummary },
+                    title = resources.getString(R.string.settings_kernel_umount),
+                    summary = umountSummary,
                     checked = isKernelUmountEnabled,
                     enabled = umountStatus == "supported",
                 ) { checked ->
@@ -262,8 +263,8 @@ fun SettingScreen() {
                             painterResource(R.drawable.ic_folder_delete_rounded_filled), stringResource(R.string.settings_umount_modules_default)
                         )
                     },
-                    title = { stringResource(R.string.settings_umount_modules_default) },
-                    summary = { stringResource(R.string.settings_umount_modules_default_summary) },
+                    title = resources.getString(R.string.settings_umount_modules_default),
+                    summary = resources.getString(R.string.settings_umount_modules_default_summary),
                     checked = umountChecked
                 ) {
                     if (Natives.setDefaultUmountModules(it)) {
@@ -280,8 +281,8 @@ fun SettingScreen() {
                             )
                         )
                     },
-                    title = { stringResource(id = R.string.enable_web_debugging) },
-                    summary = { stringResource(id = R.string.enable_web_debugging_summary) },
+                    title = resources.getString(R.string.enable_web_debugging),
+                    summary = resources.getString(R.string.enable_web_debugging_summary),
                     checked = enableWebDebugging
                 ) {
                     prefs.edit { putBoolean("enable_web_debugging", it) }

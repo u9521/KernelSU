@@ -60,6 +60,7 @@ import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -228,6 +229,7 @@ private fun TopBar(
     val scope = rememberCoroutineScope()
     val navigator = LocalNavController.current
     val viewModel = viewModel<TemplateViewModel>()
+    val resources = LocalResources.current
     val clipboard = LocalClipboard.current
     val snackBarHost = LocalSnackbarHost.current
 
@@ -247,18 +249,15 @@ private fun TopBar(
             }) {
                 Icon(painter = painterResource(R.drawable.ic_sync_rounded_filled), contentDescription = null)
             }
-            val emptyClipboard = stringResource(R.string.app_profile_template_import_empty)
-            val importSuccess = stringResource(R.string.app_profile_template_import_success)
-            val exportEmpty = stringResource(R.string.app_profile_template_export_empty)
             ImportExportMenuButton(onImport = {
                 scope.launch {
                     clipboard.getClipEntry()?.clipData?.getItemAt(0)?.text?.toString()?.let {
                         if (it.isEmpty()) {
-                            snackBarHost.showSnackbar(emptyClipboard)
+                            snackBarHost.showSnackbar(resources.getString(R.string.app_profile_template_import_empty))
                             return@let
                         }
                         viewModel.importTemplates(it, onSuccess = {
-                            snackBarHost.showSnackbar(importSuccess)
+                            snackBarHost.showSnackbar(resources.getString(R.string.app_profile_template_import_success))
                             viewModel.fetchTemplates(false)
                         }, onFailure = { e -> snackBarHost.showSnackbar(e) })
                     }
@@ -266,7 +265,7 @@ private fun TopBar(
             }, onExport = {
                 scope.launch {
                     viewModel.exportTemplates(onTemplateEmpty = {
-                        snackBarHost.showSnackbar(exportEmpty)
+                        snackBarHost.showSnackbar(resources.getString(R.string.app_profile_template_export_empty))
                     }, {
                         clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("template", it)))
                     })

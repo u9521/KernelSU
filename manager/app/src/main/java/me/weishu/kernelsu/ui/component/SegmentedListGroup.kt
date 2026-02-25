@@ -183,8 +183,8 @@ class SegmentedListScope {
         key: Any? = null,
         visible: Boolean = true,
         leadingContent: (@Composable () -> Unit)? = null,
-        title: @Composable () -> String,
-        summary: (@Composable () -> String?)? = null,
+        title: String,
+        summary: String? = null,
         checked: Boolean,
         enabled: Boolean = true,
         onCheckedChange: (Boolean) -> Unit
@@ -208,10 +208,10 @@ class SegmentedListScope {
                 }
             },
             supportingContent = summary?.let { text ->
-                { text()?.let { Text(text = it) } }
+                { Text(text = text) }
             },
             content = {
-                Text(text = title())
+                Text(text = title)
             }
         )
     }
