@@ -3,7 +3,6 @@ package me.weishu.kernelsu.ui.screen
 import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -58,7 +57,6 @@ import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.util.execKsud
 import me.weishu.kernelsu.ui.util.getFeaturePersistValue
 import me.weishu.kernelsu.ui.util.getFeatureStatus
-import me.weishu.kernelsu.ui.util.isRailNavbar
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -320,7 +318,6 @@ fun SettingScreen() {
                 }, onClick = { aboutDialog.show() }) { Text(stringResource(id = R.string.about)) }
             }
 
-            if (!isRailNavbar()) Spacer(Modifier)
         }
     }
 }

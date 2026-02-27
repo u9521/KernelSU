@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -72,9 +73,13 @@ import me.weishu.kernelsu.ui.component.AppIconImage
 import me.weishu.kernelsu.ui.component.SearchAppBar
 import me.weishu.kernelsu.ui.component.SearchStatus
 import me.weishu.kernelsu.ui.component.StatusTag
+import me.weishu.kernelsu.ui.component.scrollbar.ScrollbarDefaults
+import me.weishu.kernelsu.ui.component.scrollbar.VerticalScrollbar
+import me.weishu.kernelsu.ui.component.scrollbar.rememberScrollbarAdapter
 import me.weishu.kernelsu.ui.navigation3.LocalHasDetailPane
 import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.util.LocalNavController
+import me.weishu.kernelsu.ui.util.isRailNavbar
 import me.weishu.kernelsu.ui.util.ownerNameForUid
 import me.weishu.kernelsu.ui.util.pickPrimary
 import me.weishu.kernelsu.ui.viewmodel.SuperUserViewModel
@@ -85,7 +90,6 @@ fun SuperUserScreen() {
     val navigator = LocalNavController.current
     val viewModel = viewModel<SuperUserViewModel>()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val listState = rememberLazyListState()
     val searchStatus by viewModel.searchStatus
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
@@ -177,14 +181,16 @@ fun SuperUserScreen() {
         PullToRefreshBox(
             modifier = Modifier
                 .padding(innerPadding)
-                .consumeWindowInsets(innerPadding),
+                .consumeWindowInsets(innerPadding)
+                .fillMaxSize(),
             state = state,
             onRefresh = { viewModel.loadAppList(true) },
             isRefreshing = viewModel.isRefreshing,
             indicator = {
                 PullToRefreshDefaults.LoadingIndicator(state = state, isRefreshing = viewModel.isRefreshing, modifier = Modifier.align(Alignment.TopCenter))
             }) {
-            val bottomPadding = WindowInsets.safeDrawing.asPaddingValues().calculateBottomPadding()
+            val bottomPadding = if (isRailNavbar()) WindowInsets.safeDrawing.asPaddingValues().calculateBottomPadding() else 0.dp
+            val listState = rememberLazyListState()
             LazyColumn(
                 state = listState,
                 modifier = Modifier
@@ -228,6 +234,17 @@ fun SuperUserScreen() {
                     )
                 }
             }
+            VerticalScrollbar(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .fillMaxHeight(),
+                adapter = rememberScrollbarAdapter(listState),
+                durationMillis = 1500L,
+                style = ScrollbarDefaults.style.copy(
+                    color = MaterialTheme.colorScheme.primary,
+                    railColor = MaterialTheme.colorScheme.surfaceBright.copy(alpha = 0.5f)
+                )
+            )
         }
     }
 }

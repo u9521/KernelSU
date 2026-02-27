@@ -3,9 +3,11 @@ package me.weishu.kernelsu.ui.component
 import android.os.Environment
 import androidx.compose.animation.core.animate
 import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
@@ -29,6 +31,7 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
@@ -42,6 +45,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ui.component.scrollbar.ScrollbarDefaults
+import me.weishu.kernelsu.ui.component.scrollbar.VerticalScrollbar
+import me.weishu.kernelsu.ui.component.scrollbar.rememberScrollbarAdapter
 import me.weishu.kernelsu.ui.theme.defaultTopAppBarColors
 import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.LocalSnackbarHost
@@ -93,19 +99,33 @@ fun ShellLogScaffold(
         KeyEventBlocker {
             it.key == Key.VolumeDown || it.key == Key.VolumeUp
         }
-        Column(
+        Box(
             modifier = Modifier
                 .padding(innerPadding)
                 .consumeWindowInsets(innerPadding)
-                .fillMaxSize()
-                .verticalScroll(scrollState)
-                .navigationBarsPadding(),
         ) {
-            ShellLogText(
-                modifier = Modifier.fillMaxSize(),
-                text = text,
-                scrollState = scrollState,
-                scrollBehavior = scrollBehavior
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .navigationBarsPadding(),
+            ) {
+                ShellLogText(
+                    modifier = Modifier.fillMaxSize(),
+                    text = text,
+                    scrollState = scrollState,
+                    scrollBehavior = scrollBehavior
+                )
+            }
+
+            VerticalScrollbar(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .fillMaxHeight(), adapter = rememberScrollbarAdapter(scrollState),
+                durationMillis = 1500L,
+                style = ScrollbarDefaults.style.copy(
+                    color = MaterialTheme.colorScheme.primary, railColor = MaterialTheme.colorScheme.surfaceBright.copy(alpha = 0.5f)
+                )
             )
         }
     }

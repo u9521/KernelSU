@@ -2,7 +2,6 @@ package me.weishu.kernelsu.ui.screen
 
 import android.content.ClipData
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -11,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
@@ -20,8 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -71,6 +70,9 @@ import kotlinx.coroutines.launch
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.BreezeSnackBarHost
 import me.weishu.kernelsu.ui.component.StatusTag
+import me.weishu.kernelsu.ui.component.scrollbar.ScrollbarDefaults
+import me.weishu.kernelsu.ui.component.scrollbar.VerticalScrollbar
+import me.weishu.kernelsu.ui.component.scrollbar.rememberScrollbarAdapter
 import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.theme.defaultTopAppBarColors
 import me.weishu.kernelsu.ui.util.LocalNavController
@@ -125,41 +127,42 @@ fun AppProfileTemplateScreen() {
         val state = rememberPullToRefreshState()
         val context = LocalContext.current
         val offline = !isNetworkAvailable(context)
-        PullToRefreshBox(modifier = Modifier.padding(innerPadding), isRefreshing = viewModel.isRefreshing, state = state, onRefresh = {
-            scope.launch { viewModel.fetchTemplates() }
-        }, indicator = {
-            PullToRefreshDefaults.LoadingIndicator(state = state, isRefreshing = viewModel.isRefreshing, modifier = Modifier.align(Alignment.TopCenter))
-        }) {
+        PullToRefreshBox(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize(),
+            isRefreshing = viewModel.isRefreshing,
+            state = state,
+            onRefresh = {
+                scope.launch { viewModel.fetchTemplates() }
+            }, indicator = {
+                PullToRefreshDefaults.LoadingIndicator(state = state, isRefreshing = viewModel.isRefreshing, modifier = Modifier.align(Alignment.TopCenter))
+            }) {
             if (viewModel.templateList.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState()), contentAlignment = Alignment.Center
-                ) {
-                    if (!viewModel.isRefreshing) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            val promptText = if (offline) {
-                                stringResource(R.string.network_offline)
-                            } else {
-                                "No templates found"
-                            }
-                            Text(
-                                text = promptText, color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp
-                            )
-                            Spacer(Modifier.height(12.dp))
-                            Button(
-                                onClick = {
-                                    scope.launch { viewModel.fetchTemplates(true) }
-                                },
-                                shapes = ButtonDefaults.shapes(),
-                            ) {
-                                Text(stringResource(R.string.network_retry))
-                            }
+                if (!viewModel.isRefreshing) {
+                    Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+                        val promptText = if (offline) {
+                            stringResource(R.string.network_offline)
+                        } else {
+                            "No templates found"
+                        }
+                        Text(
+                            text = promptText, color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Button(
+                            onClick = {
+                                scope.launch { viewModel.fetchTemplates(true) }
+                            },
+                            shapes = ButtonDefaults.shapes(),
+                        ) {
+                            Text(stringResource(R.string.network_retry))
                         }
                     }
                 }
             } else {
                 val bottomPadding = WindowInsets.navigationBars.union(WindowInsets.ime).asPaddingValues().calculateBottomPadding()
+                val lazyListState = rememberLazyListState()
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
@@ -168,11 +171,22 @@ fun AppProfileTemplateScreen() {
                             start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp + 56.dp + 16.dp + bottomPadding /* Scaffold Fab Spacing + Fab
                         container height */
                         )
-                    }) {
+                    }, state = lazyListState
+                ) {
                     items(viewModel.templateList, key = { it.id }) { template ->
                         TemplateItem(template, viewModel.templateList.indexOf(template), viewModel.templateList.size)
                     }
                 }
+                VerticalScrollbar(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .fillMaxHeight(),
+                    adapter = rememberScrollbarAdapter(lazyListState),
+                    durationMillis = 1500L,
+                    style = ScrollbarDefaults.style.copy(
+                        color = MaterialTheme.colorScheme.primary, railColor = MaterialTheme.colorScheme.surfaceBright.copy(alpha = 0.5f)
+                    )
+                )
             }
         }
     }
@@ -202,12 +216,12 @@ private fun TemplateItem(
                     StatusTag(
                         label = "GID: ${template.gid}",
                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        backgroundColor = MaterialTheme.colorScheme
-                            .secondaryContainer
+                        backgroundColor = MaterialTheme.colorScheme.secondaryContainer
                     )
                     StatusTag(
-                        label = template.context, contentColor = MaterialTheme.colorScheme.onTertiaryContainer, backgroundColor = MaterialTheme.colorScheme
-                            .tertiaryContainer
+                        label = template.context,
+                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                        backgroundColor = MaterialTheme.colorScheme.tertiaryContainer
                     )
                     if (template.local) {
                         StatusTag(label = "local")
@@ -216,8 +230,7 @@ private fun TemplateItem(
                     }
                 }
             }
-        }
-    )
+        })
     if (index != count - 1) Spacer(Modifier.height(ListItemDefaults.SegmentedGap))
 }
 
@@ -234,9 +247,7 @@ private fun TopBar(
     val snackBarHost = LocalSnackbarHost.current
 
     LargeFlexibleTopAppBar(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        colors = defaultTopAppBarColors(),
-        title = {
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection), colors = defaultTopAppBarColors(), title = {
             Text(stringResource(R.string.settings_profile_template))
         }, navigationIcon = {
             IconButton(

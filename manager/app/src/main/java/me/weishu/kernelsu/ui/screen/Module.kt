@@ -1,5 +1,6 @@
 package me.weishu.kernelsu.ui.screen
 
+import android.annotation.SuppressLint
 import android.app.Activity.RESULT_OK
 import android.content.Context
 import android.content.Intent
@@ -27,6 +28,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
@@ -47,7 +49,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -98,6 +99,9 @@ import me.weishu.kernelsu.ui.component.module.InstallModuleDialog
 import me.weishu.kernelsu.ui.component.popUps.RebootListPopup
 import me.weishu.kernelsu.ui.component.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.rememberLoadingDialog
+import me.weishu.kernelsu.ui.component.scrollbar.ScrollbarDefaults
+import me.weishu.kernelsu.ui.component.scrollbar.VerticalScrollbar
+import me.weishu.kernelsu.ui.component.scrollbar.rememberScrollbarAdapter
 import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.LocalSnackbarHost
@@ -177,9 +181,10 @@ fun ModuleScreen() {
 
         ModuleList(
             viewModel = viewModel,
-            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-            boxModifier = Modifier.padding(innerPadding),
-            snackBarHost = snackBarHost
+            lazyColumnModifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+            boxModifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
         )
     }
 }
@@ -188,13 +193,13 @@ fun ModuleScreen() {
 @Composable
 private fun ModuleList(
     viewModel: ModuleViewModel,
-    modifier: Modifier = Modifier,
-    boxModifier: Modifier = Modifier,
-    snackBarHost: SnackbarHostState
+    @SuppressLint("ModifierParameter") lazyColumnModifier: Modifier = Modifier,
+    boxModifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val resources = LocalResources.current
     val navigator = LocalNavController.current
+    val snackBarHost = LocalSnackbarHost.current
 
     val loadingDialog = rememberLoadingDialog()
     val confirmDialog =
@@ -285,8 +290,25 @@ private fun ModuleList(
             )
         }, isRefreshing = viewModel.isRefreshing
     ) {
+        if (viewModel.moduleList.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
+            ) {
+                if (viewModel.isRefreshing) return@Box
+                val text = if (viewModel.searchStatus.value.resultStatus == SearchStatus.ResultStatus.EMPTY) {
+                    "no modules found"
+                } else {
+                    stringResource(R.string.module_empty)
+                }
+                Text(text, textAlign = TextAlign.Center)
+            }
+            return@PullToRefreshBox
+        }
+        val lazyListState = rememberLazyListState()
+
         LazyColumn(
-            modifier = modifier,
+            modifier = lazyColumnModifier,
+            state = lazyListState,
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = remember {
                 PaddingValues(
@@ -301,38 +323,28 @@ private fun ModuleList(
             if (viewModel.searchStatus.value.resultStatus == SearchStatus.ResultStatus.SHOW) {
                 displayModuleList = viewModel.searchResults.value
             }
-            when {
-                viewModel.moduleList.isEmpty() -> {
-                    item {
-                        Box(
-                            modifier = Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center
-                        ) {
-                            val text = if (viewModel.searchStatus.value.resultStatus == SearchStatus.ResultStatus.EMPTY) {
-                                "no modules found"
-                            } else {
-                                stringResource(R.string.module_empty)
-                            }
-                            Text(text, textAlign = TextAlign.Center)
-                        }
-                    }
-                }
 
-                else -> {
-                    items(displayModuleList, key = { it.id }) { module ->
-                        ModuleItem(
-                            module = module,
-                            hasUpdate = viewModel.updateInfo[module.id]?.downloadUrl?.isNotEmpty() ?: false,
-                            onEnableChanged = { viewModel.onIntent(ModuleIntent.Toggle(module)) },
-                            onModuleAction = { viewModel.onIntent(ModuleIntent.OpenAction(module)) },
-                            onOpenWebUI = { viewModel.onIntent(ModuleIntent.OpenWebUI(module)) },
-                            onUndoUninstall = { viewModel.onIntent(ModuleIntent.RequestUndoUninstall(module)) },
-                            onUninstall = { viewModel.onIntent(ModuleIntent.RequestUninstall(module)) },
-                            onUpdate = { viewModel.onIntent(ModuleIntent.RequestUpdate(module, viewModel.updateInfo[module.id])) }
-                        )
-                    }
-                }
+            items(displayModuleList, key = { it.id }) { module ->
+                ModuleItem(
+                    module = module,
+                    hasUpdate = viewModel.updateInfo[module.id]?.downloadUrl?.isNotEmpty() ?: false,
+                    onEnableChanged = { viewModel.onIntent(ModuleIntent.Toggle(module)) },
+                    onModuleAction = { viewModel.onIntent(ModuleIntent.OpenAction(module)) },
+                    onOpenWebUI = { viewModel.onIntent(ModuleIntent.OpenWebUI(module)) },
+                    onUndoUninstall = { viewModel.onIntent(ModuleIntent.RequestUndoUninstall(module)) },
+                    onUninstall = { viewModel.onIntent(ModuleIntent.RequestUninstall(module)) },
+                    onUpdate = { viewModel.onIntent(ModuleIntent.RequestUpdate(module, viewModel.updateInfo[module.id])) }
+                )
             }
+
         }
+        VerticalScrollbar(
+            modifier = Modifier.align(Alignment.CenterEnd), adapter = rememberScrollbarAdapter(lazyListState),
+            durationMillis = 1500L,
+            style = ScrollbarDefaults.style.copy(
+                color = MaterialTheme.colorScheme.primary, railColor = MaterialTheme.colorScheme.surfaceBright.copy(alpha = 0.5f)
+            )
+        )
     }
 }
 
