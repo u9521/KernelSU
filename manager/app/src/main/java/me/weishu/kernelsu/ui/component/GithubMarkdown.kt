@@ -115,6 +115,10 @@ fun GithubMarkdown(
                         textZoom = 90
                         setSupportZoom(false)
                         setGeolocationEnabled(false)
+                        layoutParams = FrameLayout.LayoutParams(
+                            FrameLayout.LayoutParams.MATCH_PARENT,
+                            FrameLayout.LayoutParams.WRAP_CONTENT
+                        )
                     }
                     addJavascriptInterface(scrollInterface, "AndroidScroll")
                     webViewClient = object : WebViewClient() {
