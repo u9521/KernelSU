@@ -48,9 +48,8 @@ import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.scrollbar.ScrollbarDefaults
 import me.weishu.kernelsu.ui.component.scrollbar.VerticalScrollbar
 import me.weishu.kernelsu.ui.component.scrollbar.rememberScrollbarAdapter
+import me.weishu.kernelsu.ui.navigation3.LocalNavController
 import me.weishu.kernelsu.ui.theme.defaultTopAppBarColors
-import me.weishu.kernelsu.ui.util.LocalNavController
-import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date

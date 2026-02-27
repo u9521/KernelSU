@@ -1,6 +1,7 @@
 package me.weishu.kernelsu.ui.screen
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.content.pm.PackageInfo
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
@@ -27,7 +28,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Checkbox
@@ -73,18 +73,19 @@ import me.weishu.kernelsu.ui.component.AppIconImage
 import me.weishu.kernelsu.ui.component.SearchAppBar
 import me.weishu.kernelsu.ui.component.SearchStatus
 import me.weishu.kernelsu.ui.component.StatusTag
+import me.weishu.kernelsu.ui.component.popUps.PopupFeedBack
 import me.weishu.kernelsu.ui.component.scrollbar.ScrollbarDefaults
 import me.weishu.kernelsu.ui.component.scrollbar.VerticalScrollbar
 import me.weishu.kernelsu.ui.component.scrollbar.rememberScrollbarAdapter
 import me.weishu.kernelsu.ui.navigation3.LocalHasDetailPane
+import me.weishu.kernelsu.ui.navigation3.LocalNavController
 import me.weishu.kernelsu.ui.navigation3.Route
-import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.isRailNavbar
 import me.weishu.kernelsu.ui.util.ownerNameForUid
 import me.weishu.kernelsu.ui.util.pickPrimary
 import me.weishu.kernelsu.ui.viewmodel.SuperUserViewModel
 
-@OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SuperUserScreen() {
     val navigator = LocalNavController.current
@@ -113,40 +114,12 @@ fun SuperUserScreen() {
 
     Scaffold(
         topBar = {
-            var showDropdown by remember { mutableStateOf(false) }
-            val dissMissMenu = { showDropdown = false }
             val onBack = if (LocalHasDetailPane.current) {
                 dropUnlessResumed { navigator.popBackStack() }
             } else null
             SearchAppBar(
                 title = { Text(stringResource(R.string.superuser)) }, searchStatus = searchStatus, dropdownContent = {
-                    IconButton(
-                        onClick = { showDropdown = true },
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.MoreVert, contentDescription = stringResource(id = R.string.settings)
-                        )
-                        DropdownMenu(expanded = showDropdown, onDismissRequest = dissMissMenu) {
-                            val interactionSource = remember { MutableInteractionSource() }
-                            val showSysOnclick = {
-                                viewModel.showSystemApps = !viewModel.showSystemApps
-                                prefs.edit {
-                                    putBoolean("show_system_apps", viewModel.showSystemApps)
-                                }
-                                viewModel.loadAppList()
-                                dissMissMenu()
-                            }
-                            DropdownMenuItem(
-                                interactionSource = interactionSource, trailingIcon = {
-                                    Checkbox(viewModel.showSystemApps, { showSysOnclick() }, interactionSource = interactionSource)
-                                }, text = {
-                                    Text(
-                                        stringResource(R.string.show_system_apps)
-                                    )
-                                }, onClick = showSysOnclick
-                            )
-                        }
-                    }
+                    FilterMenu(viewModel, prefs)
                 }, scrollBehavior = scrollBehavior, onBackClick = onBack
             )
         },
@@ -241,9 +214,41 @@ fun SuperUserScreen() {
                 adapter = rememberScrollbarAdapter(listState),
                 durationMillis = 1500L,
                 style = ScrollbarDefaults.style.copy(
-                    color = MaterialTheme.colorScheme.primary,
-                    railColor = MaterialTheme.colorScheme.surfaceBright.copy(alpha = 0.5f)
+                    color = MaterialTheme.colorScheme.primary, railColor = MaterialTheme.colorScheme.surfaceBright.copy(alpha = 0.5f)
                 )
+            )
+        }
+    }
+}
+
+@Composable
+private fun FilterMenu(viewModel: SuperUserViewModel, prefs: SharedPreferences) {
+    val showDropdown = remember { mutableStateOf(false) }
+    IconButton(
+        onClick = { showDropdown.value = true },
+    ) {
+        Icon(
+            imageVector = Icons.Filled.MoreVert, contentDescription = stringResource(id = R.string.settings)
+        )
+        DropdownMenu(expanded = showDropdown.value, onDismissRequest = { showDropdown.value = false }) {
+            PopupFeedBack()
+            val interactionSource = remember { MutableInteractionSource() }
+            val showSysOnclick = {
+                viewModel.showSystemApps = !viewModel.showSystemApps
+                prefs.edit {
+                    putBoolean("show_system_apps", viewModel.showSystemApps)
+                }
+                viewModel.loadAppList()
+                showDropdown.value = false
+            }
+            DropdownMenuItem(
+                interactionSource = interactionSource, trailingIcon = {
+                    Checkbox(viewModel.showSystemApps, { showSysOnclick() }, interactionSource = interactionSource)
+                }, text = {
+                    Text(
+                        stringResource(R.string.show_system_apps)
+                    )
+                }, onClick = showSysOnclick
             )
         }
     }

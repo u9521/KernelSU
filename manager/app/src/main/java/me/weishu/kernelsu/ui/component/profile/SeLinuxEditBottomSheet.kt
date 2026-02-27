@@ -21,8 +21,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -32,6 +32,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -73,6 +75,7 @@ fun SeLinuxEditBottomSheet(
     ) {
         var seContext by remember { mutableStateOf(seLinuxContext) }
         var seRules by remember { mutableStateOf(seLinuxRules) }
+        val haptic = LocalHapticFeedback.current
 
         Row(
             verticalAlignment = Alignment.CenterVertically
@@ -92,26 +95,37 @@ fun SeLinuxEditBottomSheet(
             ) {
 
                 if (!readOnly) {
-                    TextButton(onClick = onDismissRequest) {
+                    OutlinedButton(shapes = ButtonDefaults.shapes(), onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                        closeSheet()
+                    }) {
                         Text(stringResource(android.R.string.cancel))
                     }
-                }
+                    Spacer(modifier = Modifier.width(8.dp))
 
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // Confirm Button
-                Button(
-                    shapes = ButtonDefaults.shapes(),
-                    onClick = {
-                        if (readOnly) {
-                            closeSheet()
-                        } else {
+                    // Confirm Button
+                    Button(
+                        shapes = ButtonDefaults.shapes(),
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
                             onSELinuxChange(seContext, seRules)
                             closeSheet()
                         }
+                    ) {
+                        Text(stringResource(android.R.string.ok))
+                    }
+                    return@Row
+                }
+
+                // close Button
+                OutlinedButton(
+                    shapes = ButtonDefaults.shapes(),
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                        closeSheet()
                     }
                 ) {
-                    Text(stringResource(if (readOnly) R.string.close else android.R.string.ok))
+                    Text(stringResource(R.string.close))
                 }
             }
         }

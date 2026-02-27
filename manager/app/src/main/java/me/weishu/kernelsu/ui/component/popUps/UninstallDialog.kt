@@ -16,9 +16,9 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,9 +36,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ui.component.rememberConfirmDialog
+import me.weishu.kernelsu.ui.component.rememberCustomDialog
+import me.weishu.kernelsu.ui.navigation3.LocalNavController
 import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.screen.FlashIt
-import me.weishu.kernelsu.ui.util.LocalNavController
 
 
 enum class UninstallType(@get:StringRes val title: Int, @get:StringRes val message: Int, @get:DrawableRes val icon: Int) {
@@ -76,7 +78,7 @@ fun uninstallDialog(): me.weishu.kernelsu.ui.component.DialogHandle {
         }
     }
 
-    val selectionDialog = _root_ide_package_.me.weishu.kernelsu.ui.component.rememberCustomDialog { dismiss ->
+    val selectionDialog = rememberCustomDialog { dismiss ->
         UninstallSelectionDialog(
             onDismissRequest = dismiss, onOptionSelected = {
                 if (it == null) return@UninstallSelectionDialog
@@ -84,7 +86,7 @@ fun uninstallDialog(): me.weishu.kernelsu.ui.component.DialogHandle {
             })
     }
 
-    val confirmDialog = _root_ide_package_.me.weishu.kernelsu.ui.component.rememberConfirmDialog(onConfirm = {
+    val confirmDialog = rememberConfirmDialog(onConfirm = {
         pendingUninstallType?.let { type ->
             selectionDialog.hide()
             performUninstall(type)
@@ -151,7 +153,7 @@ fun UninstallSelectionDialog(
 ) {
     var selectedOption by remember { mutableStateOf<UninstallType?>(null) }
     val haptic = LocalHapticFeedback.current
-    LaunchedEffect(selectedOption) { if (selectedOption != null) haptic.performHapticFeedback(HapticFeedbackType.ContextClick) }
+    PopupFeedBack()
     AlertDialog(containerColor = MaterialTheme.colorScheme.surfaceContainer, onDismissRequest = {}, icon = {
         Icon(painterResource(R.drawable.ic_delete_rounded_filled), contentDescription = null, tint = MaterialTheme.colorScheme.primary)
     }, title = {
@@ -176,20 +178,21 @@ fun UninstallSelectionDialog(
         }
     }, confirmButton = {
         Button(enabled = selectedOption != null, onClick = {
-            haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+            haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
             onOptionSelected(selectedOption)
         }, shapes = ButtonDefaults.shapes()) {
             Text(stringResource(android.R.string.ok))
         }
     }, dismissButton = {
-        TextButton(onClick = {
-            haptic.performHapticFeedback(HapticFeedbackType.Reject)
+        OutlinedButton(shapes = ButtonDefaults.shapes(), onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
             onDismissRequest()
         }) {
             Text(stringResource(android.R.string.cancel))
         }
     })
 }
+
 
 @Composable
 @Preview

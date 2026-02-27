@@ -44,16 +44,17 @@ import androidx.core.content.edit
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.BreezeSnackBarHost
+import me.weishu.kernelsu.ui.component.LocalSnackbarHost
 import me.weishu.kernelsu.ui.component.SegmentedListGroup
 import me.weishu.kernelsu.ui.component.ksuIsValid
 import me.weishu.kernelsu.ui.component.popUps.AboutDialog
 import me.weishu.kernelsu.ui.component.popUps.sendLogBottomSheet
 import me.weishu.kernelsu.ui.component.popUps.uninstallDialog
 import me.weishu.kernelsu.ui.component.rememberCustomDialog
+import me.weishu.kernelsu.ui.component.switchHapticFeedBack
+import me.weishu.kernelsu.ui.navigation3.LocalNavController
 import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.theme.defaultTopAppBarColors
-import me.weishu.kernelsu.ui.util.LocalNavController
-import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.util.execKsud
 import me.weishu.kernelsu.ui.util.getFeaturePersistValue
 import me.weishu.kernelsu.ui.util.getFeatureStatus
@@ -67,7 +68,7 @@ fun SettingScreen() {
     val context = LocalContext.current
     val resources = LocalResources.current
     val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
-
+    val switchFeedback = switchHapticFeedBack()
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
@@ -112,6 +113,7 @@ fun SettingScreen() {
                     summary = resources.getString(R.string.settings_check_update_summary),
                     checked = checkUpdate,
                     onCheckedChange = {
+                        switchFeedback(it)
                         prefs.edit { putBoolean("check_update", it) }
                         checkUpdate = it
                     })
@@ -127,6 +129,7 @@ fun SettingScreen() {
                     summary = resources.getString(R.string.settings_check_update_summary),
                     checked = checkModuleUpdate
                 ) {
+                    switchFeedback(it)
                     prefs.edit {
                         putBoolean("module_check_update", it)
                     }
@@ -239,6 +242,7 @@ fun SettingScreen() {
                     if (Natives.setKernelUmountEnabled(checked)) {
                         execKsud("feature save", true)
                         isKernelUmountEnabled = checked
+                        switchFeedback(checked)
                     }
                 }
             }
@@ -265,6 +269,7 @@ fun SettingScreen() {
                     summary = resources.getString(R.string.settings_umount_modules_default_summary),
                     checked = umountChecked
                 ) {
+                    switchFeedback(it)
                     if (Natives.setDefaultUmountModules(it)) {
                         umountChecked = it
                     }
@@ -283,6 +288,7 @@ fun SettingScreen() {
                     summary = resources.getString(R.string.enable_web_debugging_summary),
                     checked = enableWebDebugging
                 ) {
+                    switchFeedback(it)
                     prefs.edit { putBoolean("enable_web_debugging", it) }
                     enableWebDebugging = it
                 }
@@ -317,7 +323,6 @@ fun SettingScreen() {
                     )
                 }, onClick = { aboutDialog.show() }) { Text(stringResource(id = R.string.about)) }
             }
-
         }
     }
 }

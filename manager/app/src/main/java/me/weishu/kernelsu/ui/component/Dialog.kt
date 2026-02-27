@@ -6,11 +6,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
@@ -39,6 +41,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.parcelize.Parcelize
+import me.weishu.kernelsu.ui.component.popUps.PopupFeedBack
 import kotlin.coroutines.resume
 
 private const val TAG = "DialogComponent"
@@ -368,9 +371,11 @@ private fun LoadingDialog() {
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ConfirmDialog(visuals: ConfirmDialogVisuals, confirm: () -> Unit, dismiss: () -> Unit) {
     val haptic = LocalHapticFeedback.current
+    PopupFeedBack()
     AlertDialog(
         onDismissRequest = {
             dismiss()
@@ -388,16 +393,17 @@ private fun ConfirmDialog(visuals: ConfirmDialogVisuals, confirm: () -> Unit, di
             }
         },
         confirmButton = {
-            TextButton(onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.Confirm)
-                confirm()
-            }) {
+            Button(
+                shapes = ButtonDefaults.shapes(), onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                    confirm()
+                }) {
                 Text(text = visuals.confirm ?: stringResource(id = android.R.string.ok))
             }
         },
         dismissButton = {
-            TextButton(onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+            OutlinedButton(shapes = ButtonDefaults.shapes(), onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
                 dismiss()
             }) {
                 Text(text = visuals.dismiss ?: stringResource(id = android.R.string.cancel))

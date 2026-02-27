@@ -41,6 +41,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
@@ -57,6 +58,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -83,11 +86,16 @@ fun MultiSelectSearchBottomSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
+    val haptic = LocalHapticFeedback.current
 
     val selectedItems = remember { mutableStateListOf(*initialSelection.toTypedArray()) }
     var searchQuery by remember { mutableStateOf("") }
 
     val listState = rememberLazyListState()
+
+    LaunchedEffect(Unit) {
+        haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+    }
 
     val filteredList = remember(options, searchQuery) {
         if (searchQuery.isBlank()) options
@@ -154,14 +162,16 @@ fun MultiSelectSearchBottomSheet(
                 }
 
                 if (showToggleButton) {
-                    TextButton(enabled = !readOnly, onClick = {
-                        if (isDeselectMode) {
-                            selectedItems.clear()
-                        } else {
-                            val itemsToAdd = filteredList.filter { !selectedItems.contains(it) }
-                            selectedItems.addAll(itemsToAdd)
-                        }
-                    }) {
+                    TextButton(
+                        shapes = ButtonDefaults.shapes(), enabled = !readOnly, onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                            if (isDeselectMode) {
+                                selectedItems.clear()
+                            } else {
+                                val itemsToAdd = filteredList.filter { !selectedItems.contains(it) }
+                                selectedItems.addAll(itemsToAdd)
+                            }
+                        }) {
                         val actionText = if (isDeselectMode) R.string.deselect_all else R.string.select_all
                         Text(stringResource(actionText, "${selectedItems.size}"))
                     }
@@ -170,16 +180,20 @@ fun MultiSelectSearchBottomSheet(
                 Spacer(modifier = Modifier.width(8.dp))
 
                 // Confirm Button
+                if (readOnly) {
+                    OutlinedButton(shapes = ButtonDefaults.shapes(), onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                        closeSheet()
+                    }) { Text(stringResource(R.string.close)) }
+                    return@Row
+                }
                 Button(
                     enabled = !isLimitEnabled || selectedItems.size <= maxSelection, shapes = ButtonDefaults.shapes(), onClick = {
-                        if (readOnly) {
-                            closeSheet()
-                        } else {
-                            onConfirm(selectedItems.toSet())
-                            closeSheet()
-                        }
+                        haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                        onConfirm(selectedItems.toSet())
+                        closeSheet()
                     }) {
-                    Text(stringResource(if (readOnly) R.string.close else android.R.string.ok))
+                    Text(stringResource(android.R.string.ok))
                 }
             }
         }

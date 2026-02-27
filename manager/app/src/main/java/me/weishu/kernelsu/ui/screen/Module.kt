@@ -87,6 +87,7 @@ import kotlinx.coroutines.withContext
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.BreezeSnackBarHost
+import me.weishu.kernelsu.ui.component.LocalSnackbarHost
 import me.weishu.kernelsu.ui.component.SearchAppBar
 import me.weishu.kernelsu.ui.component.SearchStatus
 import me.weishu.kernelsu.ui.component.StatusTag
@@ -96,15 +97,16 @@ import me.weishu.kernelsu.ui.component.module.ButtonSpec
 import me.weishu.kernelsu.ui.component.module.ButtonType
 import me.weishu.kernelsu.ui.component.module.EnumeratedPriorityButtonRow
 import me.weishu.kernelsu.ui.component.module.InstallModuleDialog
+import me.weishu.kernelsu.ui.component.popUps.PopupFeedBack
 import me.weishu.kernelsu.ui.component.popUps.RebootListPopup
 import me.weishu.kernelsu.ui.component.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.rememberLoadingDialog
 import me.weishu.kernelsu.ui.component.scrollbar.ScrollbarDefaults
 import me.weishu.kernelsu.ui.component.scrollbar.VerticalScrollbar
 import me.weishu.kernelsu.ui.component.scrollbar.rememberScrollbarAdapter
+import me.weishu.kernelsu.ui.component.switchHapticFeedBack
+import me.weishu.kernelsu.ui.navigation3.LocalNavController
 import me.weishu.kernelsu.ui.navigation3.Route
-import me.weishu.kernelsu.ui.util.LocalNavController
-import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.util.download
 import me.weishu.kernelsu.ui.util.hasMagisk
 import me.weishu.kernelsu.ui.util.reboot
@@ -372,7 +374,7 @@ fun ModuleItem(
         }, colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceBright)
     ) {
         val textDecoration = if (!module.remove) null else TextDecoration.LineThrough
-
+        val switchFeedback = switchHapticFeedBack()
         Column(
             modifier = Modifier.padding(22.dp, 18.dp, 22.dp, 18.dp)
         ) {
@@ -420,7 +422,10 @@ fun ModuleItem(
                 Switch(
                     enabled = !module.update,
                     checked = module.enabled,
-                    onCheckedChange = onEnableChanged,
+                    onCheckedChange = {
+                        switchFeedback(it)
+                        onEnableChanged(it)
+                    },
                 )
             }
 
@@ -593,6 +598,7 @@ private fun ShortByMenuButton(viewModel: ModuleViewModel, prefs: SharedPreferenc
         DropdownMenu(expanded = showDropdown.value, onDismissRequest = {
             showDropdown.value = false
         }) {
+            PopupFeedBack()
             DropdownMenuItem(text = {
                 Text(stringResource(R.string.module_sort_action_first))
             }, trailingIcon = {

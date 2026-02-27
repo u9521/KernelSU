@@ -11,14 +11,12 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.offset
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.NativeKeyEvent
@@ -26,7 +24,6 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.onClick
@@ -46,10 +43,6 @@ fun BrMenuBox(
     var touchPoint: Offset by remember { mutableStateOf(Offset.Zero) }
     val interactionSource = remember { MutableInteractionSource() }
     val dismissMenu = { expanded = false }
-    val hapticFeedback = LocalHapticFeedback.current
-    LaunchedEffect(expanded) {
-        if (expanded) hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-    }
     Box(
         modifier = modifier
             .indication(interactionSource, LocalIndication.current)
@@ -107,6 +100,7 @@ fun BrMenuBox(
                 onDismissRequest = dismissMenu,
                 offset = DpOffset.Zero,
             ) {
+                PopupFeedBack()
                 menuContent(dismissMenu)
             }
         }

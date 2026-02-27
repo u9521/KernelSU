@@ -23,8 +23,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ui.component.popUps.PopupFeedBack
+import me.weishu.kernelsu.ui.navigation3.LocalNavController
 import me.weishu.kernelsu.ui.navigation3.Route
-import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.listAppProfileTemplates
 import me.weishu.kernelsu.ui.viewmodel.getTemplateInfoById
 
@@ -77,6 +78,7 @@ fun RootTemplateSelector(
         }
         ExposedDropdownMenu(
             expanded = expanded, onDismissRequest = { setExpand(false) }) {
+            PopupFeedBack()
             profileTemplates.forEach { tid ->
                 val templateInfo = getTemplateInfoById(tid) ?: return@forEach
                 DropdownMenuItem(text = { Text(tid) }, onClick = {

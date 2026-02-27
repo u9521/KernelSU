@@ -20,6 +20,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
@@ -123,7 +125,7 @@ fun FlashScreen(flashIt: FlashIt) {
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 private fun RebootFAB(showFloatAction: Boolean) {
     val scope = rememberCoroutineScope()
-    val onReboot: () -> Unit = { scope.launch { withContext(Dispatchers.IO) { reboot() } } }
+    val haptic = LocalHapticFeedback.current
     ExtendedFloatingActionButton(
         modifier = Modifier
             .padding(bottom = 6.dp + 48.dp + 6.dp /* SnackBar height */)
@@ -131,7 +133,10 @@ private fun RebootFAB(showFloatAction: Boolean) {
                 visible = showFloatAction,
                 alignment = Alignment.CenterEnd,
             ),
-        onClick = onReboot,
+        onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+            scope.launch { withContext(Dispatchers.IO) { reboot() } }
+        },
         icon = { Icon(Icons.Filled.Refresh, stringResource(id = R.string.reboot)) },
         text = { Text(text = stringResource(id = R.string.reboot)) },
     )

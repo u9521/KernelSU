@@ -18,7 +18,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.dropUnlessResumed
@@ -27,7 +29,7 @@ import kotlinx.coroutines.withContext
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.ShellLogScaffold
 import me.weishu.kernelsu.ui.component.processShellOutput
-import me.weishu.kernelsu.ui.util.LocalNavController
+import me.weishu.kernelsu.ui.navigation3.LocalNavController
 import me.weishu.kernelsu.ui.util.runModuleAction
 import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel
 
@@ -98,7 +100,11 @@ fun ExecuteModuleActionScreen(moduleId: String) {
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 private fun CloseFAB(showFloatAction: Boolean) {
     val navigator = LocalNavController.current
-    val onBack = dropUnlessResumed { navigator.popBackStack() }
+    val haptic = LocalHapticFeedback.current
+    val onBack = dropUnlessResumed {
+        haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+        navigator.popBackStack()
+    }
     ExtendedFloatingActionButton(
         modifier = Modifier
             .padding(bottom = 6.dp + 48.dp + 6.dp /* SnackBar height */)

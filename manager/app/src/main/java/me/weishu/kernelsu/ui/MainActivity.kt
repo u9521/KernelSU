@@ -28,8 +28,10 @@ import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ui.component.LocalSnackbarHost
 import me.weishu.kernelsu.ui.component.NavBarItems
 import me.weishu.kernelsu.ui.component.module.InstallModuleDialog
+import me.weishu.kernelsu.ui.navigation3.LocalNavController
 import me.weishu.kernelsu.ui.navigation3.MainNavDisplay
 import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.navigation3.TopLevelRoute
@@ -38,8 +40,6 @@ import me.weishu.kernelsu.ui.theme.KernelSUTheme
 import me.weishu.kernelsu.ui.util.HandleIntentEffect
 import me.weishu.kernelsu.ui.util.IntentEventSource
 import me.weishu.kernelsu.ui.util.IntentHelperImpl
-import me.weishu.kernelsu.ui.util.LocalNavController
-import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.util.install
 import me.weishu.kernelsu.ui.util.navigationSuiteType
 import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel

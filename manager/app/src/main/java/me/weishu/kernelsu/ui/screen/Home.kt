@@ -66,10 +66,10 @@ import me.weishu.kernelsu.getKernelVersion
 import me.weishu.kernelsu.ui.component.StatusTag
 import me.weishu.kernelsu.ui.component.popUps.RebootListPopup
 import me.weishu.kernelsu.ui.component.rememberConfirmDialog
+import me.weishu.kernelsu.ui.navigation3.LocalNavController
 import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.navigation3.TopLevelRoute
 import me.weishu.kernelsu.ui.theme.defaultTopAppBarColors
-import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.checkNewVersion
 import me.weishu.kernelsu.ui.util.getModuleCount
 import me.weishu.kernelsu.ui.util.getSELinuxStatus
@@ -273,7 +273,7 @@ private fun ModuleAndSUCards(ksuVersion: Int?) {
             count = getSuperuserCount().toString(),
             icon = painterResource(TopLevelRoute.SuperUser.selectedIcon),
             onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+                haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
                 navigator.navigateTo(TopLevelRoute.SuperUser.navKey)
             },
             modifier = Modifier.weight(1f)
@@ -284,7 +284,7 @@ private fun ModuleAndSUCards(ksuVersion: Int?) {
             count = getModuleCount().toString(),
             icon = painterResource(TopLevelRoute.Module.selectedIcon),
             onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+                haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
                 navigator.navigateTo(TopLevelRoute.Module.navKey)
             },
             modifier = Modifier.weight(1f)

@@ -28,6 +28,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import me.weishu.kernelsu.ui.component.popUps.BrMenuBox
 
@@ -348,6 +350,18 @@ fun SegmentedListGroup(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun switchHapticFeedBack(): (Boolean) -> Unit {
+    val haptic = LocalHapticFeedback.current
+    return { checked ->
+        if (checked) {
+            haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
+        } else {
+            haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
         }
     }
 }

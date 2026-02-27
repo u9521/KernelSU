@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ui.component.popUps.PopupFeedBack
 import me.weishu.kernelsu.ui.navigation3.LocalContentRatio
 import me.weishu.kernelsu.ui.navigation3.LocalIsDetailPane
 
@@ -62,6 +63,7 @@ fun SplitScreenRatioButton() {
             shadowElevation = 0.dp,
             onDismissRequest = { expanded = false }
         ) {
+            PopupFeedBack()
             Column(
                 modifier = Modifier
                     .background(

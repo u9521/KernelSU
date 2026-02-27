@@ -6,6 +6,7 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.toMutableStateList
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
@@ -149,6 +150,10 @@ class NavController(val startKey: NavKey) {
             return if (key == null) null else TopLevelRoute.entries.find { it.navKey.toString() == key }
         }
     }
+}
+
+val LocalNavController = staticCompositionLocalOf<NavController> {
+    error("LocalNavigator AppNavigator not provided")
 }
 
 @Composable

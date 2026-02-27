@@ -48,6 +48,7 @@ import me.weishu.kernelsu.R
 import me.weishu.kernelsu.profile.Capabilities
 import me.weishu.kernelsu.profile.Groups
 import me.weishu.kernelsu.ui.component.OutlinedTextEdit
+import me.weishu.kernelsu.ui.component.popUps.PopupFeedBack
 import me.weishu.kernelsu.ui.component.rememberCustomDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -223,8 +224,8 @@ private fun SELinuxPanel(
     profile: Natives.Profile, readOnly: Boolean = false, onSELinuxChange: (domain: String, rules: String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
-
     val editSELinuxBottomSheet = rememberCustomDialog { dismiss ->
+        PopupFeedBack()
         SeLinuxEditBottomSheet(
             readOnly = readOnly,
             onDismissRequest = dismiss,
@@ -336,6 +337,7 @@ fun NamespaceDropdown(
         if (!readOnly) {
             ExposedDropdownMenu(
                 expanded = expanded, onDismissRequest = { setExpanded(false) }) {
+                PopupFeedBack()
                 nameSpaceItems.forEach { (ns, resId) ->
                     DropdownMenuItem(text = { Text(stringResource(resId)) }, onClick = {
                         onNamespaceChange(ns)

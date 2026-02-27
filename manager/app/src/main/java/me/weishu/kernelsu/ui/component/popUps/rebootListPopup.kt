@@ -58,6 +58,7 @@ fun RebootListPopup(
             expanded = showTopPopup,
             onDismissRequest = dismissMenu
         ) {
+            PopupFeedBack()
             val pm = LocalContext.current.getSystemService(Context.POWER_SERVICE) as PowerManager?
 
             @Suppress("DEPRECATION")

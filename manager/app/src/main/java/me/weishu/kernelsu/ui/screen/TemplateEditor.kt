@@ -49,13 +49,13 @@ import kotlinx.coroutines.launch
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.BreezeSnackBarHost
+import me.weishu.kernelsu.ui.component.LocalSnackbarHost
 import me.weishu.kernelsu.ui.component.OutlinedTextEdit
 import me.weishu.kernelsu.ui.component.SplitScreenRatioButton
 import me.weishu.kernelsu.ui.component.profile.RootProfileConfig
 import me.weishu.kernelsu.ui.navigation3.LocalIsDetailPane
+import me.weishu.kernelsu.ui.navigation3.LocalNavController
 import me.weishu.kernelsu.ui.theme.defaultTopAppBarColors
-import me.weishu.kernelsu.ui.util.LocalNavController
-import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.util.deleteAppProfileTemplate
 import me.weishu.kernelsu.ui.util.getAppProfileTemplate
 import me.weishu.kernelsu.ui.util.setAppProfileTemplate

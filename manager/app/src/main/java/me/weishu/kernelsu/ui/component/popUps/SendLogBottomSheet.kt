@@ -21,7 +21,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.LineHeightStyle
@@ -34,9 +36,9 @@ import kotlinx.coroutines.withContext
 import me.weishu.kernelsu.BuildConfig
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.DialogHandle
+import me.weishu.kernelsu.ui.component.LocalSnackbarHost
 import me.weishu.kernelsu.ui.component.rememberCustomDialog
 import me.weishu.kernelsu.ui.component.rememberLoadingDialog
-import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.util.getBugreportFile
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -50,6 +52,7 @@ fun sendLogBottomSheet(): DialogHandle {
     val scope = rememberCoroutineScope()
     val snackBarHost = LocalSnackbarHost.current
     val loadingDialog = rememberLoadingDialog()
+    val haptic = LocalHapticFeedback.current
     val exportBugreportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/gzip")
     ) { uri: Uri? ->
@@ -67,6 +70,7 @@ fun sendLogBottomSheet(): DialogHandle {
         }
     }
     return rememberCustomDialog { dismiss ->
+        PopupFeedBack()
         ModalBottomSheet(
             onDismissRequest = dismiss,
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -80,6 +84,7 @@ fun sendLogBottomSheet(): DialogHandle {
                         FilledIconButton(
                             modifier = Modifier.size(64.dp),
                             onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
                                 val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH_mm")
                                 val current = LocalDateTime.now().format(formatter)
                                 exportBugreportLauncher.launch("KernelSU_bugreport_${current}.tar.gz")
@@ -105,6 +110,7 @@ fun sendLogBottomSheet(): DialogHandle {
                         FilledIconButton(
                             modifier = Modifier.size(64.dp),
                             onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
                                 scope.launch {
                                     val bugreport = loadingDialog.withLoading {
                                         withContext(Dispatchers.IO) {

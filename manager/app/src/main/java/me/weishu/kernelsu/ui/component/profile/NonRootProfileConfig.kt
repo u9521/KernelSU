@@ -8,6 +8,7 @@ import androidx.compose.ui.unit.dp
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.SegmentedListGroup
+import me.weishu.kernelsu.ui.component.switchHapticFeedBack
 
 @Composable
 fun NonRootProfileConfig(
@@ -16,6 +17,7 @@ fun NonRootProfileConfig(
     onProfileChange: (Natives.Profile) -> Unit,
 ) {
     val resources = LocalResources.current
+    val switchFeedback = switchHapticFeedBack()
     SegmentedListGroup(modifier = Modifier.padding(16.dp)) {
         switchItem(
             title = resources.getString(R.string.profile_umount_modules), summary = resources.getString(R.string.profile_umount_modules_summary),
@@ -26,6 +28,7 @@ fun NonRootProfileConfig(
             },
             enabled = enabled,
         ) {
+            switchFeedback(it)
             onProfileChange(
                 profile.copy(
                     umountModules = it,

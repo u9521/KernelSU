@@ -70,6 +70,7 @@ import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.AppIconImage
 import me.weishu.kernelsu.ui.component.BreezeSnackBarHost
+import me.weishu.kernelsu.ui.component.LocalSnackbarHost
 import me.weishu.kernelsu.ui.component.OutlinedTextEdit
 import me.weishu.kernelsu.ui.component.SegmentedListGroup
 import me.weishu.kernelsu.ui.component.SplitScreenRatioButton
@@ -78,10 +79,10 @@ import me.weishu.kernelsu.ui.component.profile.NonRootProfileConfig
 import me.weishu.kernelsu.ui.component.profile.RootProfileConfig
 import me.weishu.kernelsu.ui.component.profile.RootTemplateSelector
 import me.weishu.kernelsu.ui.component.slideHorizontal
+import me.weishu.kernelsu.ui.component.switchHapticFeedBack
 import me.weishu.kernelsu.ui.navigation3.LocalIsDetailPane
+import me.weishu.kernelsu.ui.navigation3.LocalNavController
 import me.weishu.kernelsu.ui.theme.defaultTopAppBarColors
-import me.weishu.kernelsu.ui.util.LocalNavController
-import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.util.forceStopApp
 import me.weishu.kernelsu.ui.util.getSepolicy
 import me.weishu.kernelsu.ui.util.launchApp
@@ -279,6 +280,7 @@ private fun AppInfoGroup(
 ) {
     val resources = LocalResources.current
     val isUidGroup = affectedAppCount > 1
+    val switchFeedback = switchHapticFeedBack()
     SegmentedListGroup(modifier = Modifier.padding(all = 16.dp)) {
         menuItem(
             leadingContent = appIcon, content = { Text(appLabel) }, supportingContent = {
@@ -299,7 +301,10 @@ private fun AppInfoGroup(
             title = resources.getString(R.string.superuser),
             leadingContent = { Icon(painterResource(R.drawable.ic_security_rounded), stringResource(id = R.string.superuser)) },
             checked = isRootGranted,
-            onCheckedChange = onAllowSuChange
+            onCheckedChange = {
+                switchFeedback(it)
+                onAllowSuChange(it)
+            }
         )
         item(
             content = { Text(stringResource(R.string.profile)) },

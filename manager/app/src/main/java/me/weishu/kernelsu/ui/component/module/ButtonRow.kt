@@ -22,7 +22,9 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
@@ -61,6 +63,11 @@ fun ActionButton(
     buttonPosition: ButtonPosition,
     onClick: () -> Unit,
 ) {
+    val haptic = LocalHapticFeedback.current
+    val onButtonClick = {
+        haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+        onClick()
+    }
     val visibleState = remember { MutableTransitionState(visible) }
     visibleState.targetState = visible
 
@@ -74,7 +81,7 @@ fun ActionButton(
             { skipAnimation ->
                 FilledTonalButton(
                     modifier = modifier.defaultMinSize(minWidth = 52.dp, minHeight = 32.dp),
-                    onClick = onClick,
+                    onClick = onButtonClick,
                     enabled = enabled,
                     shapes = ButtonDefaults.shapes(),
                     contentPadding = ButtonDefaults.contentPaddingFor(buttonHeight = ButtonDefaults.MinHeight),
@@ -87,7 +94,7 @@ fun ActionButton(
             { skipAnimation ->
                 Button(
                     modifier = modifier.defaultMinSize(minWidth = 52.dp, minHeight = 32.dp),
-                    onClick = onClick,
+                    onClick = onButtonClick,
                     enabled = enabled,
                     shapes = ButtonDefaults.shapes(),
                     contentPadding = ButtonDefaults.contentPaddingFor(buttonHeight = ButtonDefaults.MinHeight),

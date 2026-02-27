@@ -15,6 +15,7 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,6 +27,10 @@ import kotlinx.coroutines.delay
 private const val ANIMATION_DURATION = 450
 private const val ANIMATION_FADE_DURATION = 200
 
+val LocalSnackbarHost = compositionLocalOf<SnackbarHostState> {
+    error("CompositionLocal LocalSnackbarController not present")
+}
+
 class OvershootEasing(private val tension: Float = 2.0f) : Easing {
     override fun transform(fraction: Float): Float {
         val t = fraction - 1.0f
@@ -34,31 +39,24 @@ class OvershootEasing(private val tension: Float = 2.0f) : Easing {
 }
 
 @Composable
-fun getSnackBarEnterTransition() =
-    slideInVertically(
-        initialOffsetY = { fullHeight -> fullHeight },
-        animationSpec = tween(
-            durationMillis = ANIMATION_DURATION,
-            easing = OvershootEasing()
-        )
-    ) + scaleIn(
-        initialScale = 1.1f,
-        animationSpec = tween(
-            durationMillis = ANIMATION_DURATION,
-            easing = FastOutSlowInEasing
-        )
-    ) + fadeIn(
-        animationSpec = tween(durationMillis = ANIMATION_FADE_DURATION)
+fun getSnackBarEnterTransition() = slideInVertically(
+    initialOffsetY = { fullHeight -> fullHeight }, animationSpec = tween(
+        durationMillis = ANIMATION_DURATION, easing = OvershootEasing()
     )
+) + scaleIn(
+    initialScale = 1.1f, animationSpec = tween(
+        durationMillis = ANIMATION_DURATION, easing = FastOutSlowInEasing
+    )
+) + fadeIn(
+    animationSpec = tween(durationMillis = ANIMATION_FADE_DURATION)
+)
 
 @Composable
-fun getSnackBarExitTransition() =
-    slideOutVertically(
-        targetOffsetY = { fullHeight -> fullHeight },
-        animationSpec = tween(durationMillis = ANIMATION_DURATION, easing = FastOutSlowInEasing)
-    ) + fadeOut(
-        animationSpec = tween(durationMillis = ANIMATION_FADE_DURATION)
-    )
+fun getSnackBarExitTransition() = slideOutVertically(
+    targetOffsetY = { fullHeight -> fullHeight }, animationSpec = tween(durationMillis = ANIMATION_DURATION, easing = FastOutSlowInEasing)
+) + fadeOut(
+    animationSpec = tween(durationMillis = ANIMATION_FADE_DURATION)
+)
 
 
 @Composable
@@ -83,10 +81,7 @@ private fun FadeInFadeOutWithScale(
     }
 
     AnimatedVisibility(
-        visible = visibleItem != null && !isExiting,
-        enter = getSnackBarEnterTransition(),
-        exit = getSnackBarExitTransition(),
-        modifier = modifier
+        visible = visibleItem != null && !isExiting, enter = getSnackBarEnterTransition(), exit = getSnackBarExitTransition(), modifier = modifier
     ) {
         visibleItem?.let { content(it) }
     }
@@ -122,12 +117,11 @@ internal fun SnackbarDuration.toMillis(
     hasAction: Boolean,
     accessibilityManager: androidx.compose.ui.platform.AccessibilityManager?,
 ): Long {
-    val original =
-        when (this) {
-            SnackbarDuration.Indefinite -> Long.MAX_VALUE
-            SnackbarDuration.Long -> 10000L
-            SnackbarDuration.Short -> 4000L
-        }
+    val original = when (this) {
+        SnackbarDuration.Indefinite -> Long.MAX_VALUE
+        SnackbarDuration.Long -> 10000L
+        SnackbarDuration.Short -> 4000L
+    }
     if (accessibilityManager == null) {
         return original
     }

@@ -68,15 +68,15 @@ import kotlinx.parcelize.Parcelize
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.getKernelVersion
 import me.weishu.kernelsu.ui.component.BreezeSnackBarHost
+import me.weishu.kernelsu.ui.component.LocalSnackbarHost
 import me.weishu.kernelsu.ui.component.SegmentedListGroup
 import me.weishu.kernelsu.ui.component.SegmentedListScope
 import me.weishu.kernelsu.ui.component.popUps.rememberSelectKmiDialog
 import me.weishu.kernelsu.ui.component.rememberConfirmDialog
+import me.weishu.kernelsu.ui.navigation3.LocalNavController
 import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.theme.defaultTopAppBarColors
 import me.weishu.kernelsu.ui.util.LkmSelection
-import me.weishu.kernelsu.ui.util.LocalNavController
-import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.util.getAvailablePartitions
 import me.weishu.kernelsu.ui.util.getCurrentKmi
 import me.weishu.kernelsu.ui.util.getDefaultPartition
@@ -189,7 +189,6 @@ fun InstallScreen() {
     }
 
     val selectKmiDialog = rememberSelectKmiDialog(envData.currentKmi) { kmi ->
-        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
         lkmSelection = LkmSelection.KmiString(kmi)
         performInstall()
     }
@@ -345,7 +344,6 @@ private fun InstallConfigGroup(
             partition = currentDisplaySelection,
             partitionSuffix = slotSuffix,
         ) { displayString ->
-            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
             val index = displayPartitions.indexOf(displayString)
             if (index != -1 && index < partitions.size) {
                 onPartitionChange(partitions[index])
@@ -353,10 +351,10 @@ private fun InstallConfigGroup(
         }
 
         lkmSelector(selectedLkmName, onLaunchLkmPicker = {
-            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+            hapticFeedback.performHapticFeedback(HapticFeedbackType.VirtualKey)
             onLaunchLkmPicker()
         }) {
-            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+            hapticFeedback.performHapticFeedback(HapticFeedbackType.VirtualKey)
             onClearLkm()
         }
     }

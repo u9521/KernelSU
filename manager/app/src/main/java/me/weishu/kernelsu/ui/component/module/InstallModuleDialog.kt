@@ -10,9 +10,9 @@ import kotlinx.coroutines.withContext
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.rememberLoadingDialog
+import me.weishu.kernelsu.ui.navigation3.LocalNavController
 import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.screen.FlashIt
-import me.weishu.kernelsu.ui.util.LocalNavController
 import me.weishu.kernelsu.ui.util.ModuleParser
 import me.weishu.kernelsu.ui.util.getFileName
 import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel

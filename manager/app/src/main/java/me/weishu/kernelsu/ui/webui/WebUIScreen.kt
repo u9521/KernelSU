@@ -25,9 +25,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -84,8 +84,7 @@ fun WebUIScreen(webUIState: WebUIState) {
     ) {
         if (webUIState.webView != null) {
             AndroidView(
-                modifier = Modifier.fillMaxSize(),
-                factory = { _ ->
+                modifier = Modifier.fillMaxSize(), factory = { _ ->
                     webUIState.webView!!.apply {
                         layoutParams = ViewGroup.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
@@ -98,8 +97,7 @@ fun WebUIScreen(webUIState: WebUIState) {
                             } else {
                                 val listener = object : View.OnLayoutChangeListener {
                                     override fun onLayoutChange(
-                                        v: View, left: Int, top: Int, right: Int, bottom: Int,
-                                        oldLeft: Int, oldTop: Int, oldRight: Int, oldBottom: Int
+                                        v: View, left: Int, top: Int, right: Int, bottom: Int, oldLeft: Int, oldTop: Int, oldRight: Int, oldBottom: Int
                                     ) {
                                         if (v.width > 0 && v.height > 0) {
                                             (v as WebView).loadUrl(homePage)
@@ -112,8 +110,7 @@ fun WebUIScreen(webUIState: WebUIState) {
                             }
                         }
                     }
-                }
-            )
+                })
         }
     }
 
@@ -146,24 +143,18 @@ private fun HandleWebUIEvent(webUIState: WebUIState) {
             val showDialog = remember(event) { mutableStateOf(true) }
 
             if (showDialog.value) {
-                AlertDialog(
-                    onDismissRequest = {},
-                    title = null,
-                    text = {
-                        Text(event.message)
-                    },
-                    confirmButton = {
-                        Button(
-                            onClick = {
-                                webUIState.onAlertResult()
-                                showDialog.value = false
-                            },
-                            shapes = ButtonDefaults.shapes()
-                        ) {
-                            Text(stringResource(R.string.confirm))
-                        }
+                AlertDialog(onDismissRequest = {}, title = null, text = {
+                    Text(event.message)
+                }, confirmButton = {
+                    Button(
+                        onClick = {
+                            webUIState.onAlertResult()
+                            showDialog.value = false
+                        }, shapes = ButtonDefaults.shapes()
+                    ) {
+                        Text(stringResource(R.string.confirm))
                     }
-                )
+                })
             }
         }
 
@@ -171,36 +162,29 @@ private fun HandleWebUIEvent(webUIState: WebUIState) {
             val showDialog = remember(event) { mutableStateOf(true) }
 
             if (showDialog.value) {
-                AlertDialog(
-                    onDismissRequest = {
-                        webUIState.onConfirmResult(false)
-                        showDialog.value = false
-                    },
-                    text = {
-                        Text(event.message)
-                    },
-                    confirmButton = {
-                        Button(
-                            onClick = {
-                                webUIState.onConfirmResult(true)
-                                showDialog.value = false
-                            },
-                            shapes = ButtonDefaults.shapes()
-                        ) {
-                            Text(stringResource(R.string.confirm))
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(
-                            onClick = {
-                                webUIState.onConfirmResult(false)
-                                showDialog.value = false
-                            }
-                        ) {
-                            Text(stringResource(android.R.string.cancel))
-                        }
+                AlertDialog(onDismissRequest = {
+                    webUIState.onConfirmResult(false)
+                    showDialog.value = false
+                }, text = {
+                    Text(event.message)
+                }, confirmButton = {
+                    Button(
+                        onClick = {
+                            webUIState.onConfirmResult(true)
+                            showDialog.value = false
+                        }, shapes = ButtonDefaults.shapes()
+                    ) {
+                        Text(stringResource(R.string.confirm))
                     }
-                )
+                }, dismissButton = {
+                    OutlinedButton(
+                        shapes = ButtonDefaults.shapes(), onClick = {
+                            webUIState.onConfirmResult(false)
+                            showDialog.value = false
+                        }) {
+                        Text(stringResource(android.R.string.cancel))
+                    }
+                })
             }
         }
 
@@ -209,44 +193,35 @@ private fun HandleWebUIEvent(webUIState: WebUIState) {
             val (text, onTextChange) = remember(event) { mutableStateOf(event.defaultValue) }
 
             if (showDialog.value) {
-                AlertDialog(
-                    onDismissRequest = {
-                        webUIState.onPromptResult(null)
-                        showDialog.value = false
-                    },
-                    text = {
-                        Column {
-                            Text(event.message)
-                            Spacer(Modifier.height(12.dp))
-                            OutlinedTextField(
-                                value = text,
-                                onValueChange = onTextChange,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                    },
-                    confirmButton = {
-                        Button(
-                            onClick = {
-                                webUIState.onPromptResult(text)
-                                showDialog.value = false
-                            },
-                            shapes = ButtonDefaults.shapes()
-                        ) {
-                            Text(stringResource(R.string.confirm))
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(
-                            onClick = {
-                                webUIState.onPromptResult(null)
-                                showDialog.value = false
-                            }
-                        ) {
-                            Text(stringResource(android.R.string.cancel))
-                        }
+                AlertDialog(onDismissRequest = {
+                    webUIState.onPromptResult(null)
+                    showDialog.value = false
+                }, text = {
+                    Column {
+                        Text(event.message)
+                        Spacer(Modifier.height(12.dp))
+                        OutlinedTextField(
+                            value = text, onValueChange = onTextChange, modifier = Modifier.fillMaxWidth()
+                        )
                     }
-                )
+                }, confirmButton = {
+                    Button(
+                        onClick = {
+                            webUIState.onPromptResult(text)
+                            showDialog.value = false
+                        }, shapes = ButtonDefaults.shapes()
+                    ) {
+                        Text(stringResource(R.string.confirm))
+                    }
+                }, dismissButton = {
+                    OutlinedButton(
+                        shapes = ButtonDefaults.shapes(), onClick = {
+                            webUIState.onPromptResult(null)
+                            showDialog.value = false
+                        }) {
+                        Text(stringResource(android.R.string.cancel))
+                    }
+                })
             }
         }
 

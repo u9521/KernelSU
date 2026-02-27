@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -69,14 +68,15 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.BreezeSnackBarHost
+import me.weishu.kernelsu.ui.component.LocalSnackbarHost
 import me.weishu.kernelsu.ui.component.StatusTag
+import me.weishu.kernelsu.ui.component.popUps.PopupFeedBack
 import me.weishu.kernelsu.ui.component.scrollbar.ScrollbarDefaults
 import me.weishu.kernelsu.ui.component.scrollbar.VerticalScrollbar
 import me.weishu.kernelsu.ui.component.scrollbar.rememberScrollbarAdapter
+import me.weishu.kernelsu.ui.navigation3.LocalNavController
 import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.theme.defaultTopAppBarColors
-import me.weishu.kernelsu.ui.util.LocalNavController
-import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.util.isNetworkAvailable
 import me.weishu.kernelsu.ui.viewmodel.TemplateViewModel
 
@@ -85,7 +85,7 @@ import me.weishu.kernelsu.ui.viewmodel.TemplateViewModel
  * @date 2023/10/20.
  */
 
-@OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AppProfileTemplateScreen() {
     val navigator = LocalNavController.current
@@ -113,13 +113,7 @@ fun AppProfileTemplateScreen() {
         topBar = { TopBar(scrollBehavior = scrollBehavior) },
         snackbarHost = { BreezeSnackBarHost(snackBarHostState) },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = dropUnlessResumed {
-                    navigator.navigateTo(Route.TemplateEditor(TemplateViewModel.TemplateInfo(), false))
-                },
-                icon = { Icon(Icons.Filled.Add, null) },
-                text = { Text(stringResource(id = R.string.app_profile_template_create)) },
-            )
+            NewTempleFab()
         },
         contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
         containerColor = MaterialTheme.colorScheme.surfaceContainer
@@ -190,6 +184,20 @@ fun AppProfileTemplateScreen() {
             }
         }
     }
+}
+
+@Composable
+private fun NewTempleFab() {
+    val navigator = LocalNavController.current
+    val haptic = LocalHapticFeedback.current
+    ExtendedFloatingActionButton(
+        onClick = dropUnlessResumed {
+            haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+            navigator.navigateTo(Route.TemplateEditor(TemplateViewModel.TemplateInfo(), false))
+        },
+        icon = { Icon(Icons.Filled.Add, null) },
+        text = { Text(stringResource(id = R.string.app_profile_template_create)) },
+    )
 }
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -289,10 +297,8 @@ private fun TopBar(
 @Composable
 private fun ImportExportMenuButton(onImport: () -> Unit, onExport: () -> Unit) {
     val showDropdown = remember { mutableStateOf(false) }
-    val haptic = LocalHapticFeedback.current
     IconButton(onClick = {
         showDropdown.value = true
-        haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
     }) {
         Icon(
             painter = painterResource(R.drawable.ic_swap_vert_rounded), contentDescription = stringResource(id = R.string.app_profile_import_export)
@@ -301,6 +307,7 @@ private fun ImportExportMenuButton(onImport: () -> Unit, onExport: () -> Unit) {
         DropdownMenu(expanded = showDropdown.value, onDismissRequest = {
             showDropdown.value = false
         }) {
+            PopupFeedBack()
             DropdownMenuItem(text = {
                 Text(stringResource(id = R.string.app_profile_import_from_clipboard))
             }, onClick = {
