@@ -98,8 +98,7 @@ fun HomeScreen() {
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp)
-                .navigationBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             val isManager = Natives.isManager
             val ksuVersion = if (isManager) Natives.version else null
@@ -178,7 +177,8 @@ fun UpdateCard() {
 @Composable
 private fun TopBar(scrollBehavior: TopAppBarScrollBehavior? = null) {
     LargeFlexibleTopAppBar(
-        title = { Text(stringResource(R.string.app_name)) }, actions = { RebootListPopup() },
+        title = { Text(stringResource(R.string.app_name)) },
+        actions = { RebootListPopup() },
         colors = defaultTopAppBarColors(),
         scrollBehavior = scrollBehavior
     )
@@ -192,7 +192,7 @@ private fun StatusCard(
         colors = CardDefaults.elevatedCardColors(containerColor = run {
             if (ksuVersion != null) MaterialTheme.colorScheme.secondaryContainer
             else MaterialTheme.colorScheme.errorContainer
-        })
+        }), shape = MaterialTheme.shapes.large
     ) {
         Row(
             modifier = Modifier
@@ -280,14 +280,10 @@ private fun ModuleAndSUCards(ksuVersion: Int?) {
         )
         // Module
         OverviewCard(
-            title = stringResource(R.string.module),
-            count = getModuleCount().toString(),
-            icon = painterResource(TopLevelRoute.Module.selectedIcon),
-            onClick = {
+            title = stringResource(R.string.module), count = getModuleCount().toString(), icon = painterResource(TopLevelRoute.Module.selectedIcon), onClick = {
                 haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
                 navigator.navigateTo(TopLevelRoute.Module.navKey)
-            },
-            modifier = Modifier.weight(1f)
+            }, modifier = Modifier.weight(1f)
         )
     }
 }
@@ -297,7 +293,9 @@ private fun OverviewCard(
     title: String, count: String, icon: Painter, onClick: () -> Unit, modifier: Modifier = Modifier
 ) {
     ElevatedCard(
-        modifier = modifier, colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceBright)
+        modifier = modifier,
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceBright),
+        shape = MaterialTheme.shapes.large
     ) {
         Row(
             modifier = Modifier
@@ -329,7 +327,7 @@ fun WarningCard(
     ElevatedCard(
         colors = CardDefaults.elevatedCardColors(
             containerColor = color
-        )
+        ), shape = MaterialTheme.shapes.large
     ) {
         Row(
             modifier = Modifier
@@ -348,7 +346,7 @@ fun LearnMoreCard() {
     val uriHandler = LocalUriHandler.current
     val url = stringResource(R.string.home_learn_kernelsu_url)
 
-    ElevatedCard(colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceBright)) {
+    ElevatedCard(colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceBright), shape = MaterialTheme.shapes.large) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -372,7 +370,7 @@ fun LearnMoreCard() {
 @Composable
 fun DonateCard() {
     val uriHandler = LocalUriHandler.current
-    ElevatedCard(colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceBright)) {
+    ElevatedCard(colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceBright), shape = MaterialTheme.shapes.large) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -396,7 +394,7 @@ fun DonateCard() {
 @Composable
 private fun InfoCard() {
     val context = LocalContext.current
-    ElevatedCard(colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceBright)) {
+    ElevatedCard(colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceBright), shape = MaterialTheme.shapes.large) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()

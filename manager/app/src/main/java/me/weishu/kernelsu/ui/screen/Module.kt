@@ -66,8 +66,10 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -194,9 +196,7 @@ fun ModuleScreen() {
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ModuleList(
-    viewModel: ModuleViewModel,
-    @SuppressLint("ModifierParameter") lazyColumnModifier: Modifier = Modifier,
-    boxModifier: Modifier = Modifier
+    viewModel: ModuleViewModel, @SuppressLint("ModifierParameter") lazyColumnModifier: Modifier = Modifier, boxModifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val resources = LocalResources.current
@@ -227,9 +227,7 @@ private fun ModuleList(
                     val message = resources.getString(effect.messageRes, *effect.formatArgs.toTypedArray())
                     val actionLabel = effect.actionLabelRes?.let { resources.getString(it) }
                     val result = snackBarHost.showSnackbar(
-                        message = message,
-                        actionLabel = actionLabel,
-                        duration = SnackbarDuration.Short
+                        message = message, actionLabel = actionLabel, duration = SnackbarDuration.Short
                     )
                     if (result == SnackbarResult.ActionPerformed && effect.withReboot) {
                         reboot()
@@ -246,8 +244,7 @@ private fun ModuleList(
                         content = effect.content,
                         markdown = effect.markdown,
                         confirm = effect.confirmTextRes?.let { resources.getString(it) },
-                        dismiss = effect.dismissTextRes?.let { resources.getString(it) }
-                    )
+                        dismiss = effect.dismissTextRes?.let { resources.getString(it) })
                 }
 
                 is ModuleUiEffect.StartDownload -> {
@@ -261,8 +258,7 @@ private fun ModuleList(
                                 launch(Dispatchers.Main) {
                                     snackBarHost.showSnackbar(message = downloadingMsg, duration = SnackbarDuration.Short)
                                 }
-                            }
-                        )
+                            })
                     }
                 }
 
@@ -283,10 +279,7 @@ private fun ModuleList(
 
     val state = rememberPullToRefreshState()
     PullToRefreshBox(
-        modifier = boxModifier,
-        state = state,
-        onRefresh = { viewModel.onIntent(ModuleIntent.Refresh(checkUpdate = true)) },
-        indicator = {
+        modifier = boxModifier, state = state, onRefresh = { viewModel.onIntent(ModuleIntent.Refresh(checkUpdate = true)) }, indicator = {
             PullToRefreshDefaults.LoadingIndicator(
                 state = state, isRefreshing = viewModel.isRefreshing, modifier = Modifier.align(Alignment.TopCenter)
             )
@@ -314,10 +307,7 @@ private fun ModuleList(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = remember {
                 PaddingValues(
-                    start = 16.dp,
-                    top = 16.dp,
-                    end = 16.dp,
-                    bottom = 16.dp + 56.dp + 16.dp + 48.dp + 6.dp
+                    start = 16.dp, top = 16.dp, end = 16.dp, bottom = 16.dp + 56.dp + 16.dp + 48.dp + 6.dp
                 )
             },
         ) {
@@ -335,13 +325,13 @@ private fun ModuleList(
                     onOpenWebUI = { viewModel.onIntent(ModuleIntent.OpenWebUI(module)) },
                     onUndoUninstall = { viewModel.onIntent(ModuleIntent.RequestUndoUninstall(module)) },
                     onUninstall = { viewModel.onIntent(ModuleIntent.RequestUninstall(module)) },
-                    onUpdate = { viewModel.onIntent(ModuleIntent.RequestUpdate(module, viewModel.updateInfo[module.id])) }
-                )
+                    onUpdate = { viewModel.onIntent(ModuleIntent.RequestUpdate(module, viewModel.updateInfo[module.id])) })
             }
 
         }
         VerticalScrollbar(
-            modifier = Modifier.align(Alignment.CenterEnd), adapter = rememberScrollbarAdapter(lazyListState),
+            modifier = Modifier.align(Alignment.CenterEnd),
+            adapter = rememberScrollbarAdapter(lazyListState),
             durationMillis = 1500L,
             style = ScrollbarDefaults.style.copy(
                 color = MaterialTheme.colorScheme.primary, railColor = MaterialTheme.colorScheme.surfaceBright.copy(alpha = 0.5f)
@@ -362,16 +352,19 @@ fun ModuleItem(
     onUninstall: () -> Unit,
     onUpdate: () -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
     ElevatedCard(
         modifier = Modifier.let {
             if (module.hasWebUi) {
                 it.clickable(
-                    enabled = !module.remove && module.enabled, role = Role.Button, onClick = onOpenWebUI
-                )
+                    enabled = !module.remove && module.enabled, role = Role.Button, onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                        onOpenWebUI()
+                    })
             } else {
                 it
             }.fillMaxWidth()
-        }, colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceBright)
+        }, shape = MaterialTheme.shapes.large, colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceBright)
     ) {
         val textDecoration = if (!module.remove) null else TextDecoration.LineThrough
         val switchFeedback = switchHapticFeedBack()
@@ -473,9 +466,7 @@ private fun ModuleButtonRow(
                 isEnabled = moduleStable && module.enabled,
                 icon = {
                     Icon(
-                        modifier = Modifier.size(iconSize),
-                        imageVector = Icons.Outlined.PlayArrow,
-                        contentDescription = stringResource(R.string.action)
+                        modifier = Modifier.size(iconSize), imageVector = Icons.Outlined.PlayArrow, contentDescription = stringResource(R.string.action)
                     )
                 },
                 onClick = onModuleAction,
@@ -485,19 +476,13 @@ private fun ModuleButtonRow(
 
         list.add(
             ButtonSpec(
-                id = "webui",
-                text = resources.getString(R.string.open),
-                isVisible = module.hasWebUi,
-                isEnabled = moduleStable && module.enabled,
-                icon = {
+                id = "webui", text = resources.getString(R.string.open), isVisible = module.hasWebUi, isEnabled = moduleStable && module.enabled, icon = {
                     Icon(
                         modifier = Modifier.size(iconSize),
                         painter = painterResource(R.drawable.ic_wysiwyg_rounded),
                         contentDescription = stringResource(R.string.open)
                     )
-                },
-                onClick = onOpenWebUI,
-                buttonPosition = ButtonPosition.START
+                }, onClick = onOpenWebUI, buttonPosition = ButtonPosition.START
             )
         )
         list
@@ -514,9 +499,7 @@ private fun ModuleButtonRow(
                 type = ButtonType.PRIMARY,
                 icon = {
                     Icon(
-                        modifier = Modifier.size(iconSize),
-                        painter = painterResource(R.drawable.ic_download_2_rounded),
-                        contentDescription = null
+                        modifier = Modifier.size(iconSize), painter = painterResource(R.drawable.ic_download_2_rounded), contentDescription = null
                     )
                 },
                 onClick = onUpdate,
@@ -552,10 +535,7 @@ private fun ModuleButtonRow(
             endButtons.lastOrNull { it.isVisible }?.id
         }
         EnumeratedPriorityButtonRow(
-            centerSpacing = 150.dp,
-            startButtons = startButtons,
-            endButtons = endButtons,
-            buttonFactory = { spec, isExpanded ->
+            centerSpacing = 150.dp, startButtons = startButtons, endButtons = endButtons, buttonFactory = { spec, isExpanded ->
                 val isLastVisibleInGroup = when (spec.buttonPosition) {
                     ButtonPosition.START -> spec.id == lastVisibleStartButtonId
                     ButtonPosition.END -> spec.id == lastVisibleEndButtonId
@@ -564,8 +544,7 @@ private fun ModuleButtonRow(
                 val targetPadding = if (isLastVisibleInGroup) 0.dp else 8.dp
 
                 val animatedEndPadding by animateDpAsState(
-                    targetValue = targetPadding,
-                    label = "SpacingAnimation"
+                    targetValue = targetPadding, label = "SpacingAnimation"
                 )
 
                 ActionButton(
@@ -579,8 +558,7 @@ private fun ModuleButtonRow(
                     buttonType = spec.type,
                     buttonPosition = spec.buttonPosition
                 )
-            }
-        )
+            })
     }
 }
 
