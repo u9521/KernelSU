@@ -111,6 +111,8 @@
     <string name="app_profile_affects_following_apps">Affects the following apps</string>
     <string name="settings_check_update">Check for updates</string>
     <string name="settings_check_update_summary">Automatically check for updates when opening the app.</string>
+    <string name="settings_enable_predictive_back">Predictive back gesture</string>
+    <string name="settings_enable_predictive_back_summary">Enable predictive back gesture support.</string>
     <string name="settings_module_check_update">Check for module updates</string>
     <string name="grant_root_failed">Failed to grant root!</string>
     <string name="action">Action</string>
@@ -208,6 +210,12 @@
     <string name="select_file_tip_nogki">Please select the GKI device image file you want to patch</string>
     <string name="current_kmi">KMI version of this device: %s</string>
     <string name="current_device_kmi">This device KMI</string>
+    <string name="settings_enable_blur">Blur</string>
+    <string name="settings_enable_blur_summary">Enable blur effect for top and bottom bars</string>
+    <string name="settings_floating_bottom_bar">Floating bottom bar</string>
+    <string name="settings_floating_bottom_bar_summary">Use Apple style floating bottom bar</string>
+    <string name="settings_enable_glass">Liquid glass</string>
+    <string name="settings_enable_glass_summary">Enable liquid glass effect for floating bottom bar</string>
 
     <string name="module_parse_failed">Failed to parse module information, module may be corrupted: %s</string>
     <string name="module_parse_reason">Reason: %s</string>

@@ -26,7 +26,7 @@ fun MainNavDisplay(modifier: Modifier = Modifier) {
     val breezeStrategy = rememberBreezeSinglePaneSceneStrategy<NavKey>(isRail, isRtl, navAnimSpec)
     NavDisplay(
         modifier = modifier,
-        sceneStrategy = breezeListDetailSceneStrategy.then(breezeStrategy),
+        sceneStrategies = listOf(breezeListDetailSceneStrategy, breezeStrategy),
         entries = navigator.genEntries(getMainEntryProvider()),
         onBack = { navigator.popBackStack() },
         transitionSpec = {
