@@ -9,7 +9,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -99,7 +98,7 @@ fun SuperUserScreen() {
         when {
             viewModel.appList.value.isEmpty() -> {
                 viewModel.showSystemApps = prefs.getBoolean("show_system_apps", false)
-                viewModel.loadAppList()
+                viewModel.loadAppList(true)
             }
 
             viewModel.isNeedRefresh -> {
@@ -201,7 +200,7 @@ fun SuperUserScreen() {
                                 expandedUids = if (isExpanded) expandedUids - group.uid else expandedUids + group.uid
                             }
                         } else null, onClickPrimary = {
-                            navigator.navigateTo(Route.AppProfile(group.primary.packageName))
+                            navigator.navigateTo(Route.AppProfile(uid = group.uid, packageName = group.primary.packageName))
                             viewModel.markNeedRefresh()
                         }, modifier = Modifier.padding(top = animatedTopPadding), expanded = isExpanded
                     )
@@ -224,6 +223,9 @@ fun SuperUserScreen() {
 @Composable
 private fun FilterMenu(viewModel: SuperUserViewModel, prefs: SharedPreferences) {
     val showDropdown = remember { mutableStateOf(false) }
+    val isMultiUser = remember(viewModel.userIds.value) {
+        viewModel.userIds.value.size > 1
+    }
     IconButton(
         onClick = { showDropdown.value = true },
     ) {
@@ -232,7 +234,6 @@ private fun FilterMenu(viewModel: SuperUserViewModel, prefs: SharedPreferences) 
         )
         DropdownMenu(expanded = showDropdown.value, onDismissRequest = { showDropdown.value = false }) {
             PopupFeedBack()
-            val interactionSource = remember { MutableInteractionSource() }
             val showSysOnclick = {
                 viewModel.showSystemApps = !viewModel.showSystemApps
                 prefs.edit {
@@ -241,15 +242,34 @@ private fun FilterMenu(viewModel: SuperUserViewModel, prefs: SharedPreferences) 
                 viewModel.loadAppList()
                 showDropdown.value = false
             }
+            val showPrimaryUserOnclick = {
+                viewModel.showOnlyPrimaryUserApps = !viewModel.showOnlyPrimaryUserApps
+                prefs.edit {
+                    putBoolean("show_only_primary_user_apps", viewModel.showOnlyPrimaryUserApps)
+                }
+                viewModel.loadAppList()
+                showDropdown.value = false
+            }
             DropdownMenuItem(
-                interactionSource = interactionSource, trailingIcon = {
-                    Checkbox(viewModel.showSystemApps, { showSysOnclick() }, interactionSource = interactionSource)
+                trailingIcon = {
+                    Checkbox(viewModel.showSystemApps, { showSysOnclick() })
                 }, text = {
                     Text(
                         stringResource(R.string.show_system_apps)
                     )
                 }, onClick = showSysOnclick
             )
+            if (isMultiUser) {
+                DropdownMenuItem(
+                    trailingIcon = {
+                        Checkbox(viewModel.showOnlyPrimaryUserApps, { showPrimaryUserOnclick() })
+                    }, text = {
+                        Text(
+                            stringResource(R.string.show_only_primary_user_apps)
+                        )
+                    }, onClick = showPrimaryUserOnclick
+                )
+            }
         }
     }
 }

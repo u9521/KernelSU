@@ -34,7 +34,7 @@ fun getMainEntryProvider(): (NavKey) -> NavEntry<NavKey> {
             SettingScreen()
         }
         entry<Route.AppProfile>(metadata = BreezeListDetailScene.detailPane("navbar")) {
-            AppProfileScreen(it.packageName)
+            AppProfileScreen(uid = it.uid, packageName = it.packageName)
         }
         entry<Route.ExecuteModuleAction> {
             ExecuteModuleActionScreen(it.moduleId)

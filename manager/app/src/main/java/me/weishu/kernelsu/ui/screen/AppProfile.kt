@@ -99,15 +99,14 @@ import me.weishu.kernelsu.ui.viewmodel.TemplateViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppProfileScreen(
+    uid: Int,
     packageName: String,
 ) {
     val snackBarHost = LocalSnackbarHost.current
     val navigator = LocalNavController.current
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val appInfoState = remember(packageName) {
-        derivedStateOf {
-            SuperUserViewModel.apps.find { it.packageName == packageName }
-        }
+    val appInfoState = remember(uid, packageName) {
+        derivedStateOf { SuperUserViewModel.apps.find { it.uid == uid && it.packageName == packageName } }
     }
     val appInfo = appInfoState.value
     if (appInfo == null) {
@@ -116,18 +115,19 @@ fun AppProfileScreen(
         }
         return
     }
-    // The package name from the SuperUser page is the primary package name in the uid group,
-    // so there is no need to recalculate the primary app information.
     val sameUidApps = remember {
-        SuperUserViewModel.apps.filter { it.uid == appInfo.uid }
+        SuperUserViewModel.apps.filter { it.uid == uid }
     }
+    // The package name from the SuperUser is the primary package, so no need to recalculate.
     val sharedUserId = remember {
         appInfo.packageInfo.sharedUserId ?: sameUidApps.firstOrNull { it.packageInfo.sharedUserId != null }?.packageInfo?.sharedUserId ?: ""
     }
+    val initialProfile = Natives.getAppProfile(packageName, uid)
+    if (initialProfile.allowSu) {
+        initialProfile.rules = getSepolicy(packageName)
+    }
     var profile by rememberSaveable {
-        mutableStateOf(Natives.getAppProfile(packageName, appInfo.uid).apply {
-            if (allowSu) rules = getSepolicy(packageName)
-        })
+        mutableStateOf(initialProfile)
     }
     LaunchedEffect(Unit) {
         if (TemplateViewModel().templateList.isEmpty()) {
@@ -183,8 +183,8 @@ fun AppProfileScreen(
                             .height(48.dp), packageInfo = appInfo.packageInfo
                     )
                 },
-                appLabel = if (isUidGroup) ownerNameForUid(appInfo.uid) else appInfo.label,
-                appUid = appInfo.uid,
+                appLabel = if (isUidGroup) ownerNameForUid(uid) else appInfo.label,
+                appUid = uid,
                 appVersionName = appInfo.packageInfo.versionName ?: "",
                 appVersionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                     appInfo.packageInfo.longVersionCode
@@ -254,7 +254,7 @@ private fun setProfile(
                 }
             }
             if (!Natives.setAppProfile(newProfile)) {
-                snackBarHost.showSnackbar(failToUpdateAppProfile.format(appInfo.uid))
+                snackBarHost.showSnackbar(failToUpdateAppProfile.format(newProfile.uid))
             } else {
                 setUiProfile(newProfile)
             }
