@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -124,6 +125,7 @@ fun AppProfileTemplateScreen() {
         PullToRefreshBox(
             modifier = Modifier
                 .padding(innerPadding)
+                .consumeWindowInsets(innerPadding)
                 .fillMaxSize(),
             isRefreshing = viewModel.isRefreshing,
             state = state,
@@ -162,8 +164,10 @@ fun AppProfileTemplateScreen() {
                         .fillMaxSize()
                         .nestedScroll(scrollBehavior.nestedScrollConnection), contentPadding = remember {
                         PaddingValues(
-                            start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp + 56.dp + 16.dp + bottomPadding /* Scaffold Fab Spacing + Fab
-                        container height */
+                            start = 16.dp,
+                            end = 16.dp,
+                            top = 16.dp,
+                            bottom = bottomPadding + 80.dp /*NavBar Height*/ + 16.dp + 56.dp /* FAB Height */ + 12.dp + 48.dp /* SnackBar Height */ + 12.dp
                         )
                     }, state = lazyListState
                 ) {
@@ -190,7 +194,9 @@ fun AppProfileTemplateScreen() {
 private fun NewTempleFab() {
     val navigator = LocalNavController.current
     val haptic = LocalHapticFeedback.current
+    val bottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     ExtendedFloatingActionButton(
+        modifier = Modifier.padding(bottom = 80.dp + bottomPadding),
         onClick = dropUnlessResumed {
             haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
             navigator.navigateTo(Route.TemplateEditor(TemplateViewModel.TemplateInfo(), false))

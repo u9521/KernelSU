@@ -111,6 +111,7 @@ import me.weishu.kernelsu.ui.navigation3.LocalNavController
 import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.util.download
 import me.weishu.kernelsu.ui.util.hasMagisk
+import me.weishu.kernelsu.ui.util.isRailNavbar
 import me.weishu.kernelsu.ui.util.reboot
 import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel
 import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel.ModuleInfo
@@ -278,6 +279,8 @@ private fun ModuleList(
     }
 
     val state = rememberPullToRefreshState()
+    val bottomPadding = if (isRailNavbar()) 80.dp else 0.dp
+
     PullToRefreshBox(
         modifier = boxModifier, state = state, onRefresh = { viewModel.onIntent(ModuleIntent.Refresh(checkUpdate = true)) }, indicator = {
             PullToRefreshDefaults.LoadingIndicator(
@@ -307,7 +310,10 @@ private fun ModuleList(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = remember {
                 PaddingValues(
-                    start = 16.dp, top = 16.dp, end = 16.dp, bottom = 16.dp + 56.dp + 16.dp + 48.dp + 6.dp
+                    start = 16.dp,
+                    top = 16.dp,
+                    end = 16.dp,
+                    bottom = bottomPadding + 16.dp + 56.dp /* FAB Height */ + 12.dp + 48.dp /* SnackBar Height */ + 12.dp
                 )
             },
         ) {
@@ -354,26 +360,30 @@ fun ModuleItem(
 ) {
     val haptic = LocalHapticFeedback.current
     ElevatedCard(
-        modifier = Modifier.let {
-            if (module.hasWebUi) {
-                it.clickable(
-                    enabled = !module.remove && module.enabled, role = Role.Button, onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
-                        onOpenWebUI()
-                    })
-            } else {
-                it
-            }.fillMaxWidth()
-        }, shape = MaterialTheme.shapes.large, colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceBright)
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceBright)
     ) {
         val textDecoration = if (!module.remove) null else TextDecoration.LineThrough
         val switchFeedback = switchHapticFeedBack()
         Column(
-            modifier = Modifier.padding(22.dp, 18.dp, 22.dp, 18.dp)
-        ) {
+            modifier = Modifier
+                .fillMaxWidth()
+                .let {
+                    if (module.hasWebUi) {
+                        it.clickable(
+                            enabled = !module.remove && module.enabled, role = Role.Button, onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                                onOpenWebUI()
+                            })
+                    } else {
+                        it
+                    }
+                }
+                .padding(22.dp, 18.dp, 22.dp, 18.dp)) {
             // title and switch
             Row(
-                modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier, horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(
                     modifier = Modifier.weight(1f)
@@ -611,7 +621,7 @@ private fun ShortByMenuButton(viewModel: ModuleViewModel, prefs: SharedPreferenc
 @Composable
 private fun InstallModuleFAB(visible: Boolean, viewModel: ModuleViewModel) {
     val zipUris = remember { mutableStateOf<List<Uri>>(emptyList()) }
-
+    val bottomPadding = if (isRailNavbar()) 80.dp else 0.dp
     InstallModuleDialog(zipUris.value, viewModel) {
         zipUris.value = emptyList()
     }
@@ -636,7 +646,9 @@ private fun InstallModuleFAB(visible: Boolean, viewModel: ModuleViewModel) {
     }
 
     ExtendedFloatingActionButton(
-        modifier = Modifier.animateFloatingActionButton(visible = visible, alignment = Alignment.CenterEnd),
+        modifier = Modifier
+            .padding(bottom = bottomPadding)
+            .animateFloatingActionButton(visible = visible, alignment = Alignment.CenterEnd),
         onClick = {
             // Select the zip files to install
             val intent = Intent(Intent.ACTION_GET_CONTENT).apply {

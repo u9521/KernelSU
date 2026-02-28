@@ -242,7 +242,7 @@ fun InstallScreen() {
                     Icon(Icons.AutoMirrored.Filled.ArrowForward, stringResource(id = R.string.install_next))
                 },
                 modifier = Modifier
-                    .padding(bottom = 80.dp) // Adjusted padding
+                    .padding(bottom = 80.dp /* NavBar height */)
                     .animateFloatingActionButton(
                         visible = installMethod != null,
                         alignment = Alignment.CenterEnd,

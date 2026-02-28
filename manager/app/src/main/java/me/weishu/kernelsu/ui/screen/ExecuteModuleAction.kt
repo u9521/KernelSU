@@ -107,7 +107,7 @@ private fun CloseFAB(showFloatAction: Boolean) {
     }
     ExtendedFloatingActionButton(
         modifier = Modifier
-            .padding(bottom = 6.dp + 48.dp + 6.dp /* SnackBar height */)
+            .padding(bottom = 80.dp /* NavBar height */)
             .animateFloatingActionButton(
                 visible = showFloatAction,
                 alignment = Alignment.CenterEnd,
