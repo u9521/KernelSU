@@ -177,10 +177,10 @@ fun AppProfileScreen(
             AppInfoGroup(
                 appIcon = {
                     AppIconImage(
-                        appInfo.packageInfo, modifier = Modifier
+                        modifier = Modifier
                             .padding(4.dp)
                             .width(48.dp)
-                            .height(48.dp)
+                            .height(48.dp), packageInfo = appInfo.packageInfo
                     )
                 },
                 appLabel = if (isUidGroup) ownerNameForUid(appInfo.uid) else appInfo.label,
@@ -473,10 +473,10 @@ private fun AffectedAppColumn(affectedApps: List<SuperUserViewModel.AppInfo>) {
                 }
             }, leadingContent = {
                 AppIconImage(
-                    app.packageInfo, modifier = Modifier
+                    modifier = Modifier
                         .padding(4.dp)
                         .width(48.dp)
-                        .height(48.dp)
+                        .height(48.dp), packageInfo = app.packageInfo
                 )
             }, menuContent = appMenuContent(app.packageName))
         }
