@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.rememberCustomDialog
 import me.weishu.kernelsu.ui.util.getSupportedKmis
+import me.weishu.kernelsu.ui.util.windowBlurBehind
 
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -49,7 +50,14 @@ fun KmiSelectDialog(
     val haptic = LocalHapticFeedback.current
     PopupFeedBack()
 
-    AlertDialog(onDismissRequest = onDismiss, modifier = Modifier.heightIn(max = 500.dp), containerColor = MaterialTheme.colorScheme.surfaceContainer, title = {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        modifier = Modifier
+            .heightIn(max = 500.dp)
+            .windowBlurBehind(),
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        title
+        = {
         Column {
             Text(text = title, style = MaterialTheme.typography.titleLarge)
             Text(text = stringResource(R.string.current_kmi, currentKmi.let { it.ifBlank { "Unknown" } }), style = MaterialTheme.typography.bodyMedium)

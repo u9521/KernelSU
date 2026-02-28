@@ -126,8 +126,7 @@ fun AppProfileScreen(
     }
     var profile by rememberSaveable {
         mutableStateOf(Natives.getAppProfile(packageName, appInfo.uid).apply {
-            if (allowSu)
-                rules = getSepolicy(packageName)
+            if (allowSu) rules = getSepolicy(packageName)
         })
     }
     LaunchedEffect(Unit) {
@@ -235,8 +234,7 @@ fun AppProfileScreen(
 
 @Composable
 private fun setProfile(
-    appInfo: SuperUserViewModel.AppInfo,
-    setUiProfile: (Natives.Profile) -> Unit
+    appInfo: SuperUserViewModel.AppInfo, setUiProfile: (Natives.Profile) -> Unit
 ): (Natives.Profile) -> Unit {
     val failToUpdateAppProfile = stringResource(R.string.failed_to_update_app_profile).format(appInfo.label)
     val failToUpdateSepolicy = stringResource(R.string.failed_to_update_sepolicy).format(appInfo.label)
@@ -281,6 +279,7 @@ private fun AppInfoGroup(
     val resources = LocalResources.current
     val isUidGroup = affectedAppCount > 1
     val switchFeedback = switchHapticFeedBack()
+    val userId = appUid / 100000
     SegmentedListGroup(modifier = Modifier.padding(all = 16.dp)) {
         menuItem(
             leadingContent = appIcon, content = { Text(appLabel) }, supportingContent = {
@@ -294,8 +293,12 @@ private fun AppInfoGroup(
                         )
                     }
                 }
-            }, trailingContent = { StatusTag("UID $appUid") },
-            menuContent = if (isUidGroup) null else appMenuContent(packageName)
+            }, trailingContent = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    StatusTag("UID $appUid")
+                    if (userId != 0) StatusTag("USER $userId")
+                }
+            }, menuContent = if (isUidGroup) null else appMenuContent(packageName)
         )
         switchItem(
             title = resources.getString(R.string.superuser),
@@ -304,8 +307,7 @@ private fun AppInfoGroup(
             onCheckedChange = {
                 switchFeedback(it)
                 onAllowSuChange(it)
-            }
-        )
+            })
         item(
             content = { Text(stringResource(R.string.profile)) },
             supportingContent = { Text(mode) },
@@ -332,10 +334,7 @@ private fun TopBar(onBack: () -> Unit, scrollBehavior: TopAppBarScrollBehavior) 
             IconButton(
                 onClick = onBack
             ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
-        },
-        actions = { SplitScreenRatioButton() },
-        scrollBehavior = scrollBehavior,
-        colors = defaultTopAppBarColors()
+        }, actions = { SplitScreenRatioButton() }, scrollBehavior = scrollBehavior, colors = defaultTopAppBarColors()
     )
 }
 

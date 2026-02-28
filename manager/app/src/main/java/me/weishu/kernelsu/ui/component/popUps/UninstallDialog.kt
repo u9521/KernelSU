@@ -41,6 +41,7 @@ import me.weishu.kernelsu.ui.component.rememberCustomDialog
 import me.weishu.kernelsu.ui.navigation3.LocalNavController
 import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.screen.FlashIt
+import me.weishu.kernelsu.ui.util.windowBlurBehind
 
 
 enum class UninstallType(@get:StringRes val title: Int, @get:StringRes val message: Int, @get:DrawableRes val icon: Int) {
@@ -154,7 +155,7 @@ fun UninstallSelectionDialog(
     var selectedOption by remember { mutableStateOf<UninstallType?>(null) }
     val haptic = LocalHapticFeedback.current
     PopupFeedBack()
-    AlertDialog(containerColor = MaterialTheme.colorScheme.surfaceContainer, onDismissRequest = {}, icon = {
+    AlertDialog(modifier = Modifier.windowBlurBehind(), containerColor = MaterialTheme.colorScheme.surfaceContainer, onDismissRequest = {}, icon = {
         Icon(painterResource(R.drawable.ic_delete_rounded_filled), contentDescription = null, tint = MaterialTheme.colorScheme.primary)
     }, title = {
         Text(text = stringResource(R.string.settings_uninstall))

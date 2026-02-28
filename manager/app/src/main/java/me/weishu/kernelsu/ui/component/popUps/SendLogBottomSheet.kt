@@ -40,6 +40,7 @@ import me.weishu.kernelsu.ui.component.LocalSnackbarHost
 import me.weishu.kernelsu.ui.component.rememberCustomDialog
 import me.weishu.kernelsu.ui.component.rememberLoadingDialog
 import me.weishu.kernelsu.ui.util.getBugreportFile
+import me.weishu.kernelsu.ui.util.windowBlurBehind
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -72,6 +73,7 @@ fun sendLogBottomSheet(): DialogHandle {
     return rememberCustomDialog { dismiss ->
         PopupFeedBack()
         ModalBottomSheet(
+            modifier = Modifier.windowBlurBehind(),
             onDismissRequest = dismiss,
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
             content = {

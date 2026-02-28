@@ -42,6 +42,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.parcelize.Parcelize
 import me.weishu.kernelsu.ui.component.popUps.PopupFeedBack
+import me.weishu.kernelsu.ui.util.windowBlurBehind
 import kotlin.coroutines.resume
 
 private const val TAG = "DialogComponent"
@@ -377,6 +378,7 @@ private fun ConfirmDialog(visuals: ConfirmDialogVisuals, confirm: () -> Unit, di
     val haptic = LocalHapticFeedback.current
     PopupFeedBack()
     AlertDialog(
+        modifier = Modifier.windowBlurBehind(16.dp),
         onDismissRequest = {
             dismiss()
         },

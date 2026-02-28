@@ -43,6 +43,7 @@ import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.OutlinedTextEdit
 import me.weishu.kernelsu.ui.util.checkSelinuxContext
 import me.weishu.kernelsu.ui.util.isSepolicyValid
+import me.weishu.kernelsu.ui.util.windowBlurBehind
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -67,7 +68,9 @@ fun SeLinuxEditBottomSheet(
 
 
     ModalBottomSheet(
-        modifier = Modifier.padding(WindowInsets.statusBars.only(WindowInsetsSides.Top + WindowInsetsSides.Bottom).asPaddingValues()),
+        modifier = Modifier
+            .windowBlurBehind()
+            .padding(WindowInsets.statusBars.only(WindowInsetsSides.Top + WindowInsetsSides.Bottom).asPaddingValues()),
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
         contentWindowInsets = { WindowInsets(left = 16.dp, right = 16.dp).union(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom)) },

@@ -389,7 +389,7 @@ private fun GroupTags(group: GroupedApps) {
     val userId = group.uid / 100000
     FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         if (userId != 0) {
-            StatusTag(label = "UID$userId", contentColor = MaterialTheme.colorScheme.onPrimary, backgroundColor = MaterialTheme.colorScheme.primary)
+            StatusTag(label = "USER $userId", contentColor = MaterialTheme.colorScheme.onPrimary, backgroundColor = MaterialTheme.colorScheme.primary)
         }
         if (group.anyAllowSu) {
             StatusTag("ROOT", contentColor = MaterialTheme.colorScheme.onTertiaryContainer, backgroundColor = MaterialTheme.colorScheme.tertiaryContainer)

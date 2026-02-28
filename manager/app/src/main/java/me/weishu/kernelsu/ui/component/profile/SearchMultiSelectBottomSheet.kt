@@ -66,6 +66,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.profile.Capabilities
+import me.weishu.kernelsu.ui.util.windowBlurBehind
 
 
 data class ListOption(
@@ -130,7 +131,9 @@ fun MultiSelectSearchBottomSheet(
     }
 
     ModalBottomSheet(
-        modifier = Modifier.padding(WindowInsets.statusBars.only(WindowInsetsSides.Top + WindowInsetsSides.Bottom).asPaddingValues()),
+        modifier = Modifier
+            .windowBlurBehind()
+            .padding(WindowInsets.statusBars.only(WindowInsetsSides.Top + WindowInsetsSides.Bottom).asPaddingValues()),
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
         contentWindowInsets = { WindowInsets(left = 16.dp, right = 16.dp).union(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom)) },
