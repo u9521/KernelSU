@@ -81,14 +81,17 @@ class MainActivity : ComponentActivity(), IntentEventSource by IntentHelperImpl(
                     if (isManager) ZipFileIntentHandler()
                     if (isManager) URLSchemeIntentHandler()
                     NavigationSuiteScaffold(
-                        navigationItems = { NavBarItems() }, state = state, navigationSuiteType = navigationSuiteType(currentWindowAdaptiveInfo()),
+                        navigationItems = { NavBarItems() },
+                        state = state,
+                        navigationSuiteType = navigationSuiteType(currentWindowAdaptiveInfo()),
                         navigationSuiteColors = NavigationSuiteDefaults.colors(
                             shortNavigationBarContainerColor = MaterialTheme.colorScheme.surfaceBright,
                             wideNavigationRailColors = WideNavigationRailDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceBright),
                             navigationBarContainerColor = MaterialTheme.colorScheme.surfaceBright,
                             navigationRailContainerColor = MaterialTheme.colorScheme.surfaceBright,
                             navigationDrawerContainerColor = MaterialTheme.colorScheme.surfaceBright,
-                        )
+                        ),
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer
                     ) {
                         MainNavDisplay()
                     }
@@ -151,13 +154,11 @@ private fun URLSchemeIntentHandler() {
 
             "webui" -> {
                 val moduleId = uri.getQueryParameter("id") ?: return@HandleIntentEffect
-                val webIntent = Intent(context, WebUIActivity::class.java)
-                    .setData("kernelsu://webui/$moduleId".toUri())
+                val webIntent = Intent(context, WebUIActivity::class.java).setData("kernelsu://webui/$moduleId".toUri())
                     .putExtra("id", moduleId)
                     .putExtra("from_webui_shortcut", true)
                     .addFlags(
-                        Intent.FLAG_ACTIVITY_NEW_DOCUMENT or
-                                Intent.FLAG_ACTIVITY_CLEAR_TOP
+                        Intent.FLAG_ACTIVITY_NEW_DOCUMENT or Intent.FLAG_ACTIVITY_CLEAR_TOP
                     )
                 context.startActivity(webIntent)
             }
