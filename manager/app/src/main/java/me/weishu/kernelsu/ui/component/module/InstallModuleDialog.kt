@@ -3,6 +3,8 @@ package me.weishu.kernelsu.ui.component.module
 import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import kotlinx.coroutines.Dispatchers
@@ -25,6 +27,7 @@ fun InstallModuleDialog(
 ) {
     // Do nothing if the URI list is empty.
     if (uris.isEmpty()) return
+    val uiState by viewModel.uiState.collectAsState()
 
     val navigator = LocalNavController.current
     val context = LocalContext.current
@@ -46,11 +49,11 @@ fun InstallModuleDialog(
         val confirmContent = if (uris.size == 1) {
             // Single file: parse its metadata for a detailed description.
             loadingDialog.withLoading {
-                if (viewModel.moduleList.isEmpty()) {
+                if (uiState.moduleList.isEmpty()) {
                     viewModel.loadModuleList()
                 }
                 withContext(Dispatchers.IO) {
-                    ModuleParser.getModuleInstallDesc(context, uris.first(), viewModel.moduleList)
+                    ModuleParser.getModuleInstallDesc(context, uris.first(), uiState.moduleList)
                 }
             }
         } else {

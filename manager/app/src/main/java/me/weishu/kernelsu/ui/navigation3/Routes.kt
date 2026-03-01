@@ -82,13 +82,13 @@ sealed interface Route : NavKey, Parcelable {
     @Serializable
     data class ExecuteModuleAction(
         val moduleId: String
-    ) : NavKey, Parcelable
+    ) : Route
 
     @Parcelize
     @Serializable
     data class Flash(
         @Serializable(with = FlashItSerializer::class) val flashIt: FlashIt
-    ) : NavKey, Parcelable
+    ) : Route
 
     @Parcelize
     @Serializable

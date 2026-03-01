@@ -27,11 +27,11 @@ import androidx.lifecycle.compose.dropUnlessResumed
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.data.repository.ModuleRepositoryImpl
 import me.weishu.kernelsu.ui.component.ShellLogScaffold
 import me.weishu.kernelsu.ui.component.processShellOutput
 import me.weishu.kernelsu.ui.navigation3.LocalNavController
 import me.weishu.kernelsu.ui.util.runModuleAction
-import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -49,11 +49,9 @@ fun ExecuteModuleActionScreen(moduleId: String) {
         if (shellOutputText.isNotEmpty()) {
             return@LaunchedEffect
         }
-        val viewModel = ModuleViewModel()
-        if (viewModel.moduleList.isEmpty()) {
-            viewModel.loadModuleList()
-        }
-        val moduleInfo = viewModel.moduleList.find { info -> info.id == moduleId }
+        val repo = ModuleRepositoryImpl()
+        val modules = repo.getModules().getOrDefault(emptyList())
+        val moduleInfo = modules.find { info -> info.id == moduleId }
         if (moduleInfo == null) {
             Toast.makeText(context, noModule.format(moduleId), Toast.LENGTH_SHORT).show()
             navigator.popBackStack()

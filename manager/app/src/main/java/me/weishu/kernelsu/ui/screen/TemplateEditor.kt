@@ -60,7 +60,6 @@ import me.weishu.kernelsu.ui.util.deleteAppProfileTemplate
 import me.weishu.kernelsu.ui.util.getAppProfileTemplate
 import me.weishu.kernelsu.ui.util.setAppProfileTemplate
 import me.weishu.kernelsu.ui.viewmodel.TemplateViewModel
-import me.weishu.kernelsu.ui.viewmodel.toJSON
 
 /**
  * @author weishu

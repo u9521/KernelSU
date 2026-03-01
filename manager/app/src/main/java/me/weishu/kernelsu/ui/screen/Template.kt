@@ -48,6 +48,8 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -91,12 +93,13 @@ import me.weishu.kernelsu.ui.viewmodel.TemplateViewModel
 fun AppProfileTemplateScreen() {
     val navigator = LocalNavController.current
     val viewModel = viewModel<TemplateViewModel>()
+    val uiState by viewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val snackBarHostState = LocalSnackbarHost.current
 
     LaunchedEffect(Unit) {
-        if (viewModel.templateList.isEmpty()) {
+        if (uiState.templateList.isEmpty()) {
             viewModel.fetchTemplates()
         }
     }
@@ -127,15 +130,15 @@ fun AppProfileTemplateScreen() {
                 .padding(innerPadding)
                 .consumeWindowInsets(innerPadding)
                 .fillMaxSize(),
-            isRefreshing = viewModel.isRefreshing,
+            isRefreshing = uiState.isRefreshing,
             state = state,
             onRefresh = {
                 scope.launch { viewModel.fetchTemplates() }
             }, indicator = {
-                PullToRefreshDefaults.LoadingIndicator(state = state, isRefreshing = viewModel.isRefreshing, modifier = Modifier.align(Alignment.TopCenter))
+                PullToRefreshDefaults.LoadingIndicator(state = state, isRefreshing = uiState.isRefreshing, modifier = Modifier.align(Alignment.TopCenter))
             }) {
-            if (viewModel.templateList.isEmpty()) {
-                if (!viewModel.isRefreshing) {
+            if (uiState.templateList.isEmpty()) {
+                if (!uiState.isRefreshing) {
                     Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
                         val promptText = if (offline) {
                             stringResource(R.string.network_offline)
@@ -171,8 +174,8 @@ fun AppProfileTemplateScreen() {
                         )
                     }, state = lazyListState
                 ) {
-                    items(viewModel.templateList, key = { it.id }) { template ->
-                        TemplateItem(template, viewModel.templateList.indexOf(template), viewModel.templateList.size)
+                    items(uiState.templateList, key = { it.id }) { template ->
+                        TemplateItem(template, uiState.templateList.indexOf(template), uiState.templateList.size)
                     }
                 }
                 VerticalScrollbar(

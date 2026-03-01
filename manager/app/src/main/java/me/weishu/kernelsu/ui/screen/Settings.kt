@@ -1,6 +1,5 @@
 package me.weishu.kernelsu.ui.screen
 
-import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -26,21 +25,15 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.core.content.edit
+import androidx.lifecycle.viewmodel.compose.viewModel
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.BreezeSnackBarHost
@@ -55,9 +48,7 @@ import me.weishu.kernelsu.ui.component.switchHapticFeedBack
 import me.weishu.kernelsu.ui.navigation3.LocalNavController
 import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.theme.defaultTopAppBarColors
-import me.weishu.kernelsu.ui.util.execKsud
-import me.weishu.kernelsu.ui.util.getFeaturePersistValue
-import me.weishu.kernelsu.ui.util.getFeatureStatus
+import me.weishu.kernelsu.ui.viewmodel.SettingsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -65,9 +56,9 @@ fun SettingScreen() {
     val navigator = LocalNavController.current
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val snackBarHost = LocalSnackbarHost.current
-    val context = LocalContext.current
+    val viewModel = viewModel<SettingsViewModel>()
+    val uiState by viewModel.uiState.collectAsState()
     val resources = LocalResources.current
-    val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
     val switchFeedback = switchHapticFeedBack()
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -92,15 +83,6 @@ fun SettingScreen() {
                 .navigationBarsPadding()
                 .imePadding(), verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            var checkUpdate by rememberSaveable {
-                mutableStateOf(
-                    prefs.getBoolean("check_update", true)
-                )
-            }
-
-            var checkModuleUpdate by rememberSaveable {
-                mutableStateOf(prefs.getBoolean("module_check_update", true))
-            }
 
             SegmentedListGroup {
                 switchItem(
@@ -111,11 +93,10 @@ fun SettingScreen() {
                     },
                     title = resources.getString(R.string.settings_check_update),
                     summary = resources.getString(R.string.settings_check_update_summary),
-                    checked = checkUpdate,
+                    checked = uiState.checkUpdate,
                     onCheckedChange = {
                         switchFeedback(it)
-                        prefs.edit { putBoolean("check_update", it) }
-                        checkUpdate = it
+                        viewModel.setCheckUpdate(it)
                     })
 
                 switchItem(
@@ -127,13 +108,10 @@ fun SettingScreen() {
                     },
                     title = resources.getString(R.string.settings_module_check_update),
                     summary = resources.getString(R.string.settings_check_update_summary),
-                    checked = checkModuleUpdate
+                    checked = uiState.checkModuleUpdate
                 ) {
                     switchFeedback(it)
-                    prefs.edit {
-                        putBoolean("module_check_update", it)
-                    }
-                    checkModuleUpdate = it
+                    viewModel.setCheckModuleUpdate(it)
                 }
             }
 
@@ -148,21 +126,7 @@ fun SettingScreen() {
                     })
             }
 
-            val currentSuEnabled = Natives.isSuEnabled()
-            var suCompatMode by rememberSaveable { mutableIntStateOf(if (!currentSuEnabled) 1 else 0) }
-            val suPersistValue by produceState(initialValue = null as Long?) {
-                value = getFeaturePersistValue("su_compat")
-            }
-            LaunchedEffect(suPersistValue) {
-                suPersistValue?.let { v ->
-                    suCompatMode = if (v == 0L) 2 else if (!currentSuEnabled) 1 else 0
-                }
-            }
-
-            val suStatus by produceState(initialValue = "supported") {
-                value = getFeatureStatus("su_compat")
-            }
-            val suSummary = when (suStatus) {
+            val suSummary = when (uiState.suCompatStatus) {
                 "unsupported" -> stringResource(id = R.string.feature_status_unsupported_summary)
                 "managed" -> stringResource(id = R.string.feature_status_managed_summary)
                 else -> stringResource(id = R.string.settings_sucompat_summary)
@@ -173,12 +137,7 @@ fun SettingScreen() {
                 stringResource(id = R.string.settings_mode_disable_always),
             )
 
-            var isKernelUmountEnabled by rememberSaveable { mutableStateOf(Natives.isKernelUmountEnabled()) }
-            val umountStatus by produceState(initialValue = "supported") {
-                value = getFeatureStatus("kernel_umount")
-            }
-
-            val umountSummary = when (umountStatus) {
+            val umountSummary = when (uiState.kernelUmountStatus) {
                 "unsupported" -> stringResource(id = R.string.feature_status_unsupported_summary)
                 "managed" -> stringResource(id = R.string.feature_status_managed_summary)
                 else -> stringResource(id = R.string.settings_kernel_umount_summary)
@@ -188,8 +147,8 @@ fun SettingScreen() {
                 menuItem(
                     visible = ksuIsValid(),
                     content = { Text(stringResource(id = R.string.settings_sucompat)) },
-                    selected = suCompatModeItems.getOrNull(suCompatMode),
-                    enabled = suStatus == "supported",
+                    selected = suCompatModeItems.getOrNull(uiState.suCompatMode),
+                    enabled = uiState.suCompatStatus == "supported",
                     leadingContent = {
                         Icon(
                             painterResource(R.drawable.ic_remove_moderator_outlined_filled), stringResource(id = R.string.settings_sucompat)
@@ -198,30 +157,7 @@ fun SettingScreen() {
                     supportingContent = { Text(suSummary) }) { dismissMenu ->
                     suCompatModeItems.forEachIndexed { index, name ->
                         DropdownMenuItem(text = { Text(name) }, onClick = {
-                            when (index) {
-                                // Default: enable and save to persist
-                                0 -> if (Natives.setSuEnabled(true)) {
-                                    execKsud("feature save", true)
-                                    prefs.edit { putInt("su_compat_mode", 0) }
-                                    suCompatMode = 0
-                                }
-
-                                // Temporarily disable: save enabled state first, then disable
-                                1 -> if (Natives.setSuEnabled(true)) {
-                                    execKsud("feature save", true)
-                                    if (Natives.setSuEnabled(false)) {
-                                        prefs.edit { putInt("su_compat_mode", 0) }
-                                        suCompatMode = 1
-                                    }
-                                }
-
-                                // Permanently disable: disable and save
-                                2 -> if (Natives.setSuEnabled(false)) {
-                                    execKsud("feature save", true)
-                                    prefs.edit { putInt("su_compat_mode", 2) }
-                                    suCompatMode = 2
-                                }
-                            }
+                            viewModel.setSuCompatMode(index)
                             dismissMenu()
                         })
                     }
@@ -236,25 +172,12 @@ fun SettingScreen() {
                     },
                     title = resources.getString(R.string.settings_kernel_umount),
                     summary = umountSummary,
-                    checked = isKernelUmountEnabled,
-                    enabled = umountStatus == "supported",
+                    checked = uiState.isKernelUmountEnabled,
+                    enabled = uiState.kernelUmountStatus == "supported",
                 ) { checked ->
-                    if (Natives.setKernelUmountEnabled(checked)) {
-                        execKsud("feature save", true)
-                        isKernelUmountEnabled = checked
-                        switchFeedback(checked)
-                    }
+                    viewModel.setKernelUmountEnabled(checked)
+                    switchFeedback(checked)
                 }
-            }
-
-            var umountChecked by rememberSaveable {
-                mutableStateOf(Natives.isDefaultUmountModules())
-            }
-
-            var enableWebDebugging by rememberSaveable {
-                mutableStateOf(
-                    prefs.getBoolean("enable_web_debugging", false)
-                )
             }
 
             SegmentedListGroup {
@@ -267,12 +190,10 @@ fun SettingScreen() {
                     },
                     title = resources.getString(R.string.settings_umount_modules_default),
                     summary = resources.getString(R.string.settings_umount_modules_default_summary),
-                    checked = umountChecked
+                    checked = uiState.isDefaultUmountModules
                 ) {
+                    viewModel.setDefaultUmountModules(it)
                     switchFeedback(it)
-                    if (Natives.setDefaultUmountModules(it)) {
-                        umountChecked = it
-                    }
                 }
 
                 switchItem(
@@ -286,11 +207,10 @@ fun SettingScreen() {
                     },
                     title = resources.getString(R.string.enable_web_debugging),
                     summary = resources.getString(R.string.enable_web_debugging_summary),
-                    checked = enableWebDebugging
+                    checked = uiState.enableWebDebugging
                 ) {
                     switchFeedback(it)
-                    prefs.edit { putBoolean("enable_web_debugging", it) }
-                    enableWebDebugging = it
+                    viewModel.setEnableWebDebugging(it)
                 }
             }
 

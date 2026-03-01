@@ -50,6 +50,7 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -90,19 +91,22 @@ fun SuperUserScreen() {
     val navigator = LocalNavController.current
     val viewModel = viewModel<SuperUserViewModel>()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val searchStatus by viewModel.searchStatus
+    val uiState by viewModel.uiState.collectAsState()
+    val searchStatus = uiState.searchStatus
     val context = LocalContext.current
+    var isInitialized by rememberSaveable { mutableStateOf(false) }
     val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
     LaunchedEffect(key1 = Unit) {
         when {
-            viewModel.appList.value.isEmpty() -> {
-                viewModel.showSystemApps = prefs.getBoolean("show_system_apps", false)
-                viewModel.loadAppList(true)
+            !isInitialized || uiState.appList.isEmpty() -> {
+                viewModel.setShowSystemApps(prefs.getBoolean("show_system_apps", false))
+                viewModel.setShowOnlyPrimaryUserApps(prefs.getBoolean("show_only_primary_user_apps", false))
+                viewModel.loadAppList()
             }
 
             viewModel.isNeedRefresh -> {
-                viewModel.loadAppList()
+                viewModel.loadAppList(resort = false)
             }
         }
     }
@@ -119,25 +123,25 @@ fun SuperUserScreen() {
             SearchAppBar(
                 title = { Text(stringResource(R.string.superuser)) }, searchStatus = searchStatus, dropdownContent = {
                     FilterMenu(viewModel, prefs)
-                }, scrollBehavior = scrollBehavior, onBackClick = onBack
+                }, scrollBehavior = scrollBehavior, onBackClick = onBack, onSearchStatusChange = viewModel::updateSearchStatus
             )
         },
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     ) { innerPadding ->
-        val displayAppList = when (viewModel.searchStatus.value.resultStatus) {
-            SearchStatus.ResultStatus.SHOW, SearchStatus.ResultStatus.EMPTY -> viewModel.searchResults.value.filter { it.packageName != ksuApp.packageName }
-            else -> viewModel.appList.value.filter { it.packageName != ksuApp.packageName }
+        val displayAppList = when (uiState.searchStatus.resultStatus) {
+            SearchStatus.ResultStatus.SHOW, SearchStatus.ResultStatus.EMPTY -> uiState.searchResults.filter { it.packageName != ksuApp.packageName }
+            else -> uiState.appList.filter { it.packageName != ksuApp.packageName }
         }
         val groups = remember(displayAppList) {
             buildGroups(displayAppList)
         }
         var expandedUids by rememberSaveable { mutableStateOf(setOf<Int>()) }
 
-        LaunchedEffect(viewModel.searchStatus.value.resultStatus, viewModel.searchResults.value) {
-            when (viewModel.searchStatus.value.resultStatus) {
+        LaunchedEffect(uiState.searchStatus.resultStatus, uiState.searchResults) {
+            when (uiState.searchStatus.resultStatus) {
                 SearchStatus.ResultStatus.SHOW -> {
-                    val searchResultsByUid = viewModel.searchResults.value.groupBy { it.uid }
+                    val searchResultsByUid = uiState.searchResults.groupBy { it.uid }
                     expandedUids = groups.filter { group ->
                         val appsInGroup = searchResultsByUid[group.uid] ?: emptyList()
                         appsInGroup.size > 1
@@ -157,9 +161,9 @@ fun SuperUserScreen() {
                 .fillMaxSize(),
             state = state,
             onRefresh = { viewModel.loadAppList(true) },
-            isRefreshing = viewModel.isRefreshing,
+            isRefreshing = uiState.isRefreshing,
             indicator = {
-                PullToRefreshDefaults.LoadingIndicator(state = state, isRefreshing = viewModel.isRefreshing, modifier = Modifier.align(Alignment.TopCenter))
+                PullToRefreshDefaults.LoadingIndicator(state = state, isRefreshing = uiState.isRefreshing, modifier = Modifier.align(Alignment.TopCenter))
             }) {
             val bottomPadding = if (isRailNavbar()) WindowInsets.safeDrawing.asPaddingValues().calculateBottomPadding() else 0.dp
             val listState = rememberLazyListState()
@@ -202,7 +206,7 @@ fun SuperUserScreen() {
                         } else null, onClickPrimary = {
                             navigator.navigateTo(Route.AppProfile(uid = group.uid, packageName = group.primary.packageName))
                             viewModel.markNeedRefresh()
-                        }, modifier = Modifier.padding(top = animatedTopPadding), expanded = isExpanded
+                        }, modifier = Modifier.padding(top = animatedTopPadding.coerceAtLeast(0.dp)), expanded = isExpanded
                     )
                 }
             }
@@ -223,8 +227,9 @@ fun SuperUserScreen() {
 @Composable
 private fun FilterMenu(viewModel: SuperUserViewModel, prefs: SharedPreferences) {
     val showDropdown = remember { mutableStateOf(false) }
-    val isMultiUser = remember(viewModel.userIds.value) {
-        viewModel.userIds.value.size > 1
+    val uiState by viewModel.uiState.collectAsState()
+    val isMultiUser = remember(uiState.userIds) {
+        uiState.userIds.size > 1
     }
     IconButton(
         onClick = { showDropdown.value = true },
@@ -235,24 +240,22 @@ private fun FilterMenu(viewModel: SuperUserViewModel, prefs: SharedPreferences) 
         DropdownMenu(expanded = showDropdown.value, onDismissRequest = { showDropdown.value = false }) {
             PopupFeedBack()
             val showSysOnclick = {
-                viewModel.showSystemApps = !viewModel.showSystemApps
+                viewModel.setShowSystemApps(!uiState.showSystemApps)
                 prefs.edit {
-                    putBoolean("show_system_apps", viewModel.showSystemApps)
+                    putBoolean("show_system_apps", !uiState.showSystemApps)
                 }
-                viewModel.loadAppList()
                 showDropdown.value = false
             }
             val showPrimaryUserOnclick = {
-                viewModel.showOnlyPrimaryUserApps = !viewModel.showOnlyPrimaryUserApps
+                viewModel.setShowOnlyPrimaryUserApps(!uiState.showOnlyPrimaryUserApps)
                 prefs.edit {
-                    putBoolean("show_only_primary_user_apps", viewModel.showOnlyPrimaryUserApps)
+                    putBoolean("show_only_primary_user_apps", uiState.showOnlyPrimaryUserApps)
                 }
-                viewModel.loadAppList()
                 showDropdown.value = false
             }
             DropdownMenuItem(
                 trailingIcon = {
-                    Checkbox(viewModel.showSystemApps, { showSysOnclick() })
+                    Checkbox(uiState.showSystemApps, null)
                 }, text = {
                     Text(
                         stringResource(R.string.show_system_apps)
@@ -262,7 +265,7 @@ private fun FilterMenu(viewModel: SuperUserViewModel, prefs: SharedPreferences) 
             if (isMultiUser) {
                 DropdownMenuItem(
                     trailingIcon = {
-                        Checkbox(viewModel.showOnlyPrimaryUserApps, { showPrimaryUserOnclick() })
+                        Checkbox(uiState.showOnlyPrimaryUserApps, null)
                     }, text = {
                         Text(
                             stringResource(R.string.show_only_primary_user_apps)

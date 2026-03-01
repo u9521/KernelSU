@@ -48,6 +48,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -68,6 +69,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.data.model.TemplateInfo
 import me.weishu.kernelsu.ui.component.AppIconImage
 import me.weishu.kernelsu.ui.component.BreezeSnackBarHost
 import me.weishu.kernelsu.ui.component.LocalSnackbarHost
@@ -105,22 +107,22 @@ fun AppProfileScreen(
     val snackBarHost = LocalSnackbarHost.current
     val navigator = LocalNavController.current
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val appInfoState = remember(uid, packageName) {
-        derivedStateOf { SuperUserViewModel.apps.find { it.uid == uid && it.packageName == packageName } }
+    val superUserVM = viewModel<SuperUserViewModel>()
+    val templateVM = viewModel<TemplateViewModel>()
+    val appUiState by superUserVM.uiState.collectAsState()
+    val templateUiState by templateVM.uiState.collectAsState()
+    val groupAppState = remember(uid, packageName) {
+        derivedStateOf { appUiState.groupedApps.find { it.uid == uid && it.primary.packageName == packageName } }
     }
-    val appInfo = appInfoState.value
-    if (appInfo == null) {
+    val groupApp = groupAppState.value
+    if (groupApp == null) {
         LaunchedEffect(Unit) {
             navigator.popBackStack()
         }
         return
     }
-    val sameUidApps = remember {
-        SuperUserViewModel.apps.filter { it.uid == uid }
-    }
-    // The package name from the SuperUser is the primary package, so no need to recalculate.
     val sharedUserId = remember {
-        appInfo.packageInfo.sharedUserId ?: sameUidApps.firstOrNull { it.packageInfo.sharedUserId != null }?.packageInfo?.sharedUserId ?: ""
+        groupApp.primary.packageInfo.sharedUserId ?: groupApp.apps.firstOrNull { it.packageInfo.sharedUserId != null }?.packageInfo?.sharedUserId ?: ""
     }
     val initialProfile = Natives.getAppProfile(packageName, uid)
     if (initialProfile.allowSu) {
@@ -130,8 +132,8 @@ fun AppProfileScreen(
         mutableStateOf(initialProfile)
     }
     LaunchedEffect(Unit) {
-        if (TemplateViewModel().templateList.isEmpty()) {
-            TemplateViewModel().fetchTemplates()
+        if (templateUiState.templateList.isEmpty()) {
+            templateVM.fetchTemplates()
         }
     }
 
@@ -146,10 +148,10 @@ fun AppProfileScreen(
         contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
         containerColor = MaterialTheme.colorScheme.surfaceContainer
     ) { paddingValues ->
-        val isUidGroup = sameUidApps.size > 1
+        val isUidGroup = groupApp.apps.size > 1
         val isRootGranted = profile.allowSu
 
-        val onProfileChange = setProfile(appInfo) { profile = it }
+        val onProfileChange = setProfile(groupApp.primary) { profile = it }
         var rootMode by rememberSaveable {
             mutableStateOf(
                 if (profile.rootUseDefault) Mode.Default
@@ -180,19 +182,19 @@ fun AppProfileScreen(
                         modifier = Modifier
                             .padding(4.dp)
                             .width(48.dp)
-                            .height(48.dp), packageInfo = appInfo.packageInfo
+                            .height(48.dp), packageInfo = groupApp.primary.packageInfo
                     )
                 },
-                appLabel = if (isUidGroup) ownerNameForUid(uid) else appInfo.label,
+                appLabel = if (isUidGroup) ownerNameForUid(uid) else groupApp.primary.label,
                 appUid = uid,
-                appVersionName = appInfo.packageInfo.versionName ?: "",
+                appVersionName = groupApp.primary.packageInfo.versionName ?: "",
                 appVersionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    appInfo.packageInfo.longVersionCode
+                    groupApp.primary.packageInfo.longVersionCode
                 } else {
-                    @Suppress("DEPRECATION") appInfo.packageInfo.versionCode.toLong()
+                    @Suppress("DEPRECATION") groupApp.primary.packageInfo.versionCode.toLong()
                 },
                 packageName = if (isUidGroup) sharedUserId else packageName,
-                affectedAppCount = sameUidApps.size,
+                affectedAppCount = groupApp.apps.size,
                 isRootGranted = profile.allowSu,
                 mode = currentMode.text
             ) {
@@ -219,14 +221,15 @@ fun AppProfileScreen(
             }
             Crossfade(targetState = isRootGranted) { isRoot ->
                 if (isRoot) {
-                    RootProfile(profile = profile, rootMode, onProfileChange = onProfileChange)
+                    val template = templateUiState.templateList.find { it.id == profile.rootTemplate }
+                    RootProfile(profile = profile, template, rootMode, onProfileChange = onProfileChange)
                 } else {
                     NonRootProfileConfig(
                         enabled = nonRootMode == Mode.Custom, profile = profile, onProfileChange = onProfileChange
                     )
                 }
             }
-            AffectedAppColumn(sameUidApps)
+            AffectedAppColumn(groupApp.apps)
             Spacer(modifier = Modifier.height(6.dp + 48.dp + 6.dp /* SnackBar height */))
         }
     }
@@ -373,7 +376,7 @@ private fun ModeChipBar(mode: Mode, showTemple: Boolean, onModeChange: (Mode) ->
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun RootProfile(profile: Natives.Profile, mode: Mode, onProfileChange: (Natives.Profile) -> Unit) {
+private fun RootProfile(profile: Natives.Profile, template: TemplateInfo?, mode: Mode, onProfileChange: (Natives.Profile) -> Unit) {
     val motionScheme = MaterialTheme.motionScheme
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     Column {
@@ -389,9 +392,9 @@ private fun RootProfile(profile: Natives.Profile, mode: Mode, onProfileChange: (
                         )
                         AnimatedVisibility(profile.rootTemplate != null, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
                             Column {
-                                RootTempleInfo(profile.rootTemplate)
+                                RootTempleInfo(template)
                                 RootProfileConfig(
-                                    profile = profile, readOnly = true, onProfileChange = onProfileChange
+                                    profile = profile, readOnly = true, onProfileChange = { }
                                 )
                             }
                         }
@@ -415,8 +418,7 @@ private fun RootProfile(profile: Natives.Profile, mode: Mode, onProfileChange: (
 }
 
 @Composable
-private fun RootTempleInfo(templateId: String?) {
-    val template = viewModel<TemplateViewModel>().templateList.find { it.id == templateId }
+private fun RootTempleInfo(template: TemplateInfo?) {
     AnimatedContent(
         targetState = template, transitionSpec = {
             if (targetState == null) {

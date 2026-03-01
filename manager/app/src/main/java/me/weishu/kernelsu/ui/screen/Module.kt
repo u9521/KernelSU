@@ -1,10 +1,8 @@
 package me.weishu.kernelsu.ui.screen
 
-import android.annotation.SuppressLint
 import android.app.Activity.RESULT_OK
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -13,6 +11,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -60,10 +59,13 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -113,37 +115,58 @@ import me.weishu.kernelsu.ui.util.download
 import me.weishu.kernelsu.ui.util.hasMagisk
 import me.weishu.kernelsu.ui.util.isRailNavbar
 import me.weishu.kernelsu.ui.util.reboot
+import me.weishu.kernelsu.ui.viewmodel.ModuleUiState
 import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel
 import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel.ModuleInfo
 import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel.ModuleIntent
 import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel.ModuleUiEffect
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ModuleScreen() {
     val viewModel = viewModel<ModuleViewModel>()
+    val uiState by viewModel.uiState.collectAsState()
+    val modules = uiState.moduleList
+    var isInitialized by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
     val snackBarHost = LocalSnackbarHost.current
     val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
-    val searchStatus by viewModel.searchStatus
+    val searchStatus = uiState.searchStatus
 
+    val loadingDialog = rememberLoadingDialog()
+
+    LaunchedEffect(viewModel.actionLoading) {
+        if (viewModel.actionLoading) {
+            loadingDialog.showLoading()
+        } else {
+            loadingDialog.hide()
+        }
+    }
+    HandleModuleEffects(viewModel)
     LaunchedEffect(Unit) {
         when {
-            viewModel.moduleList.isEmpty() -> {
-                viewModel.checkModuleUpdate = prefs.getBoolean("module_check_update", true)
-                viewModel.sortEnabledFirst = prefs.getBoolean("module_sort_enabled_first", false)
-                viewModel.sortActionFirst = prefs.getBoolean("module_sort_action_first", false)
-                viewModel.onIntent(ModuleIntent.Refresh(checkUpdate = true))
+            !isInitialized || modules.isEmpty() -> {
+                viewModel.setCheckModuleUpdate(prefs.getBoolean("module_check_update", true))
+                viewModel.setSortEnabledFirst(prefs.getBoolean("module_sort_enabled_first", false))
+                viewModel.setSortActionFirst(prefs.getBoolean("module_sort_action_first", false))
+                viewModel.fetchModuleList(checkUpdate = true)
+                isInitialized = true
             }
 
             viewModel.isNeedRefresh -> {
-                viewModel.onIntent(ModuleIntent.Refresh())
+                viewModel.fetchModuleList(checkUpdate = true)
             }
         }
     }
 
-    LaunchedEffect(searchStatus.searchText, viewModel.moduleList) {
-        viewModel.onIntent(ModuleIntent.Search(searchStatus.searchText))
+    LaunchedEffect(searchStatus.searchText) {
+        viewModel.updateSearchText(searchStatus.searchText)
+    }
+
+    LaunchedEffect(modules) {
+        if (searchStatus.searchText.isNotEmpty()) {
+            viewModel.updateSearchText(searchStatus.searchText)
+        }
     }
 
     val isSafeMode = Natives.isSafeMode
@@ -160,9 +183,24 @@ fun ModuleScreen() {
                 searchStatus = searchStatus,
                 dropdownContent = {
                     RebootListPopup()
-                    ShortByMenuButton(viewModel, prefs)
+                    ShortByMenuButton(uiState, onSetActionFirst = {
+                        viewModel.setSortActionFirst(it)
+                        prefs.edit {
+                            putBoolean(
+                                "module_sort_action_first", it
+                            )
+                        }
+                    }, onSetEnabledFirst = {
+                        viewModel.setSortEnabledFirst(it)
+                        prefs.edit {
+                            putBoolean(
+                                "module_sort_enabled_first", it
+                            )
+                        }
+                    })
                 },
                 scrollBehavior = scrollBehavior,
+                onSearchStatusChange = viewModel::updateSearchStatus
             )
         },
         floatingActionButton = { InstallModuleFAB(visible = !(isSafeMode || magiskInstalled), viewModel = viewModel) },
@@ -174,6 +212,7 @@ fun ModuleScreen() {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .padding(innerPadding)
                     .padding(24.dp), contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -183,44 +222,55 @@ fun ModuleScreen() {
             }
             return@Scaffold
         }
-
-        ModuleList(
-            viewModel = viewModel,
-            lazyColumnModifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-            boxModifier = Modifier
+        val state = rememberPullToRefreshState()
+        PullToRefreshBox(
+            modifier = Modifier
                 .padding(innerPadding)
-                .fillMaxSize()
-        )
+                .fillMaxSize(), state = state, onRefresh = { viewModel.fetchModuleList(checkUpdate = true) }, indicator = {
+                PullToRefreshDefaults.LoadingIndicator(
+                    state = state, isRefreshing = uiState.isRefreshing, modifier = Modifier.align(Alignment.TopCenter)
+                )
+            }, isRefreshing = uiState.isRefreshing
+        ) {
+            val noSearchResult = uiState.searchStatus.resultStatus == SearchStatus.ResultStatus.EMPTY
+            if (uiState.moduleList.isEmpty() || noSearchResult) {
+                Box(
+                    modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
+                ) {
+                    if (uiState.isRefreshing) return@Box
+                    val text = if (noSearchResult) {
+                        "no modules found"
+                    } else {
+                        stringResource(R.string.module_empty)
+                    }
+                    Text(text, textAlign = TextAlign.Center)
+                }
+                return@PullToRefreshBox
+            }
+            ModuleList(
+                modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+                viewModel = viewModel,
+            )
+        }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun ModuleList(
-    viewModel: ModuleViewModel, @SuppressLint("ModifierParameter") lazyColumnModifier: Modifier = Modifier, boxModifier: Modifier = Modifier
-) {
+private fun HandleModuleEffects(viewModel: ModuleViewModel) {
     val context = LocalContext.current
+    val snackBarHost = LocalSnackbarHost.current
     val resources = LocalResources.current
     val navigator = LocalNavController.current
-    val snackBarHost = LocalSnackbarHost.current
-
-    val loadingDialog = rememberLoadingDialog()
+    val webUILauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { viewModel.onIntent(ModuleIntent.Refresh()) }
     val confirmDialog =
         rememberConfirmDialog(onConfirm = { viewModel.onIntent(ModuleIntent.ConfirmAction) }, onDismiss = { viewModel.onIntent(ModuleIntent.DismissAction) })
     val installModuleUris = remember { mutableStateOf<List<Uri>>(emptyList()) }
 
-    val webUILauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { viewModel.onIntent(ModuleIntent.Refresh()) }
-
-    LaunchedEffect(viewModel.actionLoading) {
-        if (viewModel.actionLoading) {
-            loadingDialog.showLoading()
-        } else {
-            loadingDialog.hide()
-        }
+    InstallModuleDialog(installModuleUris.value, viewModel) {
+        installModuleUris.value = emptyList()
     }
-
     LaunchedEffect(viewModel) {
         viewModel.effect.collect { effect ->
             when (effect) {
@@ -273,77 +323,56 @@ private fun ModuleList(
             }
         }
     }
+}
 
-    InstallModuleDialog(installModuleUris.value, viewModel) {
-        installModuleUris.value = emptyList()
-    }
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun BoxScope.ModuleList(
+    modifier: Modifier = Modifier,
+    viewModel: ModuleViewModel,
+) {
+    val uiState by viewModel.uiState.collectAsState()
 
-    val state = rememberPullToRefreshState()
     val bottomPadding = if (isRailNavbar()) 80.dp else 0.dp
-
-    PullToRefreshBox(
-        modifier = boxModifier, state = state, onRefresh = { viewModel.onIntent(ModuleIntent.Refresh(checkUpdate = true)) }, indicator = {
-            PullToRefreshDefaults.LoadingIndicator(
-                state = state, isRefreshing = viewModel.isRefreshing, modifier = Modifier.align(Alignment.TopCenter)
+    val lazyListState = rememberLazyListState()
+    LazyColumn(
+        modifier = modifier,
+        state = lazyListState,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = remember {
+            PaddingValues(
+                start = 16.dp,
+                top = 16.dp,
+                end = 16.dp,
+                bottom = bottomPadding + 16.dp + 56.dp /* FAB Height */ + 12.dp + 48.dp /* SnackBar Height */ + 12.dp
             )
-        }, isRefreshing = viewModel.isRefreshing
+        },
     ) {
-        if (viewModel.moduleList.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
-            ) {
-                if (viewModel.isRefreshing) return@Box
-                val text = if (viewModel.searchStatus.value.resultStatus == SearchStatus.ResultStatus.EMPTY) {
-                    "no modules found"
-                } else {
-                    stringResource(R.string.module_empty)
-                }
-                Text(text, textAlign = TextAlign.Center)
-            }
-            return@PullToRefreshBox
+        var displayModuleList = uiState.moduleList
+        if (uiState.searchStatus.resultStatus == SearchStatus.ResultStatus.SHOW) {
+            displayModuleList = uiState.searchResults
         }
-        val lazyListState = rememberLazyListState()
 
-        LazyColumn(
-            modifier = lazyColumnModifier,
-            state = lazyListState,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = remember {
-                PaddingValues(
-                    start = 16.dp,
-                    top = 16.dp,
-                    end = 16.dp,
-                    bottom = bottomPadding + 16.dp + 56.dp /* FAB Height */ + 12.dp + 48.dp /* SnackBar Height */ + 12.dp
-                )
-            },
-        ) {
-            var displayModuleList = viewModel.moduleList
-            if (viewModel.searchStatus.value.resultStatus == SearchStatus.ResultStatus.SHOW) {
-                displayModuleList = viewModel.searchResults.value
-            }
-
-            items(displayModuleList, key = { it.id }) { module ->
-                ModuleItem(
-                    module = module,
-                    hasUpdate = viewModel.updateInfo[module.id]?.downloadUrl?.isNotEmpty() ?: false,
-                    onEnableChanged = { viewModel.onIntent(ModuleIntent.Toggle(module)) },
-                    onModuleAction = { viewModel.onIntent(ModuleIntent.OpenAction(module)) },
-                    onOpenWebUI = { viewModel.onIntent(ModuleIntent.OpenWebUI(module)) },
-                    onUndoUninstall = { viewModel.onIntent(ModuleIntent.RequestUndoUninstall(module)) },
-                    onUninstall = { viewModel.onIntent(ModuleIntent.RequestUninstall(module)) },
-                    onUpdate = { viewModel.onIntent(ModuleIntent.RequestUpdate(module, viewModel.updateInfo[module.id])) })
-            }
-
+        items(displayModuleList, key = { it.id }) { module ->
+            ModuleItem(
+                module = module,
+                hasUpdate = uiState.updateInfo[module.id]?.downloadUrl?.isNotEmpty() ?: false,
+                onEnableChanged = { viewModel.onIntent(ModuleIntent.Toggle(module)) },
+                onModuleAction = { viewModel.onIntent(ModuleIntent.OpenAction(module)) },
+                onOpenWebUI = { viewModel.onIntent(ModuleIntent.OpenWebUI(module)) },
+                onUndoUninstall = { viewModel.onIntent(ModuleIntent.RequestUndoUninstall(module)) },
+                onUninstall = { viewModel.onIntent(ModuleIntent.RequestUninstall(module)) },
+                onUpdate = { viewModel.onIntent(ModuleIntent.RequestUpdate(module, uiState.updateInfo[module.id])) })
         }
-        VerticalScrollbar(
-            modifier = Modifier.align(Alignment.CenterEnd),
-            adapter = rememberScrollbarAdapter(lazyListState),
-            durationMillis = 1500L,
-            style = ScrollbarDefaults.style.copy(
-                color = MaterialTheme.colorScheme.primary, railColor = MaterialTheme.colorScheme.surfaceBright.copy(alpha = 0.5f)
-            )
-        )
     }
+    VerticalScrollbar(
+        modifier = Modifier.align(Alignment.CenterEnd),
+        adapter = rememberScrollbarAdapter(lazyListState),
+        durationMillis = 1500L,
+        style = ScrollbarDefaults.style.copy(
+            color = MaterialTheme.colorScheme.primary, railColor = MaterialTheme.colorScheme.surfaceBright.copy(alpha = 0.5f)
+        )
+    )
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -574,7 +603,7 @@ private fun ModuleButtonRow(
 
 
 @Composable
-private fun ShortByMenuButton(viewModel: ModuleViewModel, prefs: SharedPreferences) {
+private fun ShortByMenuButton(uiState: ModuleUiState, onSetActionFirst: (Boolean) -> Unit, onSetEnabledFirst: (Boolean) -> Unit) {
     val showDropdown = remember { mutableStateOf(false) }
 
     IconButton(
@@ -590,28 +619,16 @@ private fun ShortByMenuButton(viewModel: ModuleViewModel, prefs: SharedPreferenc
             DropdownMenuItem(text = {
                 Text(stringResource(R.string.module_sort_action_first))
             }, trailingIcon = {
-                Checkbox(viewModel.sortActionFirst, null)
+                Checkbox(uiState.sortActionFirst, null)
             }, onClick = {
-                viewModel.sortActionFirst = !viewModel.sortActionFirst
-                prefs.edit {
-                    putBoolean(
-                        "module_sort_action_first", viewModel.sortActionFirst
-                    )
-                }
-                viewModel.onIntent(ModuleIntent.Refresh())
+                onSetActionFirst(!uiState.sortActionFirst)
             })
             DropdownMenuItem(text = {
                 Text(stringResource(R.string.module_sort_enabled_first))
             }, trailingIcon = {
-                Checkbox(viewModel.sortEnabledFirst, null)
+                Checkbox(uiState.sortEnabledFirst, null)
             }, onClick = {
-                viewModel.sortEnabledFirst = !viewModel.sortEnabledFirst
-                prefs.edit {
-                    putBoolean(
-                        "module_sort_enabled_first", viewModel.sortEnabledFirst
-                    )
-                }
-                viewModel.onIntent(ModuleIntent.Refresh())
+                onSetEnabledFirst(!uiState.sortEnabledFirst)
             })
         }
     }
@@ -687,7 +704,9 @@ fun ModuleItemPreview(
         updateJson = "",
         hasWebUi = hasWebUi,
         hasActionScript = hasActionScript,
-        metamodule = metamodule
+        metamodule = metamodule,
+        actionIconPath = "",
+        webUiIconPath = ""
     )
     ModuleItem(module, hasUpdate, {}, {}, {}, {}, {}, {})
 }
