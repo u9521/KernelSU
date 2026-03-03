@@ -5,11 +5,14 @@ import android.content.SharedPreferences
 import android.content.pm.PackageInfo
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -28,6 +31,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
@@ -36,24 +40,28 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.ListItemShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
+import androidx.compose.material3.SearchBarDefaults
+import androidx.compose.material3.SearchBarScrollBehavior
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -66,11 +74,11 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.launch
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
-import me.weishu.kernelsu.ksuApp
 import me.weishu.kernelsu.ui.component.AppIconImage
-import me.weishu.kernelsu.ui.component.SearchAppBar
+import me.weishu.kernelsu.ui.component.SearchBar
 import me.weishu.kernelsu.ui.component.SearchStatus
 import me.weishu.kernelsu.ui.component.StatusTag
 import me.weishu.kernelsu.ui.component.popUps.PopupFeedBack
@@ -80,17 +88,18 @@ import me.weishu.kernelsu.ui.component.scrollbar.rememberScrollbarAdapter
 import me.weishu.kernelsu.ui.navigation3.LocalHasDetailPane
 import me.weishu.kernelsu.ui.navigation3.LocalNavController
 import me.weishu.kernelsu.ui.navigation3.Route
+import me.weishu.kernelsu.ui.theme.defaultTopAppBarColors
 import me.weishu.kernelsu.ui.util.isRailNavbar
 import me.weishu.kernelsu.ui.util.ownerNameForUid
-import me.weishu.kernelsu.ui.util.pickPrimary
+import me.weishu.kernelsu.ui.viewmodel.GroupedApps
 import me.weishu.kernelsu.ui.viewmodel.SuperUserViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SuperUserScreen() {
-    val navigator = LocalNavController.current
     val viewModel = viewModel<SuperUserViewModel>()
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val searchBarSB = SearchBarDefaults.enterAlwaysSearchBarScrollBehavior()
+    val topAppBarSB = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val uiState by viewModel.uiState.collectAsState()
     val searchStatus = uiState.searchStatus
     val context = LocalContext.current
@@ -111,117 +120,177 @@ fun SuperUserScreen() {
         }
     }
 
-    LaunchedEffect(searchStatus.searchText) {
-        viewModel.updateSearchText(searchStatus.searchText)
-    }
-
     Scaffold(
         topBar = {
-            val onBack = if (LocalHasDetailPane.current) {
-                dropUnlessResumed { navigator.popBackStack() }
-            } else null
-            SearchAppBar(
-                title = { Text(stringResource(R.string.superuser)) }, searchStatus = searchStatus, dropdownContent = {
-                    FilterMenu(viewModel, prefs)
-                }, scrollBehavior = scrollBehavior, onBackClick = onBack, onSearchStatusChange = viewModel::updateSearchStatus
-            )
+            SuperUserTopBar(viewModel, prefs, topAppBarSB)
         },
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     ) { innerPadding ->
-        val displayAppList = when (uiState.searchStatus.resultStatus) {
-            SearchStatus.ResultStatus.SHOW, SearchStatus.ResultStatus.EMPTY -> uiState.searchResults.filter { it.packageName != ksuApp.packageName }
-            else -> uiState.appList.filter { it.packageName != ksuApp.packageName }
-        }
-        val groups = remember(displayAppList) {
-            buildGroups(displayAppList)
-        }
-        var expandedUids by rememberSaveable { mutableStateOf(setOf<Int>()) }
-
-        LaunchedEffect(uiState.searchStatus.resultStatus, uiState.searchResults) {
-            when (uiState.searchStatus.resultStatus) {
-                SearchStatus.ResultStatus.SHOW -> {
-                    val searchResultsByUid = uiState.searchResults.groupBy { it.uid }
-                    expandedUids = groups.filter { group ->
-                        val appsInGroup = searchResultsByUid[group.uid] ?: emptyList()
-                        appsInGroup.size > 1
-                    }.map { it.uid }.toSet()
-                }
-
-                SearchStatus.ResultStatus.EMPTY, SearchStatus.ResultStatus.DEFAULT -> expandedUids = emptySet()
-
-                SearchStatus.ResultStatus.LOAD -> {}
-            }
-        }
-        val state = rememberPullToRefreshState()
-        PullToRefreshBox(
-            modifier = Modifier
+        Box(
+            Modifier
                 .padding(innerPadding)
                 .consumeWindowInsets(innerPadding)
-                .fillMaxSize(),
-            state = state,
-            onRefresh = { viewModel.loadAppList(true) },
-            isRefreshing = uiState.isRefreshing,
-            indicator = {
-                PullToRefreshDefaults.LoadingIndicator(state = state, isRefreshing = uiState.isRefreshing, modifier = Modifier.align(Alignment.TopCenter))
-            }) {
-            val bottomPadding = if (isRailNavbar()) WindowInsets.safeDrawing.asPaddingValues().calculateBottomPadding() else 0.dp
-            val listState = rememberLazyListState()
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
+        ) {
+            GroupedAppList(
+                modifier = Modifier.fillMaxSize(),
+                lazyListModifier = Modifier
                     .fillMaxSize()
-                    .nestedScroll(scrollBehavior.nestedScrollConnection),
-                contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp + bottomPadding, start = 16.dp, end = 16.dp)
-            ) {
-                itemsIndexed(groups, key = { _, group -> group.uid }) { index, group ->
-                    val count = groups.size
-                    val isExpanded = expandedUids.contains(group.uid)
-                    val isPrevExpanded = if (index > 0) expandedUids.contains(groups[index - 1].uid) else true
-                    val isNextExpanded = if (index < count - 1) expandedUids.contains(groups[index + 1].uid) else true
-
-                    val targetTopRadius = if (isExpanded || isPrevExpanded) 16.dp else 4.dp
-                    val targetBottomRadius = if (isExpanded) 4.dp else if (isNextExpanded) 16.dp else 4.dp
-                    val targetTopPadding = if (index == 0) 0.dp else if (isExpanded || isPrevExpanded) 16.dp else ListItemDefaults.SegmentedGap
-
-                    val animatedTopRadius by animateDpAsState(
-                        targetValue = targetTopRadius, animationSpec = MaterialTheme.motionScheme.slowSpatialSpec(), label = "TopCorner"
-                    )
-                    val animatedBottomRadius by animateDpAsState(
-                        targetValue = targetBottomRadius, animationSpec = MaterialTheme.motionScheme.slowSpatialSpec(), label = "BottomCorner"
-                    )
-                    val animatedTopPadding by animateDpAsState(
-                        targetValue = targetTopPadding, animationSpec = MaterialTheme.motionScheme.slowSpatialSpec(), label = "TopPadding"
-                    )
-
-                    val itemShape = RoundedCornerShape(
-                        topStart = animatedTopRadius, topEnd = animatedTopRadius, bottomStart = animatedBottomRadius, bottomEnd = animatedBottomRadius
-                    )
-
-                    GroupItem(
-                        group = group, shape = itemShape, onToggleExpand = if (group.apps.size > 1) {
-                            {
-                                expandedUids = if (isExpanded) expandedUids - group.uid else expandedUids + group.uid
-                            }
-                        } else null, onClickPrimary = {
-                            navigator.navigateTo(Route.AppProfile(uid = group.uid, packageName = group.primary.packageName))
-                            viewModel.markNeedRefresh()
-                        }, modifier = Modifier.padding(top = animatedTopPadding.coerceAtLeast(0.dp)), expanded = isExpanded
-                    )
-                }
-            }
-            VerticalScrollbar(
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .fillMaxHeight(),
-                adapter = rememberScrollbarAdapter(listState),
-                durationMillis = 1500L,
-                style = ScrollbarDefaults.style.copy(
-                    color = MaterialTheme.colorScheme.primary, railColor = MaterialTheme.colorScheme.surfaceBright.copy(alpha = 0.5f)
-                )
+                    .nestedScroll(topAppBarSB.nestedScrollConnection)
+                    .nestedScroll(searchBarSB.nestedScrollConnection),
+                viewModel,
+                false
             )
+            SuperUserSearchBar(searchStatus, viewModel, searchBarSB)
         }
     }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+private fun SuperUserSearchBar(
+    searchStatus: SearchStatus,
+    viewModel: SuperUserViewModel,
+    searchBarSB: SearchBarScrollBehavior,
+) {
+    val scope = rememberCoroutineScope()
+    SearchBar(searchStatus = searchStatus, onSearchStatusChange = {
+        viewModel.updateSearchStatus(it)
+        scope.launch {
+            viewModel.updateSearchText(it.searchText)
+        }
+    }, scrollBehavior = searchBarSB, emptyContent = {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("no Apps found")
+        }
+    }, content = {
+        GroupedAppList(
+            modifier = Modifier.fillMaxSize(),
+            lazyListModifier = Modifier.fillMaxSize(),
+            viewModel = viewModel,
+            inSearchBar = true,
+            closeSearchBar = { viewModel.updateSearchStatus(searchStatus.copy(current = SearchStatus.Status.COLLAPSED)) })
+    })
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+private fun SuperUserTopBar(
+    viewModel: SuperUserViewModel, prefs: SharedPreferences, scrollBehavior: TopAppBarScrollBehavior
+) {
+    val navigator = LocalNavController.current
+    val onBack = if (LocalHasDetailPane.current) {
+        dropUnlessResumed { navigator.popBackStack() }
+    } else null
+    LargeFlexibleTopAppBar(
+        colors = defaultTopAppBarColors(), title = {
+            Text(stringResource(R.string.superuser))
+        }, actions = { FilterMenu(viewModel, prefs) }, navigationIcon = {
+            AnimatedVisibility(
+                visible = onBack != null, enter = fadeIn(animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec()) + expandHorizontally(
+                    expandFrom = Alignment.Start, animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec()
+                ), exit = fadeOut(animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec()) + shrinkHorizontally(
+                    shrinkTowards = Alignment.Start, animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec()
+                )
+            ) {
+                IconButton(
+                    onClick = onBack ?: {},
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                }
+            }
+        }, scrollBehavior = scrollBehavior
+    )
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+private fun GroupedAppList(
+    modifier: Modifier, lazyListModifier: Modifier, viewModel: SuperUserViewModel, inSearchBar: Boolean, closeSearchBar: () -> Unit = {}
+) {
+    val navigator = LocalNavController.current
+    var expandedUids by rememberSaveable { mutableStateOf(setOf<Int>()) }
+    val state = rememberPullToRefreshState()
+    val uiState by viewModel.uiState.collectAsState()
+    val groups = if (inSearchBar) {
+        val searchSet = uiState.searchResults.toSet()
+        uiState.groupedApps.filter { it.apps.intersect(searchSet).isNotEmpty() }
+    } else {
+        uiState.groupedApps
+    }
+    if (inSearchBar) {
+        expandedUids = groups.map { it.uid }.toSet()
+    }
+    val topPadding = (if (inSearchBar) 16.dp else uiState.searchStatus.offsetY).coerceAtLeast(16.dp)
+    PullToRefreshBox(modifier = modifier, state = state, onRefresh = { viewModel.loadAppList(true) }, isRefreshing = uiState.isRefreshing, indicator = {
+        PullToRefreshDefaults.LoadingIndicator(
+            state = state, isRefreshing = uiState.isRefreshing, modifier = Modifier
+                .align(
+                    Alignment.TopCenter
+                )
+                .padding(top = topPadding)
+        )
+    }) {
+        val bottomPadding = if (isRailNavbar()) WindowInsets.safeDrawing.asPaddingValues().calculateBottomPadding() else 0.dp
+        val listState = rememberLazyListState()
+        LazyColumn(
+            state = listState,
+            modifier = lazyListModifier,
+            contentPadding = PaddingValues(top = topPadding, bottom = 16.dp + bottomPadding, start = 16.dp, end = 16.dp)
+        ) {
+            if (groups.isEmpty()) return@LazyColumn
+            itemsIndexed(groups, key = { _, group -> group.uid }) { index, group ->
+                val count = groups.size
+                val isExpanded = expandedUids.contains(group.uid) && group.isGroup()
+                val isPrevExpanded = if (index > 0) expandedUids.contains(groups[index - 1].uid) && groups[index - 1].isGroup() else true
+                val isNextExpanded = if (index < count - 1) expandedUids.contains(groups[index + 1].uid) && groups[index + 1].isGroup() else true
+
+                val targetTopRadius = if (isExpanded || isPrevExpanded) 16.dp else 4.dp
+                val targetBottomRadius = if (isExpanded) 4.dp else if (isNextExpanded) 16.dp else 4.dp
+                val targetTopPadding = if (index == 0) 0.dp else if (isExpanded || isPrevExpanded) 16.dp else ListItemDefaults.SegmentedGap
+
+                val animatedTopRadius by animateDpAsState(
+                    targetValue = targetTopRadius, animationSpec = MaterialTheme.motionScheme.slowSpatialSpec(), label = "TopCorner"
+                )
+                val animatedBottomRadius by animateDpAsState(
+                    targetValue = targetBottomRadius, animationSpec = MaterialTheme.motionScheme.slowSpatialSpec(), label = "BottomCorner"
+                )
+                val animatedTopPadding by animateDpAsState(
+                    targetValue = targetTopPadding, animationSpec = MaterialTheme.motionScheme.slowSpatialSpec(), label = "TopPadding"
+                )
+
+                val itemShape = RoundedCornerShape(
+                    topStart = animatedTopRadius, topEnd = animatedTopRadius, bottomStart = animatedBottomRadius, bottomEnd = animatedBottomRadius
+                )
+
+                GroupItem(
+                    group = group, shape = itemShape, onToggleExpand = if (group.apps.size > 1) {
+                        {
+                            expandedUids = if (isExpanded) expandedUids - group.uid else expandedUids + group.uid
+                        }
+                    } else null, onClickPrimary = {
+                        navigator.navigateTo(Route.AppProfile(uid = group.uid, packageName = group.primary.packageName))
+                        viewModel.markNeedRefresh()
+                        closeSearchBar()
+                    }, modifier = Modifier.padding(top = animatedTopPadding.coerceAtLeast(0.dp)), expanded = isExpanded
+                )
+            }
+        }
+        VerticalScrollbar(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .fillMaxHeight(),
+            adapter = rememberScrollbarAdapter(listState),
+            durationMillis = 1500L,
+            style = ScrollbarDefaults.style.copy(
+                color = MaterialTheme.colorScheme.primary, railColor = MaterialTheme.colorScheme.surfaceBright.copy(alpha = 0.5f)
+            )
+        )
+    }
+}
+
+private fun GroupedApps.isGroup(): Boolean {
+    return this.apps.size > 1
 }
 
 @Composable
@@ -305,53 +374,6 @@ private fun AppIconItem(
         content = title,
         supportingContent = supportingContent
     )
-}
-
-@Immutable
-private data class GroupedApps(
-    val uid: Int,
-    val apps: List<SuperUserViewModel.AppInfo>,
-    val primary: SuperUserViewModel.AppInfo,
-    val anyAllowSu: Boolean,
-    val anyCustom: Boolean,
-)
-
-private fun buildGroups(apps: List<SuperUserViewModel.AppInfo>): List<GroupedApps> {
-    val comparator = compareBy<SuperUserViewModel.AppInfo> {
-        when {
-            it.allowSu -> 0
-            it.hasCustomProfile -> 1
-            else -> 2
-        }
-    }.thenBy { it.label.lowercase() }
-    val groups = apps.groupBy { it.uid }.map { (uid, list) ->
-        val sorted = list.sortedWith(comparator)
-        val primary = pickPrimary(sorted)
-        GroupedApps(
-            uid = uid,
-            apps = sorted,
-            primary = primary,
-            anyAllowSu = sorted.any { it.allowSu },
-            anyCustom = sorted.any { it.hasCustomProfile },
-        )
-    }
-    return groups.sortedWith(Comparator { a, b ->
-        fun rank(g: GroupedApps): Int = when {
-            g.anyAllowSu -> 0
-            g.anyCustom -> 1
-            g.apps.size > 1 -> 2
-            Natives.uidShouldUmount(g.uid) -> 4
-            else -> 3
-        }
-
-        val ra = rank(a)
-        val rb = rank(b)
-        if (ra != rb) return@Comparator ra - rb
-        return@Comparator when (ra) {
-            2 -> a.uid.compareTo(b.uid)
-            else -> a.primary.label.lowercase().compareTo(b.primary.label.lowercase())
-        }
-    })
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
