@@ -6,16 +6,17 @@ import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
-import me.weishu.kernelsu.ui.screen.AppProfileScreen
-import me.weishu.kernelsu.ui.screen.AppProfileTemplateScreen
-import me.weishu.kernelsu.ui.screen.ExecuteModuleActionScreen
-import me.weishu.kernelsu.ui.screen.FlashScreen
-import me.weishu.kernelsu.ui.screen.HomeScreen
-import me.weishu.kernelsu.ui.screen.InstallScreen
-import me.weishu.kernelsu.ui.screen.ModuleScreen
-import me.weishu.kernelsu.ui.screen.SettingScreen
-import me.weishu.kernelsu.ui.screen.SuperUserScreen
-import me.weishu.kernelsu.ui.screen.TemplateEditorScreen
+import me.weishu.kernelsu.ui.screen.about.AboutScreen
+import me.weishu.kernelsu.ui.screen.appprofile.AppProfileScreen
+import me.weishu.kernelsu.ui.screen.executemoduleaction.ExecuteModuleActionScreen
+import me.weishu.kernelsu.ui.screen.flash.FlashScreen
+import me.weishu.kernelsu.ui.screen.home.HomeScreen
+import me.weishu.kernelsu.ui.screen.install.InstallScreen
+import me.weishu.kernelsu.ui.screen.module.ModuleScreen
+import me.weishu.kernelsu.ui.screen.settings.SettingScreen
+import me.weishu.kernelsu.ui.screen.superuser.SuperUserScreen
+import me.weishu.kernelsu.ui.screen.template.AppProfileTemplateScreen
+import me.weishu.kernelsu.ui.screen.templateeditor.TemplateEditorScreen
 
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
@@ -32,6 +33,9 @@ fun getMainEntryProvider(): (NavKey) -> NavEntry<NavKey> {
         }
         topRouteEntry<Route.Settings> {
             SettingScreen()
+        }
+        entry<Route.About> {
+            AboutScreen()
         }
         entry<Route.AppProfile>(metadata = BreezeListDetailScene.detailPane("navbar")) {
             AppProfileScreen(uid = it.uid, packageName = it.packageName)

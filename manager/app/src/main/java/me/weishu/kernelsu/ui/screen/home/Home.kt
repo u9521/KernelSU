@@ -1,8 +1,6 @@
-package me.weishu.kernelsu.ui.screen
+package me.weishu.kernelsu.ui.screen.home
 
 import android.content.Context
-import android.os.Build
-import android.system.Os
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -56,7 +54,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.pm.PackageInfoCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.weishu.kernelsu.KernelVersion
@@ -72,7 +69,6 @@ import me.weishu.kernelsu.ui.navigation3.TopLevelRoute
 import me.weishu.kernelsu.ui.theme.defaultTopAppBarColors
 import me.weishu.kernelsu.ui.util.checkNewVersion
 import me.weishu.kernelsu.ui.util.getModuleCount
-import me.weishu.kernelsu.ui.util.getSELinuxStatus
 import me.weishu.kernelsu.ui.util.getSuperuserCount
 import me.weishu.kernelsu.ui.util.isRailNavbar
 import me.weishu.kernelsu.ui.util.module.LatestVersionInfo
@@ -146,7 +142,7 @@ fun UpdateCard() {
         }
     }
 
-    val currentVersionCode = getManagerVersion(context).second
+    val currentVersionCode = getManagerVersion(context).versionCode
     val newVersionCode = newVersion.versionCode
     val newVersionUrl = newVersion.downloadUrl
     val changelog = newVersion.changelog
@@ -401,7 +397,7 @@ private fun InfoCard() {
                 .padding(start = 24.dp, top = 24.dp, end = 24.dp, bottom = 16.dp)
         ) {
             val contents = StringBuilder()
-            val uname = Os.uname()
+            val systemInfo = rememberSystemInfo()
 
             @Composable
             fun InfoCardItem(label: String, content: String) {
@@ -409,25 +405,20 @@ private fun InfoCard() {
                 Text(text = label, style = MaterialTheme.typography.bodyLarge)
                 Text(text = content, style = MaterialTheme.typography.bodyMedium)
             }
-            InfoCardItem(stringResource(R.string.home_kernel), uname.release)
+            InfoCardItem(stringResource(R.string.home_kernel), systemInfo.kernelVersion)
             Spacer(Modifier.height(16.dp))
             val managerVersion = getManagerVersion(context)
             InfoCardItem(
-                stringResource(R.string.home_manager_version), "${managerVersion.first} (${managerVersion.second})"
+                stringResource(R.string.home_manager_version), "${managerVersion.versionName} (${managerVersion.versionCode})"
             )
             Spacer(Modifier.height(16.dp))
-            InfoCardItem(stringResource(R.string.home_fingerprint), Build.FINGERPRINT)
+            InfoCardItem(stringResource(R.string.home_fingerprint), systemInfo.fingerprint)
             Spacer(Modifier.height(16.dp))
-            InfoCardItem(stringResource(R.string.home_selinux_status), getSELinuxStatus())
+            InfoCardItem(stringResource(R.string.home_selinux_status), systemInfo.selinuxStatus)
         }
     }
 }
 
-fun getManagerVersion(context: Context): Pair<String, Long> {
-    val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)!!
-    val versionCode = PackageInfoCompat.getLongVersionCode(packageInfo)
-    return Pair(packageInfo.versionName!!, versionCode)
-}
 
 @Preview
 @Composable

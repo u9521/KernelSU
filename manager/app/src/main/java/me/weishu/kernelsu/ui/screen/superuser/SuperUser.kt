@@ -1,4 +1,4 @@
-package me.weishu.kernelsu.ui.screen
+package me.weishu.kernelsu.ui.screen.superuser
 
 import android.content.Context
 import android.content.SharedPreferences

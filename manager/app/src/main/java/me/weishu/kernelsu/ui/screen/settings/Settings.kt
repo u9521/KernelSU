@@ -1,4 +1,4 @@
-package me.weishu.kernelsu.ui.screen
+package me.weishu.kernelsu.ui.screen.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -40,10 +40,8 @@ import me.weishu.kernelsu.ui.component.BreezeSnackBarHost
 import me.weishu.kernelsu.ui.component.LocalSnackbarHost
 import me.weishu.kernelsu.ui.component.SegmentedListGroup
 import me.weishu.kernelsu.ui.component.ksuIsValid
-import me.weishu.kernelsu.ui.component.popUps.AboutDialog
 import me.weishu.kernelsu.ui.component.popUps.sendLogBottomSheet
 import me.weishu.kernelsu.ui.component.popUps.uninstallDialog
-import me.weishu.kernelsu.ui.component.rememberCustomDialog
 import me.weishu.kernelsu.ui.component.switchHapticFeedBack
 import me.weishu.kernelsu.ui.navigation3.LocalNavController
 import me.weishu.kernelsu.ui.navigation3.Route
@@ -226,9 +224,6 @@ fun SettingScreen() {
             }
 
             val sendLogBottomSheet = sendLogBottomSheet()
-            val aboutDialog = rememberCustomDialog {
-                AboutDialog(it)
-            }
 
             SegmentedListGroup {
                 item(leadingContent = {
@@ -241,7 +236,7 @@ fun SettingScreen() {
                     Icon(
                         painterResource(R.drawable.ic_contact_page_rounded_filled), stringResource(id = R.string.about)
                     )
-                }, onClick = { aboutDialog.show() }) { Text(stringResource(id = R.string.about)) }
+                }, onClick = { navigator.navigateTo(Route.About) }) { Text(stringResource(id = R.string.about)) }
             }
         }
     }

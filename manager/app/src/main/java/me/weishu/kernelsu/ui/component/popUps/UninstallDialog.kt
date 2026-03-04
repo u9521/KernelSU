@@ -1,8 +1,6 @@
 package me.weishu.kernelsu.ui.component.popUps
 
 import android.widget.Toast
-import androidx.annotation.DrawableRes
-import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,21 +38,9 @@ import me.weishu.kernelsu.ui.component.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.rememberCustomDialog
 import me.weishu.kernelsu.ui.navigation3.LocalNavController
 import me.weishu.kernelsu.ui.navigation3.Route
-import me.weishu.kernelsu.ui.screen.FlashIt
+import me.weishu.kernelsu.ui.screen.flash.FlashIt
+import me.weishu.kernelsu.ui.screen.flash.UninstallType
 import me.weishu.kernelsu.ui.util.windowBlurBehind
-
-
-enum class UninstallType(@get:StringRes val title: Int, @get:StringRes val message: Int, @get:DrawableRes val icon: Int) {
-    TEMPORARY(
-        R.string.settings_uninstall_temporary, R.string.settings_uninstall_temporary_message, R.drawable.ic_delete_rounded_filled
-    ),
-    PERMANENT(
-        R.string.settings_uninstall_permanent, R.string.settings_uninstall_permanent_message, R.drawable.ic_delete_forever_rounded_filled
-    ),
-    RESTORE_STOCK_IMAGE(
-        R.string.settings_restore_stock_image, R.string.settings_restore_stock_image_message, R.drawable.ic_undo_rounded_filled
-    ),
-}
 
 @Composable
 fun uninstallDialog(): me.weishu.kernelsu.ui.component.DialogHandle {

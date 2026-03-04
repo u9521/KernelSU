@@ -1,4 +1,4 @@
-package me.weishu.kernelsu.ui.screen
+package me.weishu.kernelsu.ui.screen.templateeditor
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer

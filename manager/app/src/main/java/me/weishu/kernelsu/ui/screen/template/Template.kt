@@ -1,4 +1,4 @@
-package me.weishu.kernelsu.ui.screen
+package me.weishu.kernelsu.ui.screen.template
 
 import android.content.ClipData
 import androidx.compose.foundation.layout.Arrangement
@@ -79,6 +79,7 @@ import me.weishu.kernelsu.ui.component.scrollbar.VerticalScrollbar
 import me.weishu.kernelsu.ui.component.scrollbar.rememberScrollbarAdapter
 import me.weishu.kernelsu.ui.navigation3.LocalNavController
 import me.weishu.kernelsu.ui.navigation3.Route
+import me.weishu.kernelsu.ui.screen.templateeditor.NeedRefreshTemplate
 import me.weishu.kernelsu.ui.theme.defaultTopAppBarColors
 import me.weishu.kernelsu.ui.util.isNetworkAvailable
 import me.weishu.kernelsu.ui.viewmodel.TemplateViewModel

@@ -1,4 +1,4 @@
-package me.weishu.kernelsu.ui.screen
+package me.weishu.kernelsu.ui.screen.module
 
 import android.app.Activity.RESULT_OK
 import android.content.Context

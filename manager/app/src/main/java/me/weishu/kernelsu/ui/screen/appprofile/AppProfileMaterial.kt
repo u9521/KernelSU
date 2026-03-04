@@ -1,7 +1,6 @@
-package me.weishu.kernelsu.ui.screen
+package me.weishu.kernelsu.ui.screen.appprofile
 
 import android.os.Build
-import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -317,13 +316,6 @@ private fun AppInfoGroup(
             leadingContent = { Icon(Icons.Filled.AccountCircle, stringResource(R.string.profile)) },
         )
     }
-}
-
-private enum class Mode(@param:StringRes private val res: Int) {
-    Default(R.string.profile_default), Template(R.string.profile_template), Custom(R.string.profile_custom);
-
-    val text: String
-        @Composable get() = stringResource(res)
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)

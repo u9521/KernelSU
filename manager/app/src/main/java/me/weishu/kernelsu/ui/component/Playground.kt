@@ -60,7 +60,7 @@ import androidx.compose.ui.unit.sp
 import me.weishu.kernelsu.ui.component.scrollbar.ScrollbarDefaults
 import me.weishu.kernelsu.ui.component.scrollbar.VerticalScrollbar
 import me.weishu.kernelsu.ui.component.scrollbar.rememberScrollbarAdapter
-import me.weishu.kernelsu.ui.screen.ModuleItemPreview
+import me.weishu.kernelsu.ui.screen.module.ModuleItemPreview
 import me.weishu.kernelsu.ui.theme.KernelSUTheme
 
 @Preview(showBackground = true, name = "ModuleItem Preview panel", device = "spec:width=673dp,height=841dp,orientation=landscape")

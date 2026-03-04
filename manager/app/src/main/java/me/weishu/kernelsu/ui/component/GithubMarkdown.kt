@@ -16,7 +16,8 @@ import android.widget.FrameLayout
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.material3.MaterialTheme.colorScheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
@@ -26,14 +27,12 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
 import androidx.webkit.WebViewAssetLoader
 import me.weishu.kernelsu.ksuApp
-import me.weishu.kernelsu.ui.util.adjustLightnessArgb
 import me.weishu.kernelsu.ui.util.cssColorFromArgb
-import me.weishu.kernelsu.ui.util.ensureVisibleByMix
-import me.weishu.kernelsu.ui.util.relativeLuminance
 import okhttp3.Headers.Companion.toHeaders
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -46,27 +45,22 @@ import kotlin.math.abs
 @SuppressLint("ClickableViewAccessibility", "JavascriptInterface", "SetJavaScriptEnabled")
 @Composable
 fun GithubMarkdown(
-    content: String, isLoading: MutableState<Boolean> = mutableStateOf(true)
+    content: String,
+    isLoading: MutableState<Boolean> = mutableStateOf(true),
+    containerColor: androidx.compose.ui.graphics.Color? = null,
 ) {
     isLoading.value = true
+    val newtTextZoom = 90
     val scrollInterface = remember { MarkdownScrollInterface() }
     val isDark = isSystemInDarkTheme()
     val dir = if (LocalLayoutDirection.current == LayoutDirection.Rtl) "rtl" else "ltr"
 
-    val bgArgb = colorScheme.surfaceContainer.toArgb()
-    val bgLuminance = relativeLuminance(bgArgb)
-
-    fun makeVariant(delta: Float): Int {
-        val candidate = adjustLightnessArgb(bgArgb, delta)
-        val madeLighter = delta > 0f
-        return ensureVisibleByMix(bgArgb, candidate, 1.15, madeLighter)
-    }
-
-    val bgDefault = cssColorFromArgb(bgArgb)
-    val bgMuted = cssColorFromArgb(makeVariant(if (bgLuminance > 0.6) -0.06f else 0.06f))
-    val bgNeutralMuted = cssColorFromArgb(makeVariant(if (bgLuminance > 0.6) -0.12f else 0.12f))
-    val bgAttentionMuted = cssColorFromArgb(makeVariant(-0.12f))
-    val fgLink = cssColorFromArgb(colorScheme.primary.toArgb())
+    val colors = getMarkdownColors(containerColor)
+    val bgDefault = colors.bgDefault
+    val bgMuted = colors.bgMuted
+    val bgNeutralMuted = colors.bgNeutralMuted
+    val bgAttentionMuted = colors.bgAttentionMuted
+    val fgLink = colors.fgLink
 
     val cssHref = "https://appassets.androidplatform.net/assets/github-markdown.css"
     val html = """
@@ -112,7 +106,7 @@ fun GithubMarkdown(
                         allowContentAccess = false
                         allowFileAccess = false
                         cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK
-                        textZoom = 90
+                        textZoom = newtTextZoom
                         setSupportZoom(false)
                         setGeolocationEnabled(false)
                         layoutParams = FrameLayout.LayoutParams(
@@ -310,4 +304,24 @@ class MarkdownScrollInterface {
         canScrollLeft = left
         canScrollRight = right
     }
+}
+
+private data class MarkdownColors(
+    val bgDefault: String,
+    val bgMuted: String,
+    val bgNeutralMuted: String,
+    val bgAttentionMuted: String,
+    val fgLink: String
+)
+
+@Composable
+private fun getMarkdownColors(containerColor: androidx.compose.ui.graphics.Color?): MarkdownColors {
+    val bgArgb = containerColor?.toArgb() ?: MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp).toArgb()
+    return MarkdownColors(
+        cssColorFromArgb(bgArgb),
+        cssColorFromArgb(MaterialTheme.colorScheme.surfaceContainerHigh.toArgb()),
+        cssColorFromArgb(MaterialTheme.colorScheme.surfaceDim.toArgb()),
+        cssColorFromArgb(MaterialTheme.colorScheme.surfaceBright.toArgb()),
+        cssColorFromArgb(MaterialTheme.colorScheme.primary.toArgb())
+    )
 }
