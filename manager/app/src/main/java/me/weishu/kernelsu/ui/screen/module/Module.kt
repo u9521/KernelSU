@@ -33,6 +33,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -45,8 +47,10 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SearchBarDefaults
@@ -109,7 +113,6 @@ import me.weishu.kernelsu.ui.component.module.InstallModuleDialog
 import me.weishu.kernelsu.ui.component.popUps.PopupFeedBack
 import me.weishu.kernelsu.ui.component.popUps.RebootListPopup
 import me.weishu.kernelsu.ui.component.rememberConfirmDialog
-import me.weishu.kernelsu.ui.component.rememberLoadingDialog
 import me.weishu.kernelsu.ui.component.scrollbar.ScrollbarDefaults
 import me.weishu.kernelsu.ui.component.scrollbar.VerticalScrollbar
 import me.weishu.kernelsu.ui.component.scrollbar.rememberScrollbarAdapter
@@ -121,16 +124,20 @@ import me.weishu.kernelsu.ui.util.download
 import me.weishu.kernelsu.ui.util.hasMagisk
 import me.weishu.kernelsu.ui.util.isRailNavbar
 import me.weishu.kernelsu.ui.util.reboot
+import me.weishu.kernelsu.ui.util.windowBlurBehind
+import me.weishu.kernelsu.ui.viewmodel.ModuleDialogState
 import me.weishu.kernelsu.ui.viewmodel.ModuleUiState
 import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel
 import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel.ModuleInfo
-import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel.ModuleIntent
+import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel.ModuleIntent.ConfirmUninstall
+import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel.ModuleIntent.ConfirmUpdate
+import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel.ModuleIntent.DismissDialog
 import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel.ModuleIntent.OpenAction
 import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel.ModuleIntent.OpenWebUI
-import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel.ModuleIntent.RequestUndoUninstall
 import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel.ModuleIntent.RequestUninstall
 import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel.ModuleIntent.RequestUpdate
 import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel.ModuleIntent.Toggle
+import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel.ModuleIntent.UndoUninstall
 import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel.ModuleUiEffect
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -145,16 +152,14 @@ fun ModuleScreen() {
     val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
     val searchStatus = uiState.searchStatus
 
-    val loadingDialog = rememberLoadingDialog()
-
-    LaunchedEffect(viewModel.actionLoading) {
-        if (viewModel.actionLoading) {
-            loadingDialog.showLoading()
-        } else {
-            loadingDialog.hide()
-        }
-    }
     HandleModuleEffects(viewModel)
+
+    ModuleDialogs(
+        dialogState = uiState.dialogState,
+        onConfirmUninstall = { viewModel.onIntent(ConfirmUninstall(it)) },
+        onConfirmUpdate = { module, info -> viewModel.onIntent(ConfirmUpdate(module, info)) },
+        onDismiss = { viewModel.onIntent(DismissDialog) })
+
     LaunchedEffect(Unit) {
         when {
             !isInitialized || modules.isEmpty() -> {
@@ -236,6 +241,80 @@ fun ModuleScreen() {
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun ModuleDialogs(
+    dialogState: ModuleDialogState?,
+    onConfirmUninstall: (ModuleInfo) -> Unit,
+    onConfirmUpdate: (ModuleInfo, ModuleViewModel.ModuleUpdateInfo) -> Unit,
+    onDismiss: () -> Unit
+) {
+    if (dialogState == null) return
+
+    val confirmDialog = rememberConfirmDialog(
+        onConfirm = {
+            when (dialogState) {
+                is ModuleDialogState.Uninstall -> onConfirmUninstall(dialogState.module)
+                is ModuleDialogState.Update -> onConfirmUpdate(dialogState.module, dialogState.updateInfo)
+            }
+        }, onDismiss = onDismiss
+    )
+
+    when (dialogState) {
+        is ModuleDialogState.Uninstall -> {
+            val module = dialogState.module
+            val formatRes = if (module.metamodule) R.string.metamodule_uninstall_confirm else R.string.module_uninstall_confirm
+            val content = stringResource(formatRes, module.name)
+
+            confirmDialog.showConfirm(
+                title = stringResource(R.string.module),
+                content = content,
+                confirm = stringResource(R.string.uninstall),
+                dismiss = stringResource(android.R.string.cancel)
+            )
+        }
+
+        is ModuleDialogState.Update -> {
+            val changelog = dialogState.changelog
+            if (changelog == null) {
+                val haptic = LocalHapticFeedback.current
+                PopupFeedBack()
+                AlertDialog(
+                    modifier = Modifier.windowBlurBehind(16.dp),
+                    onDismissRequest = onDismiss,
+                    title = {
+                        Text(text = stringResource(R.string.module_changelog))
+                    },
+                    text = {
+                        LoadingIndicator(modifier = Modifier.fillMaxWidth())
+                    },
+                    confirmButton = {
+                        Button(enabled = false, shapes = ButtonDefaults.shapes(), onClick = {}) {
+                            Text(text = stringResource(R.string.module_update))
+                        }
+                    },
+                    dismissButton = {
+                        OutlinedButton(shapes = ButtonDefaults.shapes(), onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                            onDismiss()
+                        }) {
+                            Text(text = stringResource(id = android.R.string.cancel))
+                        }
+                    },
+                )
+            } else {
+                confirmDialog.showConfirm(
+                    title = stringResource(R.string.module_changelog),
+                    content = changelog,
+                    markdown = true,
+                    confirm = stringResource(R.string.module_update),
+                    dismiss = stringResource(android.R.string.cancel)
+                )
+            }
+        }
+    }
+}
+
 @Composable
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 private fun ModuleBox(
@@ -246,6 +325,7 @@ private fun ModuleBox(
     val moduleList = if (inSearchBar) uiState.searchResults else uiState.moduleList
     val bottomPadding = if (isRailNavbar()) 80.dp else 0.dp
     val topPadding = (if (inSearchBar) 16.dp else uiState.searchStatus.offsetY).coerceAtLeast(16.dp)
+
     PullToRefreshBox(
         modifier = modifier, state = state, onRefresh = { viewModel.fetchModuleList(checkUpdate = true) }, indicator = {
             PullToRefreshDefaults.LoadingIndicator(
@@ -270,13 +350,16 @@ private fun ModuleBox(
         ) {
 
             items(moduleList, key = { it.id }) { module ->
+                val isOperating = uiState.operatingModules.contains(module.id)
+
                 ModuleItem(
                     module = module,
                     hasUpdate = uiState.updateInfo[module.id]?.downloadUrl?.isNotEmpty() ?: false,
+                    isOperating = isOperating,
                     onEnableChanged = { viewModel.onIntent(Toggle(module)) },
                     onModuleAction = { viewModel.onIntent(OpenAction(module)) },
                     onOpenWebUI = { viewModel.onIntent(OpenWebUI(module)) },
-                    onUndoUninstall = { viewModel.onIntent(RequestUndoUninstall(module)) },
+                    onUndoUninstall = { viewModel.onIntent(UndoUninstall(module)) },
                     onUninstall = { viewModel.onIntent(RequestUninstall(module)) },
                     onUpdate = { viewModel.onIntent(RequestUpdate(module, uiState.updateInfo[module.id])) })
             }
@@ -352,14 +435,13 @@ private fun HandleModuleEffects(viewModel: ModuleViewModel) {
     val navigator = LocalNavController.current
     val webUILauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
-    ) { viewModel.onIntent(ModuleIntent.Refresh()) }
-    val confirmDialog =
-        rememberConfirmDialog(onConfirm = { viewModel.onIntent(ModuleIntent.ConfirmAction) }, onDismiss = { viewModel.onIntent(ModuleIntent.DismissAction) })
-    val installModuleUris = remember { mutableStateOf<List<Uri>>(emptyList()) }
+    ) { viewModel.fetchModuleList() }
+    val installModuleUris = rememberSaveable { mutableStateOf<List<Uri>>(emptyList()) }
 
     InstallModuleDialog(installModuleUris.value, viewModel) {
         installModuleUris.value = emptyList()
     }
+
     LaunchedEffect(viewModel) {
         viewModel.effect.collect { effect ->
             when (effect) {
@@ -376,15 +458,6 @@ private fun HandleModuleEffects(viewModel: ModuleViewModel) {
 
                 is ModuleUiEffect.ShowToast -> {
                     Toast.makeText(context, resources.getString(effect.messageRes), Toast.LENGTH_SHORT).show()
-                }
-
-                is ModuleUiEffect.ShowConfirmDialog -> {
-                    confirmDialog.showConfirm(
-                        title = resources.getString(effect.titleRes),
-                        content = effect.content,
-                        markdown = effect.markdown,
-                        confirm = effect.confirmTextRes?.let { resources.getString(it) },
-                        dismiss = effect.dismissTextRes?.let { resources.getString(it) })
                 }
 
                 is ModuleUiEffect.StartDownload -> {
@@ -419,6 +492,7 @@ private fun HandleModuleEffects(viewModel: ModuleViewModel) {
 fun ModuleItem(
     module: ModuleInfo,
     hasUpdate: Boolean,
+    isOperating: Boolean,
     onEnableChanged: (Boolean) -> Unit,
     onModuleAction: () -> Unit,
     onOpenWebUI: () -> Unit,
@@ -434,13 +508,14 @@ fun ModuleItem(
     ) {
         val textDecoration = if (!module.remove) null else TextDecoration.LineThrough
         val switchFeedback = switchHapticFeedBack()
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .let {
                     if (module.hasWebUi) {
                         it.clickable(
-                            enabled = !module.remove && module.enabled, role = Role.Button, onClick = {
+                            enabled = !isOperating && !module.remove && module.enabled, role = Role.Button, onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
                                 onOpenWebUI()
                             })
@@ -490,14 +565,20 @@ fun ModuleItem(
 
                 Spacer(modifier = Modifier.width(16.dp))
 
-                Switch(
-                    enabled = !module.update,
-                    checked = module.enabled,
-                    onCheckedChange = {
-                        switchFeedback(it)
-                        onEnableChanged(it)
-                    },
-                )
+                if (isOperating) {
+                    LoadingIndicator(
+                        modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.secondary
+                    )
+                } else {
+                    Switch(
+                        enabled = !module.update,
+                        checked = module.enabled,
+                        onCheckedChange = {
+                            switchFeedback(it)
+                            onEnableChanged(it)
+                        },
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -514,7 +595,16 @@ fun ModuleItem(
             StatusTag(module.id)
             Spacer(modifier = Modifier.height(8.dp))
             // button row
-            ModuleButtonRow(module, hasUpdate, onModuleAction, onOpenWebUI, onUpdate, onUndoUninstall, onUninstall)
+            ModuleButtonRow(
+                module = module,
+                hasUpdate = hasUpdate,
+                isOperating = isOperating,
+                onModuleAction = onModuleAction,
+                onOpenWebUI = onOpenWebUI,
+                onUpdate = onUpdate,
+                onUndoUninstall = onUndoUninstall,
+                onUninstall = onUninstall
+            )
         }
     }
 }
@@ -524,6 +614,7 @@ fun ModuleItem(
 private fun ModuleButtonRow(
     module: ModuleInfo,
     hasUpdate: Boolean,
+    isOperating: Boolean,
     onModuleAction: () -> Unit,
     onOpenWebUI: () -> Unit,
     onUpdate: () -> Unit,
@@ -534,14 +625,14 @@ private fun ModuleButtonRow(
     val iconSize = ButtonDefaults.iconSizeFor(ButtonDefaults.MinHeight)
     val moduleStable = !(module.remove || module.update)
 
-    val startButtons = remember(module) {
+    val startButtons = remember(module, !isOperating) {
         val list = mutableListOf<ButtonSpec>()
         list.add(
             ButtonSpec(
                 id = "action",
                 text = resources.getString(R.string.action),
                 isVisible = module.hasActionScript,
-                isEnabled = moduleStable && module.enabled,
+                isEnabled = !isOperating && moduleStable && module.enabled,
                 icon = {
                     Icon(
                         modifier = Modifier.size(iconSize), imageVector = Icons.Outlined.PlayArrow, contentDescription = stringResource(R.string.action)
@@ -554,26 +645,32 @@ private fun ModuleButtonRow(
 
         list.add(
             ButtonSpec(
-                id = "webui", text = resources.getString(R.string.open), isVisible = module.hasWebUi, isEnabled = moduleStable && module.enabled, icon = {
+                id = "webui",
+                text = resources.getString(R.string.open),
+                isVisible = module.hasWebUi,
+                isEnabled = !isOperating && moduleStable && module.enabled,
+                icon = {
                     Icon(
                         modifier = Modifier.size(iconSize),
                         painter = painterResource(R.drawable.ic_wysiwyg_rounded),
                         contentDescription = stringResource(R.string.open)
                     )
-                }, onClick = onOpenWebUI, buttonPosition = ButtonPosition.START
+                },
+                onClick = onOpenWebUI,
+                buttonPosition = ButtonPosition.START
             )
         )
         list
     }
 
-    val endButtons = remember(module, hasUpdate) {
+    val endButtons = remember(module, hasUpdate, !isOperating) {
         val list = mutableListOf<ButtonSpec>()
         list.add(
             ButtonSpec(
                 id = "update",
                 text = resources.getString(R.string.module_update),
                 isVisible = hasUpdate,
-                isEnabled = !module.remove,
+                isEnabled = !isOperating && !module.remove,
                 type = ButtonType.PRIMARY,
                 icon = {
                     Icon(
@@ -590,7 +687,7 @@ private fun ModuleButtonRow(
                 id = "uninstall",
                 text = resources.getString(if (module.remove) R.string.undo else R.string.uninstall),
                 isVisible = true,
-                isEnabled = true,
+                isEnabled = !isOperating,
                 icon = {
                     Icon(
                         modifier = Modifier.size(iconSize),
@@ -676,7 +773,7 @@ private fun ShortByMenuButton(uiState: ModuleUiState, onSetActionFirst: (Boolean
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun InstallModuleFAB(visible: Boolean, viewModel: ModuleViewModel) {
-    val zipUris = remember { mutableStateOf<List<Uri>>(emptyList()) }
+    val zipUris = rememberSaveable { mutableStateOf<List<Uri>>(emptyList()) }
     val bottomPadding = if (isRailNavbar()) 80.dp else 0.dp
     InstallModuleDialog(zipUris.value, viewModel) {
         zipUris.value = emptyList()
@@ -747,5 +844,5 @@ fun ModuleItemPreview(
         actionIconPath = "",
         webUiIconPath = ""
     )
-    ModuleItem(module, hasUpdate, {}, {}, {}, {}, {}, {})
+    ModuleItem(module, hasUpdate, false, {}, {}, {}, {}, {}, {})
 }

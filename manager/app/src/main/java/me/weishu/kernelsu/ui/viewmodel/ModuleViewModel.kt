@@ -4,21 +4,18 @@ import android.content.Intent
 import android.os.SystemClock
 import android.util.Log
 import androidx.annotation.StringRes
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -43,16 +40,15 @@ class ModuleViewModel(
 ) : ViewModel() {
 
     sealed interface ModuleIntent {
-        data class Refresh(val checkUpdate: Boolean = false) : ModuleIntent
-        data class Search(val query: String) : ModuleIntent
         data class Toggle(val module: ModuleInfo) : ModuleIntent
-
         data class RequestUninstall(val module: ModuleInfo) : ModuleIntent
-        data class RequestUndoUninstall(val module: ModuleInfo) : ModuleIntent
-        data class RequestUpdate(val module: ModuleInfo, val updateInfo: ModuleUpdateInfo?) : ModuleIntent
+        data class ConfirmUninstall(val module: ModuleInfo) : ModuleIntent
+        data class UndoUninstall(val module: ModuleInfo) : ModuleIntent
 
-        data object ConfirmAction : ModuleIntent
-        data object DismissAction : ModuleIntent
+        data class RequestUpdate(val module: ModuleInfo, val updateInfo: ModuleUpdateInfo?) : ModuleIntent
+        data class ConfirmUpdate(val module: ModuleInfo, val updateInfo: ModuleUpdateInfo) : ModuleIntent
+
+        data object DismissDialog : ModuleIntent
 
         data class OpenWebUI(val module: ModuleInfo) : ModuleIntent
         data class OpenAction(val module: ModuleInfo) : ModuleIntent
@@ -68,14 +64,6 @@ class ModuleViewModel(
 
         data class ShowToast(@get:StringRes val messageRes: Int) : ModuleUiEffect
 
-        data class ShowConfirmDialog(
-            @get:StringRes val titleRes: Int,
-            val content: String,
-            val markdown: Boolean = false,
-            @get:StringRes val confirmTextRes: Int? = null,
-            @get:StringRes val dismissTextRes: Int? = null
-        ) : ModuleUiEffect
-
         data class StartDownload(
             val url: String,
             val fileName: String,
@@ -85,8 +73,6 @@ class ModuleViewModel(
         data class RunModuleAction(val moduleId: String) : ModuleUiEffect
         data class LaunchIntent(val intent: Intent) : ModuleUiEffect
     }
-
-    private var pendingAction: (() -> Unit)? = null
 
     typealias ModuleInfo = Module
     typealias ModuleUpdateInfo = me.weishu.kernelsu.data.model.ModuleUpdateInfo
@@ -111,11 +97,8 @@ class ModuleViewModel(
     private val _uiState = MutableStateFlow(ModuleUiState())
     val uiState: StateFlow<ModuleUiState> = _uiState.asStateFlow()
 
-    private val _effect = Channel<ModuleUiEffect>(Channel.BUFFERED)
-    val effect = _effect.receiveAsFlow()
-
-    var actionLoading by mutableStateOf(false)
-        private set
+    private val _effect = MutableSharedFlow<ModuleUiEffect>()
+    val effect = _effect.asSharedFlow()
 
     private val updateInfoMutex = Mutex()
     private var updateInfoCache: MutableMap<String, ModuleUpdateCache> = mutableMapOf()
@@ -127,72 +110,83 @@ class ModuleViewModel(
     fun onIntent(intent: ModuleIntent) {
         viewModelScope.launch {
             when (intent) {
-                is ModuleIntent.Refresh -> fetchModuleList(intent.checkUpdate)
-                is ModuleIntent.Search -> updateSearchText(intent.query)
                 is ModuleIntent.Toggle -> handleToggle(intent.module)
-                is ModuleIntent.RequestUninstall -> handleRequestUninstall(intent.module)
-                is ModuleIntent.RequestUndoUninstall -> handleRequestUndoUninstall(intent.module)
-                is ModuleIntent.RequestUpdate -> handleRequestUpdate(intent.module, intent.updateInfo)
-                is ModuleIntent.ConfirmAction -> {
-                    pendingAction?.invoke()
-                    pendingAction = null
+
+                is ModuleIntent.RequestUninstall -> {
+                    _uiState.update { it.copy(dialogState = ModuleDialogState.Uninstall(intent.module)) }
                 }
 
-                is ModuleIntent.DismissAction -> {
-                    pendingAction = null
+                is ModuleIntent.ConfirmUninstall -> handleConfirmUninstall(intent.module)
+                is ModuleIntent.UndoUninstall -> handleUndoUninstall(intent.module)
+
+                is ModuleIntent.RequestUpdate -> handleRequestUpdate(intent.module, intent.updateInfo)
+                is ModuleIntent.ConfirmUpdate -> handleConfirmUpdate(intent.module, intent.updateInfo)
+
+                is ModuleIntent.DismissDialog -> {
+                    _uiState.update { it.copy(dialogState = null) }
                 }
 
                 is ModuleIntent.OpenWebUI -> handleOpenWebUI(intent.module)
                 is ModuleIntent.OpenAction -> {
                     markNeedRefresh()
-                    _effect.send(ModuleUiEffect.RunModuleAction(intent.module.id))
+                    _effect.emit(ModuleUiEffect.RunModuleAction(intent.module.id))
                 }
             }
         }
     }
 
+    private fun isModuleBusy(moduleId: String): Boolean {
+        return _uiState.value.operatingModules.contains(moduleId)
+    }
+
+    private suspend fun <T> withModuleLock(moduleId: String, block: suspend () -> T): T? {
+        if (isModuleBusy(moduleId)) return null
+
+        _uiState.update { it.copy(operatingModules = it.operatingModules + moduleId) }
+        return try {
+            block()
+        } finally {
+            _uiState.update { it.copy(operatingModules = it.operatingModules - moduleId) }
+        }
+    }
 
     private fun handleToggle(module: ModuleInfo) {
         viewModelScope.launch {
-            actionLoading = true
-            val success = withContext(Dispatchers.IO) {
-                toggleModule(module.id, !module.enabled)
-            }
-            actionLoading = false
+            withModuleLock(module.id) {
+                val success = withContext(Dispatchers.IO) {
+                    toggleModule(module.id, !module.enabled)
+                }
 
-            if (success) {
-                fetchModuleList()
-                _effect.send(
-                    ModuleUiEffect.ShowSnackbar(
-                        messageRes = R.string.reboot_to_apply,
-                        actionLabelRes = R.string.reboot,
-                        withReboot = true
+                if (success) {
+                    fetchModuleList()
+                    _effect.emit(
+                        ModuleUiEffect.ShowSnackbar(
+                            messageRes = R.string.reboot_to_apply,
+                            actionLabelRes = R.string.reboot,
+                            withReboot = true
+                        )
                     )
-                )
-            } else {
-                val msgRes = if (module.enabled) R.string.module_failed_to_disable else R.string.module_failed_to_enable
-                _effect.send(ModuleUiEffect.ShowSnackbar(messageRes = msgRes, formatArgs = listOf(module.name)))
+                } else {
+                    val msgRes = if (module.enabled) R.string.module_failed_to_disable else R.string.module_failed_to_enable
+                    _effect.emit(ModuleUiEffect.ShowSnackbar(messageRes = msgRes, formatArgs = listOf(module.name)))
+                }
             }
         }
     }
 
-    private fun handleRequestUninstall(module: ModuleInfo) {
-        val formatRes = if (module.metamodule) R.string.metamodule_uninstall_confirm else R.string.module_uninstall_confirm
-        // Note: Strings are resolved at trigger time. Changing the language while the dialog is open won't update the text immediately, but will apply on the next trigger.
-        val content = ksuApp.getString(formatRes, module.name)
+    private fun handleConfirmUninstall(module: ModuleInfo) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(dialogState = null) }
 
-        pendingAction = {
-            viewModelScope.launch {
-                actionLoading = true
+            withModuleLock(module.id) {
                 val success = withContext(Dispatchers.IO) {
                     uninstallModule(module.id)
                 }
-                actionLoading = false
 
                 if (success) fetchModuleList()
 
                 val msgRes = if (success) R.string.module_uninstall_success else R.string.module_uninstall_failed
-                _effect.send(
+                _effect.emit(
                     ModuleUiEffect.ShowSnackbar(
                         messageRes = msgRes,
                         formatArgs = listOf(module.name),
@@ -202,42 +196,31 @@ class ModuleViewModel(
                 )
             }
         }
-
-        viewModelScope.launch {
-            _effect.send(
-                ModuleUiEffect.ShowConfirmDialog(
-                    titleRes = R.string.module,
-                    content = content,
-                    confirmTextRes = R.string.uninstall,
-                    dismissTextRes = android.R.string.cancel
-                )
-            )
-        }
     }
 
-    private fun handleRequestUndoUninstall(module: ModuleInfo) {
-        // Undo uninstall usually doesn't need a confirmation dialog, but if it did, we'd do it here.
-        // Assuming direct execution based on original code structure which had logic inside a generic "loading" block.
-        // If original code didn't confirm, we can just execute.
-
+    private fun handleUndoUninstall(module: ModuleInfo) {
         viewModelScope.launch {
-            actionLoading = true
-            val success = withContext(Dispatchers.IO) {
-                undoUninstallModule(module.id)
+            withModuleLock(module.id) {
+                val success = withContext(Dispatchers.IO) {
+                    undoUninstallModule(module.id)
+                }
+
+                if (success) fetchModuleList()
+
+                val msgRes = if (success) R.string.module_undo_uninstall_success else R.string.module_undo_uninstall_failed
+                _effect.emit(ModuleUiEffect.ShowSnackbar(messageRes = msgRes, formatArgs = listOf(module.name)))
             }
-            actionLoading = false
-
-            if (success) fetchModuleList()
-
-            val msgRes = if (success) R.string.module_undo_uninstall_success else R.string.module_undo_uninstall_failed
-            _effect.send(ModuleUiEffect.ShowSnackbar(messageRes = msgRes, formatArgs = listOf(module.name)))
         }
     }
 
     private fun handleRequestUpdate(module: ModuleInfo, updateInfo: ModuleUpdateInfo?) {
         if (updateInfo == null) return
+
+        _uiState.update {
+            it.copy(dialogState = ModuleDialogState.Update(module, updateInfo, changelog = null))
+        }
+
         viewModelScope.launch {
-            actionLoading = true
             val changelog = withContext(Dispatchers.IO) {
                 runCatching {
                     if (updateInfo.changelog.isNotEmpty()) {
@@ -247,24 +230,24 @@ class ModuleViewModel(
                     } else ""
                 }.getOrElse { "" }
             }
-            actionLoading = false
 
-            val fileName = "${module.name}-${updateInfo.version}.zip"
-
-            pendingAction = {
-                viewModelScope.launch {
-                    _effect.send(ModuleUiEffect.StartDownload(updateInfo.downloadUrl, fileName, module.name))
+            _uiState.update { currentState ->
+                val currentDialog = currentState.dialogState
+                if (currentDialog is ModuleDialogState.Update && currentDialog.module.id == module.id) {
+                    currentState.copy(dialogState = currentDialog.copy(changelog = changelog))
+                } else {
+                    currentState
                 }
             }
+        }
+    }
 
-            _effect.send(
-                ModuleUiEffect.ShowConfirmDialog(
-                    titleRes = R.string.module_changelog,
-                    content = changelog,
-                    markdown = true,
-                    confirmTextRes = R.string.module_update
-                )
-            )
+    private fun handleConfirmUpdate(module: ModuleInfo, updateInfo: ModuleUpdateInfo) {
+        _uiState.update { it.copy(dialogState = null) }
+
+        val fileName = "${module.name}-${updateInfo.version}.zip"
+        viewModelScope.launch {
+            _effect.emit(ModuleUiEffect.StartDownload(updateInfo.downloadUrl, fileName, module.name))
         }
     }
 
@@ -277,21 +260,26 @@ class ModuleViewModel(
             putExtra("name", module.name)
         }
         viewModelScope.launch {
-            _effect.send(ModuleUiEffect.LaunchIntent(intent))
+            _effect.emit(ModuleUiEffect.LaunchIntent(intent))
         }
     }
+
     fun markNeedRefresh() {
         isNeedRefresh = true
     }
 
     fun setSortEnabledFirst(enabled: Boolean) {
         _uiState.update { it.copy(sortEnabledFirst = enabled) }
-        updateModuleList()
+        viewModelScope.launch {
+            updateSearchText(_uiState.value.searchStatus.searchText)
+        }
     }
 
     fun setSortActionFirst(enabled: Boolean) {
         _uiState.update { it.copy(sortActionFirst = enabled) }
-        updateModuleList()
+        viewModelScope.launch {
+            updateSearchText(_uiState.value.searchStatus.searchText)
+        }
     }
 
     fun setCheckModuleUpdate(enabled: Boolean) {
@@ -349,18 +337,10 @@ class ModuleViewModel(
     private fun updateModuleList() {
         viewModelScope.launch(Dispatchers.IO) {
             val state = _uiState.value
-            val searchText = state.searchStatus.searchText
 
-            // Re-apply filter and sort
-            val filtered = state.modules.filter {
-                it.id.contains(searchText, true) || it.name.contains(
-                    searchText,
-                    true
-                ) || HanziToPinyin.getInstance()
-                    .toPinyinString(it.name).contains(searchText, true)
-            }.sortedWith(moduleComparator(state))
+            val sorted = state.modules.sortedWith(moduleComparator(state))
 
-            _uiState.update { it.copy(moduleList = filtered) }
+            _uiState.update { it.copy(moduleList = sorted) }
         }
     }
 
