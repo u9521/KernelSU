@@ -107,6 +107,11 @@ fun KernelSUTheme(
             appSettings = currentAppSettings,
             content = content
         )
+
+        UiMode.Breeze -> MaterialKernelSUTheme(
+            appSettings = currentAppSettings,
+            content = content
+        )
     }
 }
 

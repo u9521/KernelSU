@@ -30,7 +30,14 @@ fun SettingPager(
         onSetCheckModuleUpdate = viewModel::setCheckModuleUpdate,
         onOpenTheme = { navigator.push(Route.ColorPalette) },
         onSetUiModeIndex = { index ->
-            viewModel.setUiMode(if (index == 0) UiMode.Miuix.value else UiMode.Material.value)
+            viewModel.setUiMode(
+                when (index) {
+                    0 -> UiMode.Miuix.value
+                    1 -> UiMode.Material.value
+                    2 -> UiMode.Breeze.value
+                    else -> UiMode.Breeze.value
+                }
+            )
         },
         onOpenProfileTemplate = { navigator.push(Route.AppProfileTemplate) },
         onSetSuCompatMode = viewModel::setSuCompatMode,
@@ -47,5 +54,6 @@ fun SettingPager(
     when (LocalUiMode.current) {
         UiMode.Miuix -> SettingPagerMiuix(uiState, actions, bottomInnerPadding)
         UiMode.Material -> SettingPagerMaterial(uiState, actions, bottomInnerPadding)
+        UiMode.Breeze -> SettingPagerMaterial(uiState, actions, bottomInnerPadding)
     }
 }

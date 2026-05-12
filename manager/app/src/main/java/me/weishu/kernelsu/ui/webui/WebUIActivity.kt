@@ -135,5 +135,16 @@ private fun LoadingContent() {
                 androidx.compose.material3.LoadingIndicator()
             }
         }
+
+        UiMode.Breeze -> {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.material3.LoadingIndicator()
+            }
+        }
     }
 }

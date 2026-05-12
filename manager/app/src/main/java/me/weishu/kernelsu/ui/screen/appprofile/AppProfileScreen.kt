@@ -76,7 +76,7 @@ fun AppProfileScreen(uid: Int) {
 
     fun showMessage(message: String) {
         scope.launch {
-            if (uiMode == UiMode.Material) {
+            if (uiMode != UiMode.Miuix) {
                 snackbarHost.showSnackbar(message)
             } else {
                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
@@ -142,6 +142,11 @@ fun AppProfileScreen(uid: Int) {
             state = state,
             actions = actions,
             snackBarHost = snackbarHost,
+        )
+
+        UiMode.Breeze -> AppProfileScreenMaterial(
+            state = state,
+            actions = actions,
         )
     }
 }
