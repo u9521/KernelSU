@@ -29,6 +29,7 @@ object MonetColorsProvider {
         when (LocalUiMode.current) {
             UiMode.Miuix -> UpdateCssMiuix()
             UiMode.Material -> UpdateCssMaterial(materialColorScheme ?: MaterialTheme.colorScheme)
+            UiMode.Breeze -> UpdateCssMaterial(materialColorScheme ?: MaterialTheme.colorScheme)
         }
     }
 

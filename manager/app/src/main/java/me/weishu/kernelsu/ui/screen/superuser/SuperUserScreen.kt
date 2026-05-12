@@ -73,5 +73,11 @@ fun SuperUserPager(
             actions = actions,
             bottomInnerPadding = bottomInnerPadding,
         )
+
+        UiMode.Breeze -> SuperUserPagerMaterial(
+            uiState = uiState,
+            actions = actions,
+            bottomInnerPadding = bottomInnerPadding,
+        )
     }
 }

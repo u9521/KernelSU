@@ -4,16 +4,19 @@ import androidx.compose.runtime.staticCompositionLocalOf
 
 enum class UiMode(val value: String) {
     Miuix("miuix"),
-    Material("material");
+    Material("material"),
+    Breeze("breeze");
 
     companion object {
         fun fromValue(value: String): UiMode = when (value) {
             Material.value -> Material
-            else -> Miuix
+            Breeze.value -> Breeze
+            Miuix.value -> Miuix
+            else -> Breeze
         }
 
-        val DEFAULT_VALUE = Miuix.value
+        val DEFAULT_VALUE = Breeze.value
     }
 }
 
-val LocalUiMode = staticCompositionLocalOf { UiMode.Miuix }
+val LocalUiMode = staticCompositionLocalOf { UiMode.Breeze }
