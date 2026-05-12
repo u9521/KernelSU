@@ -31,9 +31,8 @@ fun AppProfileConfig(
             onProfileChange = onProfileChange
         )
 
-        UiMode.Breeze -> AppProfileConfigMaterial(
+        UiMode.Breeze -> AppProfileConfigBreeze(
             modifier = modifier,
-            fixedName = fixedName,
             enabled = enabled,
             profile = profile,
             onProfileChange = onProfileChange
@@ -65,9 +64,9 @@ fun RootProfileConfig(
             onProfileChange = onProfileChange
         )
 
-        UiMode.Breeze -> RootProfileConfigMaterial(
+        UiMode.Breeze -> RootProfileConfigBreeze(
             modifier = modifier,
-            enabled = enabled,
+            readOnly = !enabled,
             profile = profile,
             onProfileChange = onProfileChange
         )
@@ -98,10 +97,8 @@ fun TemplateConfig(
             onProfileChange = onProfileChange
         )
 
-        UiMode.Breeze -> TemplateConfigMaterial(
+        UiMode.Breeze -> TemplateConfigBreeze(
             profile = profile,
-            onViewTemplate = onViewTemplate,
-            onManageTemplate = onManageTemplate,
             onProfileChange = onProfileChange
         )
     }

@@ -4,7 +4,9 @@ import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialExpressiveTheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MotionScheme
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
@@ -71,3 +73,13 @@ fun MaterialKernelSUTheme(
         }
     )
 }
+
+@Composable
+fun expressiveTopBarColors() =
+    if (LocalEnableBlur.current) TopAppBarDefaults.topAppBarColors(
+        containerColor = Color.Transparent, scrolledContainerColor =
+            Color.Transparent
+    ) else TopAppBarDefaults.topAppBarColors(
+        containerColor = MaterialTheme.colorScheme.surfaceContainer, scrolledContainerColor =
+            MaterialTheme.colorScheme.surfaceBright
+    )

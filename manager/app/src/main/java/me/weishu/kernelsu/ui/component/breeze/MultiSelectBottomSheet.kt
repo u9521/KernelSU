@@ -1,0 +1,297 @@
+package me.weishu.kernelsu.ui.component.breeze
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedListItem
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.toMutableStateList
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
+import me.weishu.kernelsu.R
+import me.weishu.kernelsu.profile.Capabilities
+import me.weishu.kernelsu.ui.util.windowBlurBehind
+
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun <T> MultiSelectBottomSheet(
+    title: String,
+    options: List<T>,
+    initialSelection: List<T>,
+    maxSelection: Int = Int.MAX_VALUE,
+    readOnly: Boolean = false,
+    scrollToItem: T? = null,
+    optionTitle: (T) -> String,
+    optionSubtitle: (T) -> String?,
+    onDismissRequest: () -> Unit,
+    onConfirm: (Set<T>) -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+    val haptic = LocalHapticFeedback.current
+
+    val selectedItems = remember { initialSelection.toMutableStateList() }
+    var searchQuery by remember { mutableStateOf("") }
+
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(Unit) {
+        haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+    }
+
+    val filteredList = remember(options, searchQuery) {
+        if (searchQuery.isBlank()) options
+        else options.filter {
+            optionTitle(it).contains(searchQuery, ignoreCase = true) || (optionSubtitle(it)?.contains(searchQuery, ignoreCase = true) == true)
+        }
+    }
+
+    val isLimitEnabled = maxSelection < Int.MAX_VALUE
+
+    val isAllFilteredSelected = remember(selectedItems.size, filteredList) {
+        filteredList.isNotEmpty() && selectedItems.containsAll(filteredList)
+    }
+
+    LaunchedEffect(scrollToItem) {
+        if (scrollToItem != null && searchQuery.isEmpty()) {
+            val index = options.indexOf(scrollToItem)
+            if (index >= 0) {
+                listState.scrollToItem(index)
+            }
+        }
+    }
+
+    fun closeSheet() {
+        scope.launch {
+            sheetState.hide()
+        }.invokeOnCompletion {
+            if (!sheetState.isVisible) {
+                onDismissRequest()
+            }
+        }
+    }
+
+    ModalBottomSheet(
+        modifier = Modifier
+            .windowBlurBehind()
+            .padding(WindowInsets.statusBars.only(WindowInsetsSides.Top + WindowInsetsSides.Bottom).asPaddingValues()),
+        onDismissRequest = onDismissRequest,
+        sheetState = sheetState,
+        contentWindowInsets = { WindowInsets(left = 16.dp, right = 16.dp).union(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom)) },
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        containerColor = MaterialTheme.colorScheme.surfaceContainer
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Title
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,
+            )
+
+            // Buttons Area
+            Row(
+                modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically
+            ) {
+                val showToggleButton: Boolean
+                val isDeselectMode: Boolean
+
+                if (isLimitEnabled) {
+                    showToggleButton = selectedItems.isNotEmpty()
+                    isDeselectMode = true
+                } else {
+                    showToggleButton = true
+                    isDeselectMode = isAllFilteredSelected
+                }
+
+                if (showToggleButton) {
+                    TextButton(
+                        shapes = ButtonDefaults.shapes(), enabled = !readOnly, onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                            if (isDeselectMode) {
+                                selectedItems.clear()
+                            } else {
+                                val itemsToAdd = filteredList.filter { !selectedItems.contains(it) }
+                                selectedItems.addAll(itemsToAdd)
+                            }
+                        }) {
+                        val actionText = if (isDeselectMode) R.string.deselect_all else R.string.select_all
+                        Text(stringResource(actionText, "${selectedItems.size}"))
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // Confirm Button
+                if (readOnly) {
+                    OutlinedButton(shapes = ButtonDefaults.shapes(), onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                        closeSheet()
+                    }) { Text(stringResource(R.string.close)) }
+                    return@Row
+                }
+                Button(
+                    enabled = !isLimitEnabled || selectedItems.size <= maxSelection, shapes = ButtonDefaults.shapes(), onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                        onConfirm(selectedItems.toSet())
+                        closeSheet()
+                    }) {
+                    Text(stringResource(android.R.string.ok))
+                }
+            }
+        }
+
+        // Search box
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text(stringResource(R.string.search)) },
+            leadingIcon = {
+                Icon(Icons.Default.Search, contentDescription = stringResource(R.string.search))
+            },
+            trailingIcon = {
+                val motionScheme = MaterialTheme.motionScheme
+                AnimatedVisibility(
+                    visible = searchQuery.isNotEmpty(),
+                    enter = fadeIn(motionScheme.defaultEffectsSpec()) + scaleIn(motionScheme.defaultSpatialSpec()),
+                    exit = fadeOut(motionScheme.defaultEffectsSpec()) + scaleOut(motionScheme.defaultSpatialSpec())
+                ) {
+                    IconButton(onClick = { searchQuery = "" }) {
+                        Icon(Icons.Default.Close, contentDescription = "Clear")
+                    }
+                }
+            },
+            singleLine = true
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // List
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.weight(1f, fill = true),
+            verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
+            contentPadding = PaddingValues(bottom = 16.dp)
+        ) {
+            items(filteredList, key = { optionTitle(it) to (optionSubtitle(it) ?: "") }) { item ->
+                val isSelected = selectedItems.contains(item)
+                val canToggle = isSelected || (!isLimitEnabled || selectedItems.size < maxSelection)
+                SegmentedListItem(
+                    modifier = Modifier.heightIn(min = 72.dp),
+                    checked = isSelected,
+                    colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceBright),
+                    enabled = canToggle && !readOnly,
+                    onCheckedChange = { checked ->
+                        if (!checked) {
+                            selectedItems.remove(item)
+                        } else {
+                            if (!isLimitEnabled || selectedItems.size < maxSelection) {
+                                selectedItems.add(item)
+                            }
+                        }
+                    },
+                    shapes = ListItemDefaults.segmentedShapes(filteredList.indexOf(item), filteredList.size),
+                    verticalAlignment = Alignment.CenterVertically,
+                    leadingContent = {
+                        Checkbox(
+                            checked = isSelected, enabled = canToggle && !readOnly, onCheckedChange = null
+                        )
+                    },
+                    content = {
+                        Text(
+                            text = optionTitle(item),
+                        )
+                    },
+                    supportingContent = if (!optionSubtitle(item).isNullOrEmpty()) {
+                        {
+                            Text(
+                                text = optionSubtitle(item) ?: "",
+                            )
+                        }
+                    } else {
+                        null
+                    })
+            }
+        }
+        if (filteredList.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
+            ) {
+                Text(stringResource(R.string.no_result), color = Color.Gray)
+            }
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun MultiSelectBottomSheetPreview() {
+    val allOptions = remember {
+        Capabilities.entries.sortedBy { it.name }
+    }
+
+    MultiSelectBottomSheet(
+        stringResource(R.string.profile_capabilities), options = allOptions, initialSelection = emptyList(), onDismissRequest = {},
+        optionTitle = { it.display }, optionSubtitle = { it.desc },
+        onConfirm = { }
+    )
+}

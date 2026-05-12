@@ -164,10 +164,12 @@ dependencies {
     implementation(libs.androidx.activity.compose)
 
     implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.adaptive)
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.navigation3.ui)
 
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
@@ -202,9 +204,10 @@ dependencies {
 
     implementation(libs.miuix.ui)
     implementation(libs.miuix.icons)
-    implementation(libs.miuix.navigation3.ui)
     implementation(libs.miuix.preference)
     implementation(libs.miuix.blur)
+
+    implementation(libs.haze)
 
     implementation(platform(libs.okhttp.bom))
     implementation(libs.okhttp)
