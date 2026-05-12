@@ -101,6 +101,7 @@ fun AppIconImage(
 private fun PlaceHolderBox(modifier: Modifier = Modifier) {
     val containerColor = when (LocalUiMode.current) {
         UiMode.Material -> MaterialTheme.colorScheme.secondaryContainer
+        UiMode.Breeze -> MaterialTheme.colorScheme.secondaryContainer
         UiMode.Miuix -> MiuixTheme.colorScheme.secondaryContainer
     }
 

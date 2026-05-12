@@ -203,6 +203,7 @@ class MainActivity : ComponentActivity() {
 
                     when (uiMode) {
                         UiMode.Material -> androidx.compose.material3.Scaffold { navDisplay() }
+                        UiMode.Breeze -> androidx.compose.material3.Scaffold { navDisplay() }
                         UiMode.Miuix -> Scaffold { navDisplay() }
                     }
                 }
@@ -237,7 +238,8 @@ fun MainScreen(
     var userScrollEnabled by remember(isFullFeatured) { mutableStateOf(isFullFeatured) }
     val uiMode = LocalUiMode.current
     val surfaceColor = when (uiMode) {
-        UiMode.Material -> MaterialTheme.colorScheme.surface // Blur is not used in Material, this is just a placeholder
+        UiMode.Material -> MaterialTheme.colorScheme.surface
+        UiMode.Breeze -> MaterialTheme.colorScheme.surface
         UiMode.Miuix -> MiuixTheme.colorScheme.surface
     }
     val blurBackdrop = rememberBlurBackdrop(enableBlur)
@@ -307,6 +309,21 @@ fun MainScreen(
                     }
                 }
 
+                UiMode.Breeze -> androidx.compose.material3.Scaffold {
+                    Row {
+                        SideRail(
+                            blurBackdrop = blurBackdrop,
+                        )
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .consumeWindowInsets(startInsets)
+                        ) {
+                            pagerContent(navBarBottomPadding)
+                        }
+                    }
+                }
+
                 UiMode.Miuix -> Scaffold { _ ->
                     Row {
                         SideRail(
@@ -337,6 +354,10 @@ fun MainScreen(
 
             when (uiMode) {
                 UiMode.Material -> androidx.compose.material3.Scaffold(bottomBar = bottomBar) { innerPadding ->
+                    pagerContent(innerPadding.calculateBottomPadding())
+                }
+
+                UiMode.Breeze -> androidx.compose.material3.Scaffold(bottomBar = bottomBar) { innerPadding ->
                     pagerContent(innerPadding.calculateBottomPadding())
                 }
 

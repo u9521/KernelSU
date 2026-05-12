@@ -59,7 +59,7 @@ fun AppProfileTemplateScreen() {
 
     fun showMessage(message: String) {
         scope.launch {
-            if (uiMode == UiMode.Material) {
+            if (uiMode != UiMode.Miuix) {
                 snackBarHost.showSnackbar(message)
             } else {
                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
@@ -117,6 +117,10 @@ fun AppProfileTemplateScreen() {
                 UiMode.Material -> navigator.push(
                     Route.TemplateEditor(TemplateViewModel.TemplateInfo(), false)
                 )
+
+                UiMode.Breeze -> navigator.push(
+                    Route.TemplateEditor(TemplateViewModel.TemplateInfo(), false)
+                )
             }
         },
         onOpenTemplate = { template ->
@@ -127,6 +131,10 @@ fun AppProfileTemplateScreen() {
                 )
 
                 UiMode.Material -> navigator.push(
+                    Route.TemplateEditor(template, !template.local)
+                )
+
+                UiMode.Breeze -> navigator.push(
                     Route.TemplateEditor(template, !template.local)
                 )
             }
@@ -143,6 +151,11 @@ fun AppProfileTemplateScreen() {
             state = uiState,
             actions = actions,
             snackBarHost = snackBarHost,
+        )
+
+        UiMode.Breeze -> AppProfileTemplateScreenMaterial(
+            state = uiState,
+            actions = actions,
         )
     }
 }
