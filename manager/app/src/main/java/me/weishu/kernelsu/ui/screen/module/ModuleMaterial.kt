@@ -52,10 +52,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.outlined.Cloud
-import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.Button
@@ -274,7 +271,7 @@ fun ModulePagerMaterial(
                         onClick = { actions.onOpenRepo() }
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.Cloud,
+                            painter = painterResource(R.drawable.ic_cloud_rounded),
                             contentDescription = stringResource(id = R.string.module_repos)
                         )
                     }
@@ -845,7 +842,7 @@ private fun ModuleItem(
                             ) {
                                 Icon(
                                     modifier = Modifier.size(20.dp),
-                                    imageVector = Icons.Outlined.Code,
+                                    painter = painterResource(R.drawable.ic_code_rounded),
                                     contentDescription = null
                                 )
                                 if (!module.hasActionScript && !hasUpdate) {
@@ -878,7 +875,7 @@ private fun ModuleItem(
                         ) {
                             Icon(
                                 modifier = Modifier.size(20.dp),
-                                imageVector = Icons.Outlined.Download,
+                                painter = painterResource(R.drawable.ic_download_2_rounded),
                                 contentDescription = null
                             )
                             if (!module.hasActionScript || !module.hasWebUi) {

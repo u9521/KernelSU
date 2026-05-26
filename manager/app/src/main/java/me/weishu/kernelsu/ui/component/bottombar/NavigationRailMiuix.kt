@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.ui.LocalMainPagerState
@@ -41,7 +43,7 @@ fun NavigationRailMiuix(
             Spacer(modifier = Modifier.weight(1f))
             items.forEachIndexed { index, (label, icon) ->
                 NavigationRailItem(
-                    icon = icon,
+                    icon = ImageVector.vectorResource(icon),
                     label = label,
                     selected = mainState.selectedPage == index,
                     onClick = {

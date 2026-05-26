@@ -15,8 +15,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.DeleteForever
-import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
@@ -30,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import me.weishu.kernelsu.R
@@ -198,13 +197,13 @@ private fun TopBar(
             if (readOnly) return@LargeFlexibleTopAppBar
             IconButton(onClick = onDelete) {
                 Icon(
-                    Icons.Filled.DeleteForever,
+                    painterResource(R.drawable.ic_delete_forever_rounded_filled),
                     contentDescription = stringResource(id = R.string.app_profile_template_delete)
                 )
             }
             IconButton(onClick = onSave) {
                 Icon(
-                    imageVector = Icons.Filled.Save,
+                    painterResource(R.drawable.ic_save_rounded_filled),
                     contentDescription = stringResource(id = R.string.app_profile_template_save)
                 )
             }

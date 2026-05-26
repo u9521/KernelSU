@@ -9,12 +9,12 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -84,7 +84,7 @@ fun SendLogDialog(
                 title = stringResource(id = R.string.save_log),
                 startAction = {
                     Icon(
-                        Icons.Rounded.Save,
+                        painterResource(R.drawable.ic_save_rounded_filled),
                         contentDescription = null,
                         modifier = Modifier.padding(end = 16.dp),
                         tint = colorScheme.onSurface

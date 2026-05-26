@@ -41,16 +41,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.rounded.MenuOpen
-import androidx.compose.material.icons.filled.Brightness1
-import androidx.compose.material.icons.filled.Brightness3
-import androidx.compose.material.icons.filled.Brightness4
-import androidx.compose.material.icons.filled.Brightness7
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.rounded.AspectRatio
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.DesignServices
-import androidx.compose.material.icons.rounded.Style
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -76,12 +68,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -222,13 +217,15 @@ fun ColorPaletteScreenMaterial(
                                 },
                             ) {
                                 Icon(
-                                    imageVector = when (modes.first()) {
-                                        ColorMode.SYSTEM -> Icons.Filled.Brightness4
-                                        ColorMode.LIGHT -> Icons.Filled.Brightness7
-                                        ColorMode.DARK -> Icons.Filled.Brightness3
-                                        ColorMode.DARK_AMOLED -> Icons.Filled.Brightness1
-                                        else -> Icons.Filled.Brightness4
-                                    },
+                                    painter = painterResource(
+                                        when (modes.first()) {
+                                            ColorMode.SYSTEM -> R.drawable.ic_brightness_auto_rounded_filled
+                                            ColorMode.LIGHT -> R.drawable.ic_brightness_5_rounded_filled
+                                            ColorMode.DARK -> R.drawable.ic_brightness_2_rounded_filled
+                                            ColorMode.DARK_AMOLED -> R.drawable.ic_brightness_1_rounded_filled
+                                            else -> R.drawable.ic_brightness_auto_rounded_filled
+                                        }
+                                    ),
                                     contentDescription = label
                                 )
                             }
@@ -242,7 +239,7 @@ fun ColorPaletteScreenMaterial(
                         {
                             val styles = PaletteStyle.entries
                             SegmentedDropdownItem(
-                                icon = Icons.Rounded.Style,
+                                icon = ImageVector.vectorResource(R.drawable.ic_style_rounded_filled),
                                 title = stringResource(R.string.settings_color_style),
                                 items = styles.map { it.name },
                                 selectedIndex = styles.indexOf(colorStyle),
@@ -254,7 +251,7 @@ fun ColorPaletteScreenMaterial(
                         {
                             val specs = ColorSpec.SpecVersion.entries
                             SegmentedDropdownItem(
-                                icon = Icons.Rounded.DesignServices,
+                                icon = ImageVector.vectorResource(R.drawable.ic_design_services_rounded_filled),
                                 title = stringResource(R.string.settings_color_spec),
                                 items = specs.map { it.name },
                                 selectedIndex = specs.indexOf(colorSpec).coerceAtLeast(0),
@@ -272,7 +269,7 @@ fun ColorPaletteScreenMaterial(
                         content = listOf(
                             {
                                 SegmentedSwitchItem(
-                                    icon = Icons.AutoMirrored.Rounded.MenuOpen,
+                                    icon = ImageVector.vectorResource(R.drawable.ic_menu_open_rounded),
                                     title = stringResource(id = R.string.settings_enable_predictive_back),
                                     summary = stringResource(id = R.string.settings_enable_predictive_back_summary),
                                     checked = uiState.enablePredictiveBack,
@@ -295,7 +292,7 @@ fun ColorPaletteScreenMaterial(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                Icons.Rounded.AspectRatio,
+                                painterResource(R.drawable.ic_aspect_ratio_rounded),
                                 contentDescription = stringResource(id = R.string.settings_page_scale),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )

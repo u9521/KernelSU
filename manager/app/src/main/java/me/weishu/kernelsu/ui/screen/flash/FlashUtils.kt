@@ -5,11 +5,6 @@ import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.os.Parcelable
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Adb
-import androidx.compose.material.icons.rounded.DeleteForever
-import androidx.compose.material.icons.rounded.RemoveModerator
-import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,7 +15,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -46,23 +40,23 @@ enum class FlashingStatus {
     FAILED
 }
 
-enum class UninstallType(val icon: ImageVector, val title: Int, val message: Int) {
+enum class UninstallType(val icon: Int, val title: Int, val message: Int) {
     TEMPORARY(
-        Icons.Rounded.RemoveModerator,
+        R.drawable.ic_remove_moderator_outlined_filled,
         R.string.settings_uninstall_temporary,
         R.string.settings_uninstall_temporary_message
     ),
     PERMANENT(
-        Icons.Rounded.DeleteForever,
+        R.drawable.ic_delete_forever_rounded_filled,
         R.string.settings_uninstall_permanent,
         R.string.settings_uninstall_permanent_message
     ),
     RESTORE_STOCK_IMAGE(
-        Icons.Rounded.RestartAlt,
+        R.drawable.ic_restart_alt_rounded,
         R.string.settings_restore_stock_image,
         R.string.settings_restore_stock_image_message
     ),
-    NONE(Icons.Rounded.Adb, 0, 0)
+    NONE(0, 0, 0)
 }
 
 @Parcelize

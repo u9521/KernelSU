@@ -26,9 +26,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.CheckCircleOutline
-import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
@@ -37,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.UriHandler
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -290,7 +288,7 @@ private fun StatusCard(
                             ) {
                                 Icon(
                                     modifier = Modifier.size(170.dp),
-                                    imageVector = Icons.Rounded.CheckCircleOutline,
+                                    painter = painterResource(R.drawable.ic_check_circle_rounded),
                                     tint = if (isDynamicColor) {
                                         colorScheme.primary.copy(alpha = 0.8f)
                                     } else {
@@ -399,7 +397,7 @@ private fun StatusCard(
                             summary = stringResource(R.string.home_click_to_install),
                             startAction = {
                                 Icon(
-                                    Icons.Rounded.ErrorOutline,
+                                    painterResource(R.drawable.ic_error_rounded),
                                     stringResource(R.string.home_not_installed),
                                     modifier = Modifier.padding(end = 6.dp),
                                     tint = colorScheme.onBackground,
@@ -434,7 +432,7 @@ private fun StatusCard(
                         summary = stringResource(R.string.home_unsupported_reason),
                         startAction = {
                             Icon(
-                                Icons.Rounded.ErrorOutline,
+                                painterResource(R.drawable.ic_error_rounded),
                                 stringResource(R.string.home_unsupported),
                                 modifier = Modifier.padding(end = 16.dp),
                                 tint = colorScheme.onBackground,

@@ -26,8 +26,6 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.DeleteSweep
-import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -60,6 +58,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
@@ -126,13 +125,13 @@ fun SulogScreenMaterial(
                 actions = {
                     IconButton(onClick = actions.onCleanFile) {
                         Icon(
-                            imageVector = Icons.Filled.DeleteSweep,
+                            painter = painterResource(R.drawable.ic_delete_sweep_rounded),
                             contentDescription = stringResource(R.string.sulog_clean_title),
                         )
                     }
                     IconButton(onClick = { showFilterMenu = true }) {
                         Icon(
-                            imageVector = Icons.Filled.FilterList,
+                            painter = painterResource(R.drawable.ic_filter_list_rounded),
                             contentDescription = stringResource(R.string.sulog_filter_title),
                         )
                     }

@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.Button
@@ -41,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.UriHandler
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -289,7 +289,7 @@ private fun StatusCard(
                     }
 
                     else -> {
-                        Icon(Icons.Outlined.Block, stringResource(R.string.home_unsupported))
+                        Icon(painterResource(R.drawable.ic_block_rounded), stringResource(R.string.home_unsupported))
                         Column(Modifier.padding(start = 20.dp)) {
                             Text(
                                 text = stringResource(R.string.home_unsupported),
