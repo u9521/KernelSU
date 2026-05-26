@@ -55,7 +55,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -938,7 +937,7 @@ fun ModuleItem(
                         ) {
                             Icon(
                                 modifier = Modifier.size(22.dp),
-                                imageVector = Icons.Rounded.Code,
+                                painter = painterResource(R.drawable.ic_code_rounded),
                                 tint = actionIconTint,
                                 contentDescription = stringResource(R.string.open)
                             )

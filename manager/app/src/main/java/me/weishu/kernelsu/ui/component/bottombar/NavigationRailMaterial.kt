@@ -8,21 +8,13 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Extension
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.outlined.Extension
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
@@ -40,10 +32,10 @@ fun NavigationRailMaterial(
     if (!fullFeatured) return
 
     val items = listOf(
-        Triple(R.string.home, Icons.Filled.Home, Icons.Outlined.Home),
-        Triple(R.string.superuser, Icons.Filled.Shield, Icons.Outlined.Shield),
-        Triple(R.string.module, Icons.Filled.Extension, Icons.Outlined.Extension),
-        Triple(R.string.settings, Icons.Filled.Settings, Icons.Outlined.Settings)
+        Triple(R.string.home, R.drawable.ic_cottage_rounded_filled, R.drawable.ic_cottage_rounded),
+        Triple(R.string.superuser, R.drawable.ic_security_rounded, R.drawable.ic_shield_rounded),
+        Triple(R.string.module, R.drawable.ic_extension_rounded_filled, R.drawable.ic_extension_rounded),
+        Triple(R.string.settings, R.drawable.ic_settings_rounded_filled, R.drawable.ic_settings_rounded)
     )
 
     NavigationRail(
@@ -64,7 +56,7 @@ fun NavigationRailMaterial(
                 },
                 icon = {
                     Icon(
-                        if (selected) selectedIcon else unselectedIcon,
+                        painterResource(if (selected) selectedIcon else unselectedIcon),
                         stringResource(label)
                     )
                 },

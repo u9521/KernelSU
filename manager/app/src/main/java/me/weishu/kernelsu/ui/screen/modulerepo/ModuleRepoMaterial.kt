@@ -42,12 +42,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.ChromeReaderMode
-import androidx.compose.material.icons.outlined.Download
-import androidx.compose.material.icons.outlined.InstallMobile
-import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -89,6 +84,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.UriHandler
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -146,7 +142,7 @@ fun ModuleRepoScreenMaterial(
                         onClick = { showSortMenu = true }
                     ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Sort,
+                            painter = painterResource(R.drawable.ic_sort_rounded),
                             contentDescription = stringResource(R.string.menu_sort)
                         )
 
@@ -386,7 +382,7 @@ fun ModuleRepoDetailScreenMaterial(
                     if (state.webUrl.isNotEmpty()) {
                         IconButton(onClick = actions.onOpenWebUrl) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Outlined.ChromeReaderMode,
+                                painter = painterResource(R.drawable.ic_chrome_reader_mode_rounded),
                                 contentDescription = null,
                             )
                         }
@@ -731,7 +727,7 @@ fun ReleasesPage(
                                             ) {
                                                 Icon(
                                                     modifier = Modifier.size(20.dp),
-                                                    imageVector = Icons.Outlined.InstallMobile,
+                                                    painter = painterResource(R.drawable.ic_mobile_arrow_down_rounded),
                                                     contentDescription = stringResource(R.string.install)
                                                 )
                                                 Text(
@@ -754,7 +750,7 @@ fun ReleasesPage(
                                                 } else {
                                                     Icon(
                                                         modifier = Modifier.size(20.dp),
-                                                        imageVector = Icons.Outlined.Download,
+                                                        painter = painterResource(R.drawable.ic_download_2_rounded),
                                                         contentDescription = stringResource(R.string.download)
                                                     )
                                                     Text(
@@ -828,7 +824,7 @@ fun InfoPage(
                                     ) {
                                         Icon(
                                             modifier = Modifier.size(20.dp),
-                                            imageVector = Icons.Outlined.Link,
+                                            painter = painterResource(R.drawable.ic_link_rounded),
                                             contentDescription = null
                                         )
                                     }
@@ -863,7 +859,7 @@ fun InfoPage(
                                     ) {
                                         Icon(
                                             modifier = Modifier.size(20.dp),
-                                            imageVector = Icons.Outlined.Link,
+                                            painter = painterResource(R.drawable.ic_link_rounded),
                                             contentDescription = null
                                         )
                                     }

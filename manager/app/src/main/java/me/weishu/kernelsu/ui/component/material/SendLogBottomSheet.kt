@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
@@ -32,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -120,7 +120,7 @@ fun SendLogBottomSheet(
                             exportBugreportLauncher.launch("KernelSU_bugreport_${current}.tar.gz")
                         }) {
                         Icon(
-                            Icons.Filled.Save,
+                            painterResource(R.drawable.ic_save_rounded_filled),
                             contentDescription = stringResource(id = R.string.save_log),
                             modifier = Modifier.align(Alignment.CenterHorizontally)
                         )
