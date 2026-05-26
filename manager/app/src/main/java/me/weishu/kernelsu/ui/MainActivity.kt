@@ -46,13 +46,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
-import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
-import androidx.navigation3.ui.NavDisplay
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.flow.MutableStateFlow
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
@@ -60,11 +59,15 @@ import me.weishu.kernelsu.ui.component.bottombar.BottomBar
 import me.weishu.kernelsu.ui.component.bottombar.MainPagerState
 import me.weishu.kernelsu.ui.component.bottombar.SideRail
 import me.weishu.kernelsu.ui.component.bottombar.rememberMainPagerState
+import me.weishu.kernelsu.ui.component.breeze.BreezeZipFileIntentHandler
+import me.weishu.kernelsu.ui.component.breeze.MainScreenBreeze
 import me.weishu.kernelsu.ui.component.dialog.rememberConfirmDialog
 import me.weishu.kernelsu.ui.navigation3.HandleDeepLink
 import me.weishu.kernelsu.ui.navigation3.LocalNavigator
 import me.weishu.kernelsu.ui.navigation3.Navigator
 import me.weishu.kernelsu.ui.navigation3.Route
+import me.weishu.kernelsu.ui.navigation3.breeze.BreezeListDetailScene
+import me.weishu.kernelsu.ui.navigation3.breeze.NavDisplayBreeze
 import me.weishu.kernelsu.ui.navigation3.rememberNavigator
 import me.weishu.kernelsu.ui.screen.about.AboutScreen
 import me.weishu.kernelsu.ui.screen.appprofile.AppProfileScreen
@@ -87,6 +90,8 @@ import me.weishu.kernelsu.ui.theme.LocalColorMode
 import me.weishu.kernelsu.ui.theme.LocalEnableBlur
 import me.weishu.kernelsu.ui.theme.LocalEnableFloatingBottomBar
 import me.weishu.kernelsu.ui.theme.LocalEnableFloatingBottomBarBlur
+import me.weishu.kernelsu.ui.util.BlurController
+import me.weishu.kernelsu.ui.util.LocalBlurController
 import me.weishu.kernelsu.ui.util.getFileName
 import me.weishu.kernelsu.ui.util.install
 import me.weishu.kernelsu.ui.util.rememberBlurBackdrop
@@ -118,6 +123,7 @@ class MainActivity : ComponentActivity() {
             val appSettings = uiState.appSettings
             val uiMode = uiState.uiMode
             val darkMode = appSettings.colorMode.isDark || (appSettings.colorMode.isSystem && isSystemInDarkTheme())
+            val blurController = BlurController()
 
             DisposableEffect(darkMode) {
                 enableEdgeToEdge(
@@ -148,62 +154,59 @@ class MainActivity : ComponentActivity() {
                 LocalEnableFloatingBottomBar provides uiState.enableFloatingBottomBar,
                 LocalEnableFloatingBottomBarBlur provides uiState.enableFloatingBottomBarBlur,
                 LocalUiMode provides uiMode,
+                LocalBlurController provides blurController
             ) {
                 KernelSUTheme(appSettings = appSettings, uiMode = uiMode) {
                     HandleDeepLink(intentState = intentState.collectAsStateWithLifecycle())
-                    ZipFileIntentHandler(intentState = intentState, isManager = isManager)
+                    BreezeZipFileIntentHandler(intentState = intentState, isManager = isManager)
                     ShortcutIntentHandler(intentState = intentState)
                     val mainScreenEntry = @Composable {
-                        MainScreen(
-                            initialPage = selectedMainPage,
-                            onPageChanged = viewModel::setSelectedMainPage,
-                        )
+                        if (uiMode == UiMode.Breeze) {
+                            MainScreenBreeze(
+                                initialPage = selectedMainPage,
+                                onPageChanged = viewModel::setSelectedMainPage,
+                            )
+                        } else {
+                            MainScreen(
+                                initialPage = selectedMainPage,
+                                onPageChanged = viewModel::setSelectedMainPage,
+                            )
+                        }
                     }
 
                     val navDisplay = @Composable {
-                        NavDisplay(
-                            backStack = navigator.backStack,
-                            entryDecorators = listOf(
-                                rememberSaveableStateHolderNavEntryDecorator(),
-                                rememberViewModelStoreNavEntryDecorator()
-                            ),
-                            onBack = {
-                                when (val top = navigator.current()) {
-                                    is Route.TemplateEditor -> {
-                                        if (!top.readOnly) {
-                                            navigator.setResult("template_edit", true)
-                                        } else {
-                                            navigator.pop()
-                                        }
-                                    }
-
-                                    else -> navigator.pop()
-                                }
-                            },
-                            entryProvider = entryProvider {
-                                entry<Route.Main> { mainScreenEntry() }
-                                entry<Route.About> { AboutScreen() }
-                                entry<Route.Sulog> { SulogScreen() }
-                                entry<Route.ColorPalette> { ColorPaletteScreen() }
-                                entry<Route.AppProfileTemplate> { AppProfileTemplateScreen() }
-                                entry<Route.TemplateEditor> { key -> TemplateEditorScreen(key.template, key.readOnly) }
-                                entry<Route.AppProfile> { key -> AppProfileScreen(key.uid) }
-                                entry<Route.ModuleRepo> { ModuleRepoScreen() }
-                                entry<Route.ModuleRepoDetail> { key -> ModuleRepoDetailScreen(key.module) }
-                                entry<Route.Install> { InstallScreen() }
-                                entry<Route.Flash> { key -> FlashScreen(key.flashIt) }
-                                entry<Route.ExecuteModuleAction> { key -> ExecuteModuleActionScreen(key.moduleId, key.fromShortcut) }
-                                entry<Route.Home> { mainScreenEntry() }
-                                entry<Route.SuperUser> { mainScreenEntry() }
-                                entry<Route.Module> { mainScreenEntry() }
-                                entry<Route.Settings> { mainScreenEntry() }
+                        NavDisplayBreeze(entryProvider = entryProvider {
+                            // that sucks. TODO : bind navEntry to pages
+                            entry<Route.Main>(metadata = BreezeListDetailScene.listPane("superuser")) { mainScreenEntry() }
+                            entry<Route.About> { AboutScreen() }
+                            entry<Route.Sulog> { SulogScreen() }
+                            entry<Route.ColorPalette> { ColorPaletteScreen() }
+                            entry<Route.AppProfileTemplate>(metadata = BreezeListDetailScene.listPane("temple")) { AppProfileTemplateScreen() }
+                            entry<Route.TemplateEditor>(metadata = BreezeListDetailScene.detailPane("temple")) { key ->
+                                TemplateEditorScreen(
+                                    key.template, key
+                                        .readOnly
+                                )
                             }
-                        )
+                            entry<Route.AppProfile>(metadata = BreezeListDetailScene.detailPane("superuser")) { key -> AppProfileScreen(key.uid) }
+                            entry<Route.ModuleRepo> { ModuleRepoScreen() }
+                            entry<Route.ModuleRepoDetail> { key -> ModuleRepoDetailScreen(key.module) }
+                            entry<Route.Install> { InstallScreen() }
+                            entry<Route.Flash> { key -> FlashScreen(key.flashIt) }
+                            entry<Route.ExecuteModuleAction> { key -> ExecuteModuleActionScreen(key.moduleId, key.fromShortcut) }
+                            entry<Route.Home> { mainScreenEntry() }
+                            entry<Route.SuperUser> { mainScreenEntry() }
+                            entry<Route.Module> { mainScreenEntry() }
+                            entry<Route.Settings> { mainScreenEntry() }
+                        })
                     }
 
                     when (uiMode) {
                         UiMode.Material -> androidx.compose.material3.Scaffold { navDisplay() }
-                        UiMode.Breeze -> androidx.compose.material3.Scaffold { navDisplay() }
+                        UiMode.Breeze -> {
+                            navDisplay()
+                        }
+
                         UiMode.Miuix -> Scaffold { navDisplay() }
                     }
                 }
@@ -268,8 +271,9 @@ fun MainScreen(
         LocalMainPagerState provides mainPagerState
     ) {
         val contentReady = rememberContentReady()
+        val mainScreenHazeState = rememberHazeState()
         val pagerContent = @Composable { bottomInnerPadding: Dp ->
-            Box(modifier = if (blurBackdrop != null) Modifier.layerBackdrop(blurBackdrop) else Modifier) {
+            Box(modifier = if (blurBackdrop != null) Modifier.layerBackdrop(blurBackdrop) else Modifier.hazeSource(mainScreenHazeState)) {
                 HorizontalPager(
                     modifier = Modifier
                         .then(if (enableFloatingBottomBar && enableFloatingBottomBarBlur) Modifier.layerBackdrop(backdrop) else Modifier),

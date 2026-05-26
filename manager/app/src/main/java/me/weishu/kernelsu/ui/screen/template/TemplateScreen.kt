@@ -153,9 +153,10 @@ fun AppProfileTemplateScreen() {
             snackBarHost = snackBarHost,
         )
 
-        UiMode.Breeze -> AppProfileTemplateScreenMaterial(
+        UiMode.Breeze -> AppProfileTemplateScreenBreeze(
             state = uiState,
             actions = actions,
+            snackBarHost = snackBarHost,
         )
     }
 }

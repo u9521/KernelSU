@@ -136,7 +136,7 @@ fun TemplateEditorScreen(template: TemplateViewModel.TemplateInfo, readOnly: Boo
             actions = actions,
         )
 
-        UiMode.Breeze -> TemplateEditorScreenMaterial(
+        UiMode.Breeze -> TemplateEditorScreenBreeze(
             state = uiState,
             actions = actions,
         )

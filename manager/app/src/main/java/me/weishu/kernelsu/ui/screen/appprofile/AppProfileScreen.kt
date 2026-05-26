@@ -144,9 +144,10 @@ fun AppProfileScreen(uid: Int) {
             snackBarHost = snackbarHost,
         )
 
-        UiMode.Breeze -> AppProfileScreenMaterial(
+        UiMode.Breeze -> AppProfileScreenBreeze(
             state = state,
             actions = actions,
+            snackBarHost = snackbarHost,
         )
     }
 }

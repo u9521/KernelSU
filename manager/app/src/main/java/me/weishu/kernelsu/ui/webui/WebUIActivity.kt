@@ -25,10 +25,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import me.weishu.kernelsu.data.repository.SettingsRepositoryImpl
 import me.weishu.kernelsu.ui.LocalUiMode
 import me.weishu.kernelsu.ui.UiMode
 import me.weishu.kernelsu.ui.theme.KernelSUTheme
+import me.weishu.kernelsu.ui.theme.LocalEnableBlur
 import me.weishu.kernelsu.ui.theme.ThemeController
+import me.weishu.kernelsu.ui.util.LocalBlurController
+import me.weishu.kernelsu.ui.util.blurOverlay
+import me.weishu.kernelsu.ui.util.rememberBlurController
 import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
 
 @SuppressLint("SetJavaScriptEnabled")
@@ -43,26 +48,34 @@ class WebUIActivity : ComponentActivity() {
 
         setContent {
             val context = LocalContext.current
-            val prefs = context.getSharedPreferences("settings", MODE_PRIVATE)
+            val repo = remember { SettingsRepositoryImpl() }
             var appSettings by remember { mutableStateOf(ThemeController.getAppSettings(context)) }
-            var uiModeValue by remember { mutableStateOf(prefs.getString("ui_mode", UiMode.DEFAULT_VALUE) ?: UiMode.DEFAULT_VALUE) }
-            val uiMode = remember(uiModeValue) {
-                UiMode.fromValue(uiModeValue)
-            }
+            var uiMode by remember { mutableStateOf(UiMode.fromValue(repo.uiMode)) }
+            var enableBlur by remember { mutableStateOf(repo.enableBlur) }
+            val blurController = rememberBlurController()
 
-            DisposableEffect(prefs) {
+            DisposableEffect(repo) {
+                val prefs = context.getSharedPreferences("settings", MODE_PRIVATE)
                 val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-                    if (key in listOf("color_mode", "key_color", "color_style", "color_spec")) {
-                        appSettings = ThemeController.getAppSettings(context)
-                    } else if (key == "ui_mode") {
-                        uiModeValue = prefs.getString("ui_mode", UiMode.DEFAULT_VALUE) ?: UiMode.DEFAULT_VALUE
+                    when (key) {
+                        in listOf("color_mode", "key_color", "color_style", "color_spec") -> {
+                            appSettings = ThemeController.getAppSettings(context)
+                        }
+
+                        "ui_mode" -> {
+                            uiMode = UiMode.fromValue(repo.uiMode)
+                        }
+
+                        "enable_blur" -> {
+                            enableBlur = repo.enableBlur
+                        }
                     }
                 }
                 prefs.registerOnSharedPreferenceChangeListener(listener)
                 onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
             }
 
-            CompositionLocalProvider(LocalUiMode provides uiMode) {
+            CompositionLocalProvider(LocalUiMode provides uiMode, LocalEnableBlur provides enableBlur, LocalBlurController provides blurController) {
                 KernelSUTheme(appSettings = appSettings, uiMode = uiMode) {
                     MainContent(activity = this, onFinish = { finish() })
                 }
@@ -104,7 +117,7 @@ private fun MainContent(activity: ComponentActivity, onFinish: () -> Unit) {
     }
     val isLoading = webUIState.uiEvent is WebUIEvent.Loading
 
-    Crossfade(targetState = isLoading, animationSpec = tween(300)) { loading ->
+    Crossfade(modifier = Modifier.blurOverlay(), targetState = isLoading, animationSpec = tween(300)) { loading ->
         if (loading) {
             LoadingContent()
         } else {
