@@ -32,6 +32,7 @@ import androidx.compose.material3.SearchBarColors
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.SearchBarScrollBehavior
 import androidx.compose.material3.SearchBarValue
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TopAppBarDefaults
@@ -59,7 +60,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import me.weishu.kernelsu.ui.component.breeze.BreezeSnackBarHost
 import me.weishu.kernelsu.ui.theme.LocalEnableBlur
-import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.util.blurOverlay
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -71,6 +71,7 @@ fun SearchAppBarBreeze(
     searchText: String,
     onSearchTextChange: (String) -> Unit,
     onClearClick: () -> Unit,
+    snackbarHostState: SnackbarHostState,
     navigationIcon: @Composable (() -> Unit)? = null,
     actions: @Composable (RowScope.() -> Unit)? = null,
     scrollBehavior: TopAppBarScrollBehavior? = null,
@@ -253,7 +254,6 @@ fun SearchAppBarBreeze(
         windowInsets = { SearchBarDefaults.fullScreenWindowInsets.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal) },
         colors = fullScreenSearchBarColors,
         content = {
-            val snackBarHostState = LocalSnackbarHost.current
             val bottomPadding = SearchBarDefaults.fullScreenWindowInsets.asPaddingValues().calculateBottomPadding()
             Box(Modifier.fillMaxSize()) {
                 Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
@@ -262,7 +262,7 @@ fun SearchAppBarBreeze(
                     }
                 }
                 BreezeSnackBarHost(
-                    hostState = snackBarHostState,
+                    hostState = snackbarHostState,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .safeContentPadding()

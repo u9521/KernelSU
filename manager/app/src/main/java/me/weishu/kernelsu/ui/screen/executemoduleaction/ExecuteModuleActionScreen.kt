@@ -79,6 +79,6 @@ fun ExecuteModuleActionScreen(moduleId: String, fromShortcut: Boolean = false) {
     when (uiMode) {
         UiMode.Miuix -> ExecuteModuleActionScreenMiuix(state, actions)
         UiMode.Material -> ExecuteModuleActionScreenMaterial(state, actions, snackbarHost)
-        UiMode.Breeze -> ExecuteModuleActionScreenMaterial(state, actions, snackbarHost)
+        UiMode.Breeze -> ExecuteModuleActionScreenBreeze(state, actions, snackbarHost)
     }
 }

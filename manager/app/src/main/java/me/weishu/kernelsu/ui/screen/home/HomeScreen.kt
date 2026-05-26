@@ -84,7 +84,7 @@ fun HomePager(
             bottomInnerPadding = bottomInnerPadding,
         )
 
-        UiMode.Breeze -> HomePagerMaterial(
+        UiMode.Breeze -> HomePagerBreeze(
             state = uiState,
             actions = actions,
             bottomInnerPadding = bottomInnerPadding,

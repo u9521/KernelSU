@@ -27,6 +27,13 @@ class Navigator(
      * Push a key onto the back stack.
      */
     fun push(key: NavKey) {
+        if (current() == key) return
+        current()?.let {
+            if (it.javaClass == key.javaClass) {
+                backStack[backStack.lastIndex] = key
+                return
+            }
+        }
         backStack.add(key)
     }
 

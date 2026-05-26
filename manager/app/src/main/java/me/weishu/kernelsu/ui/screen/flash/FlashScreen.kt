@@ -77,6 +77,6 @@ fun FlashScreen(flashIt: FlashIt) {
     when (LocalUiMode.current) {
         UiMode.Miuix -> FlashScreenMiuix(state, actions)
         UiMode.Material -> FlashScreenMaterial(state, actions, snackbarHost)
-        UiMode.Breeze -> FlashScreenMaterial(state, actions, snackbarHost)
+        UiMode.Breeze -> FlashScreenBreeze(state, actions, snackbarHost)
     }
 }

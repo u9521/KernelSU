@@ -58,7 +58,6 @@ import me.weishu.kernelsu.ui.component.material.SearchAppBarBreeze
 import me.weishu.kernelsu.ui.theme.KernelSUTheme
 import me.weishu.kernelsu.ui.theme.LocalEnableBlur
 import me.weishu.kernelsu.ui.util.LocalBlurController
-import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.util.onlyHorizontal
 import me.weishu.kernelsu.ui.util.rememberBlurController
 import me.weishu.kernelsu.ui.util.topBarHazeEffect
@@ -89,7 +88,7 @@ fun SearchBarBreezePreviewImpl() {
     var searchText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
-    val snackbarHostState = LocalSnackbarHost.current
+    val snackbarHostState = remember { SnackbarHostState() }
     val hazeState = rememberHazeState()
     var selectedItem by remember { mutableStateOf<String?>(null) }
 
@@ -111,6 +110,7 @@ fun SearchBarBreezePreviewImpl() {
                 onClearClick = { searchText = "" },
                 scrollBehavior = scrollBehavior,
                 searchBarScrollBehavior = searchBarScrollBehavior,
+                snackbarHostState = snackbarHostState,
                 searchContent = { bottomPadding, closeSearch ->
                     SearchResults(
                         query = searchText,
@@ -254,12 +254,10 @@ private fun SearchResults(
 @Preview(showBackground = true)
 @Composable
 private fun PreviewSearchBarBreeze() {
-    val snackbarHostState = remember { SnackbarHostState() }
     val blurController = rememberBlurController()
     KernelSUTheme(uiMode = UiMode.Breeze) {
         CompositionLocalProvider(
             LocalEnableBlur provides true,
-            LocalSnackbarHost provides snackbarHostState,
             LocalBlurController provides blurController,
         ) {
             SearchBarBreezePreviewImpl()

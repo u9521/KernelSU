@@ -162,7 +162,7 @@ fun ModulePager(
             bottomInnerPadding = bottomInnerPadding,
         )
 
-        UiMode.Breeze -> ModulePagerMaterial(
+        UiMode.Breeze -> ModulePagerBreeze(
             uiState = rawUiState,
             confirmDialogState = rawUiState.confirmDialogState,
             effect = rawUiState.effect,
