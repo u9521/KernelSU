@@ -28,7 +28,11 @@ import androidx.compose.ui.platform.LocalContext
 import me.weishu.kernelsu.ui.LocalUiMode
 import me.weishu.kernelsu.ui.UiMode
 import me.weishu.kernelsu.ui.theme.KernelSUTheme
+import me.weishu.kernelsu.ui.theme.LocalEnableBlur
 import me.weishu.kernelsu.ui.theme.ThemeController
+import me.weishu.kernelsu.ui.util.LocalBlurController
+import me.weishu.kernelsu.ui.util.blurOverlay
+import me.weishu.kernelsu.ui.util.rememberBlurController
 import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
 
 @SuppressLint("SetJavaScriptEnabled")
@@ -49,6 +53,8 @@ class WebUIActivity : ComponentActivity() {
             val uiMode = remember(uiModeValue) {
                 UiMode.fromValue(uiModeValue)
             }
+            var enableBlur by remember { mutableStateOf(prefs.getBoolean("enable_blur", false)) }
+            val blurController = rememberBlurController()
 
             DisposableEffect(prefs) {
                 val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
@@ -56,13 +62,15 @@ class WebUIActivity : ComponentActivity() {
                         appSettings = ThemeController.getAppSettings(context)
                     } else if (key == "ui_mode") {
                         uiModeValue = prefs.getString("ui_mode", UiMode.DEFAULT_VALUE) ?: UiMode.DEFAULT_VALUE
+                    } else if (key == "enable_blur") {
+                        enableBlur = prefs.getBoolean("enable_blur", false)
                     }
                 }
                 prefs.registerOnSharedPreferenceChangeListener(listener)
                 onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
             }
 
-            CompositionLocalProvider(LocalUiMode provides uiMode) {
+            CompositionLocalProvider(LocalUiMode provides uiMode, LocalEnableBlur provides enableBlur, LocalBlurController provides blurController) {
                 KernelSUTheme(appSettings = appSettings, uiMode = uiMode) {
                     MainContent(activity = this, onFinish = { finish() })
                 }
@@ -104,7 +112,7 @@ private fun MainContent(activity: ComponentActivity, onFinish: () -> Unit) {
     }
     val isLoading = webUIState.uiEvent is WebUIEvent.Loading
 
-    Crossfade(targetState = isLoading, animationSpec = tween(300)) { loading ->
+    Crossfade(modifier = Modifier.blurOverlay(), targetState = isLoading, animationSpec = tween(300)) { loading ->
         if (loading) {
             LoadingContent()
         } else {

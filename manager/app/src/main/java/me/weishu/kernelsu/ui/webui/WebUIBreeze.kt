@@ -1,0 +1,163 @@
+package me.weishu.kernelsu.ui.webui
+
+import android.content.Intent
+import androidx.activity.result.ActivityResultLauncher
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ui.component.breeze.PopupFeedBack
+import me.weishu.kernelsu.ui.component.breeze.keyDownFeedBack
+import me.weishu.kernelsu.ui.util.windowBlurBehind
+
+@Composable
+fun HandleWebUIEventBreeze(
+    webUIState: WebUIState,
+    fileLauncher: ActivityResultLauncher<Intent>
+) {
+    val keyFeedback = keyDownFeedBack()
+
+    when (val event = webUIState.uiEvent) {
+        is WebUIEvent.ShowAlert -> {
+            val showDialog = remember(event) { mutableStateOf(true) }
+            if (showDialog.value) {
+                PopupFeedBack()
+                AlertDialog(
+                    modifier = Modifier.windowBlurBehind(),
+                    onDismissRequest = {
+                        webUIState.onAlertResult()
+                        showDialog.value = false
+                    },
+                    confirmButton = {
+                        Button(
+                            shapes = ButtonDefaults.shapes(),
+                            onClick = {
+                                keyFeedback()
+                                webUIState.onAlertResult()
+                                showDialog.value = false
+                            },
+                        ) {
+                            Text(stringResource(R.string.confirm))
+                        }
+                    },
+                    text = {
+                        Text(event.message)
+                    }
+                )
+            }
+        }
+
+        is WebUIEvent.ShowConfirm -> {
+            val showDialog = remember(event) { mutableStateOf(true) }
+            if (showDialog.value) {
+                PopupFeedBack()
+                AlertDialog(
+                    modifier = Modifier.windowBlurBehind(),
+                    onDismissRequest = {
+                        webUIState.onConfirmResult(false)
+                        showDialog.value = false
+                    },
+                    confirmButton = {
+                        Button(
+                            shapes = ButtonDefaults.shapes(),
+                            onClick = {
+                                keyFeedback()
+                                webUIState.onConfirmResult(true)
+                                showDialog.value = false
+                            },
+                        ) {
+                            Text(stringResource(R.string.confirm))
+                        }
+                    },
+                    dismissButton = {
+                        OutlinedButton(
+                            shapes = ButtonDefaults.shapes(),
+                            onClick = {
+                                keyFeedback()
+                                webUIState.onConfirmResult(false)
+                                showDialog.value = false
+                            },
+                        ) {
+                            Text(stringResource(android.R.string.cancel))
+                        }
+                    },
+                    text = {
+                        Text(event.message)
+                    }
+                )
+            }
+        }
+
+        is WebUIEvent.ShowPrompt -> {
+            val showDialog = remember(event) { mutableStateOf(true) }
+            val state = remember(event) { mutableStateOf(event.defaultValue) }
+            if (showDialog.value) {
+                PopupFeedBack()
+                AlertDialog(
+                    modifier = Modifier.windowBlurBehind(),
+                    onDismissRequest = {
+                        webUIState.onPromptResult(null)
+                        showDialog.value = false
+                    },
+                    confirmButton = {
+                        Button(
+                            shapes = ButtonDefaults.shapes(),
+                            onClick = {
+                                keyFeedback()
+                                webUIState.onPromptResult(state.value)
+                                showDialog.value = false
+                            },
+                        ) {
+                            Text(stringResource(R.string.confirm))
+                        }
+                    },
+                    dismissButton = {
+                        OutlinedButton(
+                            shapes = ButtonDefaults.shapes(),
+                            onClick = {
+                                keyFeedback()
+                                webUIState.onPromptResult(null)
+                                showDialog.value = false
+                            },
+                        ) {
+                            Text(stringResource(android.R.string.cancel))
+                        }
+                    },
+                    text = {
+                        Column {
+                            OutlinedTextField(
+                                label = { Text(event.message) },
+                                value = state.value,
+                                onValueChange = { state.value = it },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                )
+            }
+        }
+
+        is WebUIEvent.ShowFileChooser -> {
+            LaunchedEffect(event) {
+                try {
+                    fileLauncher.launch(event.intent)
+                } catch (_: Exception) {
+                    webUIState.onFileChooserResult(null)
+                }
+            }
+        }
+
+        else -> {}
+    }
+}
