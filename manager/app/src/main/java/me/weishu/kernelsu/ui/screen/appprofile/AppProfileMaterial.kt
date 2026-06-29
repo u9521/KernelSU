@@ -23,9 +23,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Android
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.DropdownMenuGroup
 import androidx.compose.material3.DropdownMenuItem
@@ -47,10 +46,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -221,7 +222,7 @@ private fun AppProfileInner(
                 },
                 {
                     SegmentedSwitchItem(
-                        icon = Icons.Filled.Security,
+                        icon = ImageVector.vectorResource(R.drawable.ic_security_rounded),
                         title = stringResource(id = R.string.superuser),
                         checked = isRootGranted,
                         onCheckedChange = { onProfileChange(profile.copy(allowSu = it)) },
@@ -441,7 +442,7 @@ private fun AppProfilePreview() {
     AppProfileInner(
         packageName = "icu.nullptr.test",
         appLabel = "Test",
-        appIcon = { Icon(Icons.Filled.Android, null) },
+        appIcon = { Icon(Icons.Filled.Info, null) },
         appUid = 1,
         appVersionName = "v1.0.0",
         appVersionCode = 12345,

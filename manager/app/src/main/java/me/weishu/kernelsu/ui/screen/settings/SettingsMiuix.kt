@@ -14,28 +14,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.Article
-import androidx.compose.material.icons.rounded.Adb
-import androidx.compose.material.icons.rounded.BugReport
-import androidx.compose.material.icons.rounded.ContactPage
-import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.DeveloperMode
-import androidx.compose.material.icons.rounded.ElectricalServices
-import androidx.compose.material.icons.rounded.Fence
-import androidx.compose.material.icons.rounded.FolderDelete
-import androidx.compose.material.icons.rounded.Palette
-import androidx.compose.material.icons.rounded.Policy
-import androidx.compose.material.icons.rounded.RemoveCircle
-import androidx.compose.material.icons.rounded.RemoveModerator
-import androidx.compose.material.icons.rounded.Update
-import androidx.compose.material.icons.rounded.UploadFile
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -115,7 +101,7 @@ fun SettingPagerMiuix(
                             summary = stringResource(id = R.string.settings_check_update_summary),
                             startAction = {
                                 Icon(
-                                    Icons.Rounded.Update,
+                                    painterResource(R.drawable.ic_update_rounded_filled),
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = stringResource(id = R.string.settings_check_update),
                                     tint = colorScheme.onBackground
@@ -130,7 +116,7 @@ fun SettingPagerMiuix(
                                 summary = stringResource(id = R.string.settings_check_update_summary),
                                 startAction = {
                                     Icon(
-                                        Icons.Rounded.UploadFile,
+                                        painterResource(R.drawable.ic_upload_file_rounded_filled),
                                         modifier = Modifier.padding(end = 6.dp),
                                         contentDescription = stringResource(id = R.string.settings_check_update),
                                         tint = colorScheme.onBackground
@@ -153,7 +139,7 @@ fun SettingPagerMiuix(
                             items = UiMode.entries.map { it.name },
                             startAction = {
                                 Icon(
-                                    Icons.Rounded.Dashboard,
+                                    painterResource(R.drawable.ic_dashboard_rounded_filled),
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = stringResource(id = R.string.settings_ui_mode),
                                     tint = colorScheme.onBackground
@@ -167,7 +153,7 @@ fun SettingPagerMiuix(
                             summary = stringResource(id = R.string.settings_theme_summary),
                             startAction = {
                                 Icon(
-                                    Icons.Rounded.Palette,
+                                    painterResource(R.drawable.ic_palette_rounded_filled),
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = stringResource(id = R.string.settings_theme),
                                     tint = colorScheme.onBackground
@@ -189,7 +175,7 @@ fun SettingPagerMiuix(
                                 summary = stringResource(id = R.string.settings_profile_template_summary),
                                 startAction = {
                                     Icon(
-                                        Icons.Rounded.Fence,
+                                        painterResource(R.drawable.ic_palette_rounded_filled),
                                         modifier = Modifier.padding(end = 6.dp),
                                         contentDescription = profileTemplate,
                                         tint = colorScheme.onBackground
@@ -223,7 +209,7 @@ fun SettingPagerMiuix(
                                 items = suCompatModeItems,
                                 startAction = {
                                     Icon(
-                                        Icons.Rounded.RemoveModerator,
+                                        painterResource(R.drawable.ic_remove_moderator_outlined_filled),
                                         modifier = Modifier.padding(end = 6.dp),
                                         contentDescription = stringResource(id = R.string.settings_sucompat),
                                         tint = colorScheme.onBackground
@@ -244,7 +230,7 @@ fun SettingPagerMiuix(
                                 summary = umountSummary,
                                 startAction = {
                                     Icon(
-                                        Icons.Rounded.RemoveCircle,
+                                        painterResource(R.drawable.ic_do_not_disturb_on_rounded_filled),
                                         modifier = Modifier.padding(end = 6.dp),
                                         contentDescription = stringResource(id = R.string.settings_kernel_umount),
                                         tint = colorScheme.onBackground
@@ -265,7 +251,7 @@ fun SettingPagerMiuix(
                                 summary = selinuxHideSummary,
                                 startAction = {
                                     Icon(
-                                        Icons.Rounded.Policy,
+                                        painterResource(R.drawable.ic_policy_rounded_filled),
                                         modifier = Modifier.padding(end = 6.dp),
                                         contentDescription = stringResource(id = R.string.settings_selinux_hide),
                                         tint = colorScheme.onBackground
@@ -286,7 +272,7 @@ fun SettingPagerMiuix(
                                 summary = sulogSummary,
                                 startAction = {
                                     Icon(
-                                        Icons.AutoMirrored.Rounded.Article,
+                                        painterResource(R.drawable.ic_article_rounded_filled),
                                         modifier = Modifier.padding(end = 6.dp),
                                         contentDescription = stringResource(id = R.string.settings_sulog),
                                         tint = if (uiState.sulogStatus == "supported") colorScheme.onBackground else colorScheme.disabledOnSecondaryVariant
@@ -307,7 +293,7 @@ fun SettingPagerMiuix(
                                 summary = adbRootSummary,
                                 startAction = {
                                     Icon(
-                                        Icons.Rounded.Adb,
+                                        painterResource(R.drawable.ic_adb_rounded),
                                         modifier = Modifier.padding(end = 6.dp),
                                         contentDescription = stringResource(id = R.string.settings_adb_root),
                                         tint = colorScheme.onBackground
@@ -329,7 +315,7 @@ fun SettingPagerMiuix(
                                 summary = stringResource(id = R.string.settings_umount_modules_default_summary),
                                 startAction = {
                                     Icon(
-                                        Icons.Rounded.FolderDelete,
+                                        painterResource(R.drawable.ic_folder_delete_rounded_filled),
                                         modifier = Modifier.padding(end = 6.dp),
                                         contentDescription = stringResource(id = R.string.settings_umount_modules_default),
                                         tint = colorScheme.onBackground
@@ -344,7 +330,7 @@ fun SettingPagerMiuix(
                                 summary = stringResource(id = R.string.enable_web_debugging_summary),
                                 startAction = {
                                     Icon(
-                                        Icons.Rounded.DeveloperMode,
+                                        painterResource(R.drawable.ic_mobile_code_rounded_filled),
                                         modifier = Modifier.padding(end = 6.dp),
                                         contentDescription = stringResource(id = R.string.enable_web_debugging),
                                         tint = colorScheme.onBackground
@@ -358,7 +344,7 @@ fun SettingPagerMiuix(
                                 summary = stringResource(id = R.string.settings_auto_jailbreak_summary),
                                 startAction = {
                                     Icon(
-                                        Icons.Rounded.ElectricalServices,
+                                        painterResource(R.drawable.ic_electrical_services_rounded),
                                         modifier = Modifier.padding(end = 6.dp),
                                         contentDescription = stringResource(id = R.string.settings_auto_jailbreak),
                                         tint = if (uiState.isLateLoadMode) colorScheme.onBackground else colorScheme.disabledOnSecondaryVariant
@@ -407,7 +393,7 @@ fun SettingPagerMiuix(
                             title = stringResource(id = R.string.send_log),
                             startAction = {
                                 Icon(
-                                    Icons.Rounded.BugReport,
+                                    painterResource(R.drawable.ic_bug_report_rounded_filled),
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = stringResource(id = R.string.send_log),
                                     tint = colorScheme.onBackground
@@ -425,7 +411,7 @@ fun SettingPagerMiuix(
                             title = about,
                             startAction = {
                                 Icon(
-                                    Icons.Rounded.ContactPage,
+                                    painterResource(R.drawable.ic_contact_page_rounded_filled),
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = about,
                                     tint = colorScheme.onBackground

@@ -22,11 +22,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Sort
-import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.DropdownMenuGroup
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DropdownMenuPopup
@@ -57,6 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -110,7 +108,7 @@ fun SuperUserPagerMaterial(
                 navigationIcon = {
                     IconButton(onClick = actions.onOpenSulog) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.Article,
+                            painter = painterResource(R.drawable.ic_article_rounded_filled),
                             contentDescription = stringResource(R.string.settings_sulog)
                         )
                     }
@@ -120,7 +118,7 @@ fun SuperUserPagerMaterial(
 
                     IconButton(onClick = { showSortMenu = true }) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Sort,
+                            painter = painterResource(R.drawable.ic_sort_rounded),
                             contentDescription = stringResource(R.string.menu_sort)
                         )
 
@@ -463,7 +461,7 @@ private fun SimpleAppItem(
         },
         trailingContent = {
             Icon(
-                Icons.Filled.Remove,
+                painterResource(R.drawable.ic_remove_rounded),
                 contentDescription = null,
                 modifier = Modifier.padding(end = 4.dp)
             )

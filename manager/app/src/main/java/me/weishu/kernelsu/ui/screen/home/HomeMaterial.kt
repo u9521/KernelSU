@@ -19,10 +19,6 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Block
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -44,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.UriHandler
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -205,9 +202,9 @@ private fun StatusCard(
         val contentColor = MaterialTheme.colorScheme.contentColorFor(containerColor)
 
         val statusIcon = when {
-            ksuActive -> Icons.Outlined.CheckCircle
-            notInstalled -> Icons.Outlined.Warning
-            else -> Icons.Outlined.Block
+            ksuActive -> R.drawable.ic_check_circle_rounded
+            notInstalled -> R.drawable.ic_warning_rounded
+            else -> R.drawable.ic_block_rounded
         }
         val statusTitle = when {
             ksuActive -> stringResource(R.string.home_working)
@@ -269,7 +266,7 @@ private fun StatusCard(
                     supportingContentColor = contentColor.copy(alpha = 0.7f)
                 ),
                 leadingContent = {
-                    Icon(statusIcon, contentDescription = statusTitle)
+                    Icon(painterResource(statusIcon), contentDescription = statusTitle)
                 },
                 headlineContent = {
                     Row(verticalAlignment = Alignment.CenterVertically) {

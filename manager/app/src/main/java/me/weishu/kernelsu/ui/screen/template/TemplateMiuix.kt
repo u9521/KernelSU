@@ -34,9 +34,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Fingerprint
-import androidx.compose.material.icons.outlined.Group
-import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -55,6 +52,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
@@ -332,15 +330,15 @@ private fun TemplateItem(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 InfoChip(
-                    icon = Icons.Outlined.Fingerprint,
+                    icon = ImageVector.vectorResource(R.drawable.ic_person_rounded),
                     text = "UID: ${template.uid}"
                 )
                 InfoChip(
-                    icon = Icons.Outlined.Group,
+                    icon = ImageVector.vectorResource(R.drawable.ic_group_rounded),
                     text = "GID: ${template.gid}"
                 )
                 InfoChip(
-                    icon = Icons.Outlined.Shield,
+                    icon = ImageVector.vectorResource(R.drawable.ic_shield_rounded),
                     text = template.context
                 )
             }

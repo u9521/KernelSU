@@ -1,7 +1,5 @@
 package me.weishu.kernelsu.ui.component.rebootlistpopup
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material3.DropdownMenuGroup
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DropdownMenuPopup
@@ -14,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.KsuIsValid
@@ -39,7 +38,7 @@ fun RebootListPopupMaterial() {
     KsuIsValid {
         IconButton(onClick = { expanded = true }) {
             Icon(
-                imageVector = Icons.Filled.PowerSettingsNew,
+                painter = painterResource(R.drawable.ic_restart_alt_rounded),
                 contentDescription = stringResource(id = R.string.reboot)
             )
         }

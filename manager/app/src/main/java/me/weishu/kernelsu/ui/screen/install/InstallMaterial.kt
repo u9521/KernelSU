@@ -14,11 +14,9 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.DriveFileMove
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,6 +32,7 @@ import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import me.weishu.kernelsu.R
@@ -102,7 +101,7 @@ internal fun InstallScreenMaterial(
                         SegmentedListItem(
                             leadingContent = {
                                 Icon(
-                                    Icons.AutoMirrored.Filled.DriveFileMove,
+                                    painterResource(R.drawable.ic_drive_file_move_rounded),
                                     null
                                 )
                             },
@@ -147,7 +146,7 @@ internal fun InstallScreenMaterial(
                         headlineContent = { Text(stringResource(R.string.advanced_options)) },
                         trailingContent = {
                             Icon(
-                                imageVector = Icons.Filled.ExpandMore,
+                                painter = painterResource(R.drawable.ic_keyboard_arrow_down_rounded),
                                 contentDescription = stringResource(R.string.expand),
                                 modifier = Modifier.graphicsLayer { rotationZ = rotationState }
                             )

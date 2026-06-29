@@ -1,5 +1,6 @@
 package me.weishu.kernelsu.ui.component.bottombar
 
+import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -8,17 +9,13 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Cottage
-import androidx.compose.material.icons.rounded.Extension
-import androidx.compose.material.icons.rounded.Security
-import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -57,7 +54,7 @@ fun BottomBarMiuix(
     val items = BottomBarDestination.entries.map { destination ->
         NavigationItem(
             label = stringResource(destination.label),
-            icon = destination.icon,
+            icon = ImageVector.vectorResource(destination.icon),
         )
     }
     if (!enableFloatingBottomBar) {
@@ -124,10 +121,10 @@ fun BottomBarMiuix(
 
 enum class BottomBarDestination(
     @get:StringRes val label: Int,
-    val icon: ImageVector,
+    @get:DrawableRes val icon: Int,
 ) {
-    Home(R.string.home, Icons.Rounded.Cottage),
-    SuperUser(R.string.superuser, Icons.Rounded.Security),
-    Module(R.string.module, Icons.Rounded.Extension),
-    Setting(R.string.settings, Icons.Rounded.Settings)
+    Home(R.string.home, R.drawable.ic_cottage_rounded),
+    SuperUser(R.string.superuser, R.drawable.ic_shield_rounded),
+    Module(R.string.module, R.drawable.ic_extension_rounded),
+    Setting(R.string.settings, R.drawable.ic_settings_rounded)
 }
