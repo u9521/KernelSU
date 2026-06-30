@@ -44,18 +44,20 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuGroup
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenuPopup
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -117,6 +119,7 @@ import me.weishu.kernelsu.ui.component.breeze.ButtonSpec
 import me.weishu.kernelsu.ui.component.breeze.ButtonType
 import me.weishu.kernelsu.ui.component.breeze.EnumeratedPriorityButtonRow
 import me.weishu.kernelsu.ui.component.breeze.InstallModuleDialog
+import me.weishu.kernelsu.ui.component.breeze.PopupFeedBack
 import me.weishu.kernelsu.ui.component.breeze.ScrollbarDefaults
 import me.weishu.kernelsu.ui.component.breeze.VerticalScrollbar
 import me.weishu.kernelsu.ui.component.breeze.rememberScrollbarAdapter
@@ -894,26 +897,43 @@ private fun SortMenu(
             imageVector = Icons.Filled.MoreVert,
             contentDescription = stringResource(id = R.string.settings)
         )
-        DropdownMenu(
+        DropdownMenuPopup(
             expanded = showDropdown,
             onDismissRequest = { showDropdown = false }
         ) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.module_sort_action_first)) },
-                trailingIcon = { Checkbox(uiState.sortActionFirst, null) },
-                onClick = {
-                    actions.onToggleSortActionFirst()
-                    showDropdown = false
-                }
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.module_sort_enabled_first)) },
-                trailingIcon = { Checkbox(uiState.sortEnabledFirst, null) },
-                onClick = {
-                    actions.onToggleSortEnabledFirst()
-                    showDropdown = false
-                }
-            )
+            PopupFeedBack()
+            DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.module_sort_action_first)) },
+                    checked = uiState.sortActionFirst,
+                    checkedLeadingIcon = {
+                        Icon(
+                            Icons.Filled.Check,
+                            modifier = Modifier.size(MenuDefaults.LeadingIconSize),
+                            contentDescription = null,
+                        )
+                    },
+                    onCheckedChange = {
+                        actions.onToggleSortActionFirst()
+                    },
+                    shapes = MenuDefaults.itemShape(index = 0, count = 2)
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.module_sort_enabled_first)) },
+                    checked = uiState.sortEnabledFirst,
+                    checkedLeadingIcon = {
+                        Icon(
+                            Icons.Filled.Check,
+                            modifier = Modifier.size(MenuDefaults.LeadingIconSize),
+                            contentDescription = null,
+                        )
+                    },
+                    onCheckedChange = {
+                        actions.onToggleSortEnabledFirst()
+                    },
+                    shapes = MenuDefaults.itemShape(index = 1, count = 2)
+                )
+            }
         }
     }
 }

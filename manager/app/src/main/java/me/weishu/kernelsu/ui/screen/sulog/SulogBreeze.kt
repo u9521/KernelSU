@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -27,16 +28,18 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuGroup
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenuPopup
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SearchBarDefaults
@@ -209,16 +212,26 @@ fun SulogScreenBreeze(
                             .clip(MaterialTheme.shapes.large),
                         enabled = fileSelector.items.isNotEmpty(),
                         menuContent = { dismiss ->
-                            fileSelector.items.forEachIndexed { index, string ->
-                                DropdownMenuItem(
-                                    text = { Text(string) },
-                                    onClick = {
-                                        state.files.getOrNull(index)?.let { file ->
-                                            actions.onSelectFile(file.path)
-                                            dismiss()
-                                        }
-                                    }
-                                )
+                            DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
+                                fileSelector.items.forEachIndexed { index, string ->
+                                    DropdownMenuItem(
+                                        text = { Text(string) },
+                                        selected = fileSelector.selectedIndex == index,
+                                        selectedLeadingIcon = {
+                                            Icon(
+                                                Icons.Filled.Check,
+                                                modifier = Modifier.size(MenuDefaults.LeadingIconSize),
+                                                contentDescription = null,
+                                            )
+                                        },
+                                        onClick = {
+                                            state.files.getOrNull(index)?.let { file ->
+                                                actions.onSelectFile(file.path)
+                                                dismiss()
+                                            }
+                                        }, shapes = MenuDefaults.itemShape(index, fileSelector.items.size)
+                                    )
+                                }
                             }
                         },
                         content = {
@@ -303,24 +316,29 @@ private fun FilterMenu(
             contentDescription = stringResource(R.string.sulog_filter_title),
         )
     }
-    DropdownMenu(
+    DropdownMenuPopup(
         expanded = showFilterMenu,
         onDismissRequest = { showFilterMenu = false },
     ) {
         PopupFeedBack()
-        SulogEventFilter.entries.forEach { filter ->
-            DropdownMenuItem(
-                text = { Text(sulogFilterLabel(filter)) },
-                trailingIcon = {
-                    Checkbox(
-                        checked = filter in state.selectedFilters,
-                        onCheckedChange = null,
-                    )
-                },
-                onClick = {
-                    actions.onToggleFilter(filter)
-                },
-            )
+        DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
+            SulogEventFilter.entries.forEachIndexed { index, filter ->
+                DropdownMenuItem(
+                    text = { Text(sulogFilterLabel(filter)) },
+                    checked = filter in state.selectedFilters,
+                    checkedLeadingIcon = {
+                        Icon(
+                            Icons.Filled.Check,
+                            modifier = Modifier.size(MenuDefaults.LeadingIconSize),
+                            contentDescription = null,
+                        )
+                    },
+                    onCheckedChange = {
+                        actions.onToggleFilter(filter)
+                    },
+                    shapes = MenuDefaults.itemShape(index = index, count = SulogEventFilter.entries.size)
+                )
+            }
         }
     }
 }

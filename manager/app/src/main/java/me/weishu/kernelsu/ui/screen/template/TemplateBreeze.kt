@@ -20,14 +20,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuGroup
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenuPopup
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SegmentedListItem
@@ -342,25 +344,31 @@ private fun ImportExportMenuButton(
             contentDescription = stringResource(id = R.string.app_profile_import_export),
         )
 
-        DropdownMenu(
+        DropdownMenuPopup(
             expanded = showDropdown.value,
             onDismissRequest = { showDropdown.value = false },
         ) {
+            DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
+                DropdownMenuItem(
+                    shapes = MenuDefaults.itemShape(index = 0, count = 2),
+                    text = { Text(stringResource(id = R.string.app_profile_import_from_clipboard)) },
+                    selected = false,
+                    onClick = {
+                        onImport()
+                        showDropdown.value = false
+                    },
+                )
+                DropdownMenuItem(
+                    shapes = MenuDefaults.itemShape(index = 1, count = 2),
+                    selected = false,
+                    text = { Text(stringResource(id = R.string.app_profile_export_to_clipboard)) },
+                    onClick = {
+                        onExport()
+                        showDropdown.value = false
+                    },
+                )
+            }
             PopupFeedBack()
-            DropdownMenuItem(
-                text = { Text(stringResource(id = R.string.app_profile_import_from_clipboard)) },
-                onClick = {
-                    onImport()
-                    showDropdown.value = false
-                },
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(id = R.string.app_profile_export_to_clipboard)) },
-                onClick = {
-                    onExport()
-                    showDropdown.value = false
-                },
-            )
         }
     }
 }

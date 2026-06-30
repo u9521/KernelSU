@@ -40,14 +40,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.ButtonGroupDefaults
+import androidx.compose.material3.DropdownMenuGroup
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Slider
@@ -246,14 +249,25 @@ fun ColorPaletteScreenBreeze(
                             )
                         },
                         menuContent = { dismissMenu ->
-                            styles.forEach { style ->
-                                DropdownMenuItem(
-                                    text = { Text(style.name) },
-                                    onClick = {
-                                        actions.onSetColorStyle(style.name)
-                                        dismissMenu()
-                                    }
-                                )
+                            DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
+                                styles.forEachIndexed { index, style ->
+                                    DropdownMenuItem(
+                                        text = { Text(style.name) },
+                                        onClick = {
+                                            actions.onSetColorStyle(style.name)
+                                            dismissMenu()
+                                        },
+                                        shapes = MenuDefaults.itemShape(index = index, count = styles.size),
+                                        selected = index == selectedStyleIndex,
+                                        selectedLeadingIcon = {
+                                            Icon(
+                                                Icons.Filled.Check,
+                                                modifier = Modifier.size(MenuDefaults.LeadingIconSize),
+                                                contentDescription = null,
+                                            )
+                                        }
+                                    )
+                                }
                             }
                         }
                     )
@@ -270,14 +284,25 @@ fun ColorPaletteScreenBreeze(
                             )
                         },
                         menuContent = { dismissMenu ->
-                            specs.forEach { spec ->
-                                DropdownMenuItem(
-                                    text = { Text(spec.name) },
-                                    onClick = {
-                                        actions.onSetColorSpec(spec.name)
-                                        dismissMenu()
-                                    }
-                                )
+                            DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
+                                specs.forEachIndexed { index, spec ->
+                                    DropdownMenuItem(
+                                        text = { Text(spec.name) },
+                                        onClick = {
+                                            actions.onSetColorSpec(spec.name)
+                                            dismissMenu()
+                                        },
+                                        shapes = MenuDefaults.itemShape(index = index, count = specs.size),
+                                        selected = index == selectedSpecIndex,
+                                        selectedLeadingIcon = {
+                                            Icon(
+                                                Icons.Filled.Check,
+                                                modifier = Modifier.size(MenuDefaults.LeadingIconSize),
+                                                contentDescription = null,
+                                            )
+                                        }
+                                    )
+                                }
                             }
                         }
                     )

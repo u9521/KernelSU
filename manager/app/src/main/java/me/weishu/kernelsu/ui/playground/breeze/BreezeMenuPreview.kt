@@ -5,8 +5,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuGroup
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -25,19 +27,22 @@ fun BreezeMenuPreview() {
 
         BrMenuBox(
             menuContent = { dismissMenu ->
-                DropdownMenuItem(
-                    text = { Text("Item Alpha") },
-                    onClick = { dismissMenu() }
-                )
-                DropdownMenuItem(
-                    text = { Text("Item Beta") },
-                    onClick = { dismissMenu() }
-                )
-                DropdownMenuItem(
-                    text = { Text("Item Gamma (disabled)") },
-                    onClick = {},
-                    enabled = false
-                )
+                DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
+                    DropdownMenuItem(
+                        text = { Text("Item Alpha") },
+                        onClick = { dismissMenu() }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Item Beta") },
+                        onClick = { dismissMenu() }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Item Gamma (disabled)") },
+                        onClick = {},
+                        enabled = false
+                    )
+                }
+
             },
             content = {
                 Button(onClick = {}) {

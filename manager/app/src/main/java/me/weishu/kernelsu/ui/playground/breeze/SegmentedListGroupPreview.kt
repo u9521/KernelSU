@@ -3,8 +3,10 @@ package me.weishu.kernelsu.ui.playground.breeze
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.DropdownMenuGroup
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -71,18 +73,20 @@ fun SegmentedListGroupPreview() {
                 content = { Text("Sort Order") },
                 selected = { sortOrder },
                 menuContent = { dismiss ->
-                    DropdownMenuItem(
-                        text = { Text("Name") },
-                        onClick = { sortOrder = "Name"; dismiss() }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Size") },
-                        onClick = { sortOrder = "Size"; dismiss() }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Date") },
-                        onClick = { sortOrder = "Date"; dismiss() }
-                    )
+                    DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
+                        DropdownMenuItem(
+                            text = { Text("Name") },
+                            onClick = { sortOrder = "Name"; dismiss() }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Size") },
+                            onClick = { sortOrder = "Size"; dismiss() }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Date") },
+                            onClick = { sortOrder = "Date"; dismiss() }
+                        )
+                    }
                 }
             )
             menuItem(

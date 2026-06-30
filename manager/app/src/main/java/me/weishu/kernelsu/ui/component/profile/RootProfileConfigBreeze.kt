@@ -12,7 +12,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
@@ -22,6 +25,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -396,10 +400,25 @@ private fun NamespaceDropdown(
         )
         if (!readOnly) {
             ExposedDropdownMenu(
-                expanded = expanded, onDismissRequest = { setExpanded(false) }) {
+                expanded = expanded,
+                onDismissRequest = { setExpanded(false) },
+                shape = MenuDefaults.standaloneGroupShape,
+                containerColor = MenuDefaults.groupStandardContainerColor
+            ) {
                 PopupFeedBack()
-                nameSpaceItems.forEach { (ns, resId) ->
-                    DropdownMenuItem(text = { Text(stringResource(resId)) }, onClick = {
+                nameSpaceItems.onEachIndexed { index, (ns, resId) ->
+                    DropdownMenuItem(
+                        text = { Text(stringResource(resId)) },
+                        shapes = MenuDefaults.itemShape(index, nameSpaceItems.size),
+                        selected = currentNamespace == ns,
+                        selectedLeadingIcon = {
+                            Icon(
+                                Icons.Filled.Check,
+                                modifier = Modifier.size(MenuDefaults.LeadingIconSize),
+                                contentDescription = null,
+                            )
+                        },
+                        onClick = {
                         onNamespaceChange(ns)
                         setExpanded(false)
                     })

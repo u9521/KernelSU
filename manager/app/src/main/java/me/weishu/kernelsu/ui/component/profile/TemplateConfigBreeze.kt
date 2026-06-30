@@ -11,17 +11,21 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -63,7 +67,7 @@ fun TemplateConfigBreeze(
             enter = expandVertically() + fadeIn(),
             exit = shrinkVertically() + fadeOut(),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column {
                 RootTemplateInfoBreeze(template)
                 RootProfileConfigBreeze(
                     modifier = Modifier.fillMaxWidth(),
@@ -93,7 +97,7 @@ private fun RootTemplateInfoBreeze(template: TemplateInfo?) {
             return@AnimatedContent
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column {
             OutlinedTextEdit(
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text(stringResource(R.string.app_profile_template_name)) },
@@ -143,7 +147,6 @@ fun RootTemplateSelectorBreeze(
             label = { Text(stringResource(R.string.profile_template)) },
             value = template.ifEmpty { unselected },
             onValueChange = {},
-            supportingText = { /*placeholder keep same height*/ },
             trailingIcon = {
                 if (noTemplates) {
                     IconButton(
@@ -162,11 +165,26 @@ fun RootTemplateSelectorBreeze(
             return@ExposedDropdownMenuBox
         }
         ExposedDropdownMenu(
-            expanded = expanded, onDismissRequest = { setExpand(false) }) {
+            expanded = expanded,
+            onDismissRequest = { setExpand(false) },
+            shape = MenuDefaults.standaloneGroupShape,
+            containerColor = MenuDefaults.groupStandardContainerColor
+        ) {
             PopupFeedBack()
-            profileTemplates.forEach { tid ->
-                val templateInfo = getTemplateInfoById(tid) ?: return@forEach
-                DropdownMenuItem(text = { Text(tid) }, onClick = {
+            profileTemplates.forEachIndexed { index, tid ->
+                val templateInfo = getTemplateInfoById(tid) ?: return@forEachIndexed
+                DropdownMenuItem(
+                    text = { Text(tid) },
+                    shapes = MenuDefaults.itemShape(index, profileTemplates.size),
+                    selected = template == tid,
+                    selectedLeadingIcon = {
+                        Icon(
+                            Icons.Filled.Check,
+                            modifier = Modifier.size(MenuDefaults.LeadingIconSize),
+                            contentDescription = null,
+                        )
+                    },
+                    onClick = {
                     setTemplate(tid)
                     onProfileChange(
                         profile.copy(
@@ -186,4 +204,5 @@ fun RootTemplateSelectorBreeze(
             }
         }
     }
+    Spacer(Modifier.height(16.dp))
 }

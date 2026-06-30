@@ -16,10 +16,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -30,17 +32,17 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuGroup
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.DropdownMenuPopup
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.ListItemShapes
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SearchBarDefaults
@@ -593,7 +595,6 @@ private fun FilterMenu(
     actions: SuperUserActions,
 ) {
     var showDropdown by remember { mutableStateOf(false) }
-    val keydownFB = keyDownFeedBack()
 
     IconButton(onClick = { showDropdown = true }) {
         Icon(
@@ -601,29 +602,43 @@ private fun FilterMenu(
             contentDescription = stringResource(id = R.string.settings)
         )
 
-        DropdownMenu(
+        DropdownMenuPopup(
             expanded = showDropdown,
             onDismissRequest = { showDropdown = false }
         ) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.show_system_apps)) },
-                trailingIcon = { Checkbox(uiState.showSystemApps, null) },
-                onClick = {
-                    keydownFB()
-                    actions.onToggleShowSystemApps()
-                    showDropdown = false
-                }
-            )
-            if (uiState.userIds.size > 1) {
+            DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
                 DropdownMenuItem(
-                    text = { Text(stringResource(R.string.show_only_primary_user_apps)) },
-                    trailingIcon = { Checkbox(uiState.showOnlyPrimaryUserApps, null) },
-                    onClick = {
-                        keydownFB()
-                        actions.onToggleShowOnlyPrimaryUserApps()
-                        showDropdown = false
-                    }
+                    text = { Text(stringResource(R.string.show_system_apps)) },
+                    checked = uiState.showSystemApps,
+                    checkedLeadingIcon = {
+                        Icon(
+                            Icons.Filled.Check,
+                            modifier = Modifier.size(MenuDefaults.LeadingIconSize),
+                            contentDescription = null,
+                        )
+                    },
+                    onCheckedChange = {
+                        actions.onToggleShowSystemApps()
+                    },
+                    shapes = MenuDefaults.itemShape(index = 0, count = 2)
                 )
+                if (uiState.userIds.size > 1) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.show_only_primary_user_apps)) },
+                        checked = uiState.showOnlyPrimaryUserApps,
+                        checkedLeadingIcon = {
+                            Icon(
+                                Icons.Filled.Check,
+                                modifier = Modifier.size(MenuDefaults.LeadingIconSize),
+                                contentDescription = null,
+                            )
+                        },
+                        onCheckedChange = {
+                            actions.onToggleShowOnlyPrimaryUserApps()
+                        },
+                        shapes = MenuDefaults.itemShape(index = 1, count = 2)
+                    )
+                }
             }
         }
     }
@@ -636,57 +651,72 @@ private fun SortMenu(
 ) {
     var showSortMenu by remember { mutableStateOf(false) }
     val keydownFB = keyDownFeedBack()
-
+    val isReverse = uiState.sortOption % 2 != 0
+    val currentSortType = uiState.sortOption / 2
+    val sortResIds = listOf(
+        R.string.sort_by_name,
+        R.string.sort_by_package_name,
+        R.string.sort_by_install_time,
+        R.string.sort_by_update_time,
+    )
     IconButton(onClick = { showSortMenu = true }) {
         Icon(
             painter = painterResource(R.drawable.ic_sort_rounded),
             contentDescription = stringResource(R.string.menu_sort)
         )
 
-        DropdownMenu(
+        DropdownMenuPopup(
             expanded = showSortMenu,
             onDismissRequest = { showSortMenu = false }
         ) {
             PopupFeedBack()
-            val sortResIds = listOf(
-                R.string.sort_by_name,
-                R.string.sort_by_package_name,
-                R.string.sort_by_install_time,
-                R.string.sort_by_update_time,
-            )
-            val currentSortType = uiState.sortOption / 2
-            val isReverse = uiState.sortOption % 2 != 0
-
-            sortResIds.forEachIndexed { index, resId ->
+            DropdownMenuGroup(shapes = MenuDefaults.groupShape(index = 0, count = 2)) {
+                sortResIds.forEachIndexed { index, resId ->
+                    DropdownMenuItem(
+                        text = { Text(stringResource(resId)) },
+                        selected = currentSortType == index,
+                        selectedLeadingIcon = {
+                            Icon(
+                                Icons.Filled.Check,
+                                modifier = Modifier.size(MenuDefaults.LeadingIconSize),
+                                contentDescription = null,
+                            )
+                        },
+                        onClick = {
+                            keydownFB()
+                            val newOption = index * 2 + (if (isReverse) 1 else 0)
+                            actions.onUpdateSortOption(newOption)
+                        },
+                        shapes = MenuDefaults.itemShape(
+                            index = index,
+                            count = sortResIds.size + 1
+                        )
+                    )
+                }
+            }
+            Spacer(Modifier.height(MenuDefaults.GroupSpacing))
+            DropdownMenuGroup(shapes = MenuDefaults.groupShape(index = 1, count = 2)) {
                 DropdownMenuItem(
-                    text = { Text(stringResource(resId)) },
-                    trailingIcon = {
-                        RadioButton(
-                            selected = currentSortType == index,
-                            onClick = null,
+                    text = { Text(stringResource(R.string.sort_reverse)) },
+                    selected = isReverse,
+                    selectedLeadingIcon = {
+                        Icon(
+                            Icons.Filled.Check,
+                            modifier = Modifier.size(MenuDefaults.LeadingIconSize),
+                            contentDescription = null,
                         )
                     },
                     onClick = {
                         keydownFB()
-                        val newOption = index * 2 + (if (isReverse) 1 else 0)
+                        val newOption = currentSortType * 2 + (if (!isReverse) 1 else 0)
                         actions.onUpdateSortOption(newOption)
-                        showSortMenu = false
-                    }
+                    },
+                    shapes = MenuDefaults.itemShape(
+                        index = 1,
+                        count = 2
+                    ),
                 )
             }
-
-            HorizontalDivider()
-
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.sort_reverse)) },
-                trailingIcon = { Checkbox(isReverse, null) },
-                onClick = {
-                    keydownFB()
-                    val newOption = currentSortType * 2 + (if (!isReverse) 1 else 0)
-                    actions.onUpdateSortOption(newOption)
-                    showSortMenu = false
-                }
-            )
         }
     }
 }

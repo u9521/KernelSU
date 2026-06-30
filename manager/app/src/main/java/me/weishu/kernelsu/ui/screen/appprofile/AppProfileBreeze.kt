@@ -23,12 +23,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material3.DropdownMenuGroup
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SnackbarHostState
@@ -435,25 +437,33 @@ private fun appMenuContent(
     userId: Int,
     actions: AppProfileActions,
 ): @Composable ColumnScope.(dismissMenu: () -> Unit) -> Unit = { dismissMenu ->
-    DropdownMenuItem(
-        text = { Text(stringResource(R.string.launch_app)) },
-        onClick = {
-            dismissMenu()
-            actions.onLaunchApp(packageName, userId)
-        },
-    )
-    DropdownMenuItem(
-        text = { Text(stringResource(R.string.force_stop_app)) },
-        onClick = {
-            dismissMenu()
-            actions.onForceStopApp(packageName, userId)
-        },
-    )
-    DropdownMenuItem(
-        text = { Text(stringResource(R.string.restart_app)) },
-        onClick = {
-            dismissMenu()
-            actions.onRestartApp(packageName, userId)
-        },
-    )
+    DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.launch_app)) },
+            onClick = {
+                dismissMenu()
+                actions.onLaunchApp(packageName, userId)
+            },
+            shapes = MenuDefaults.itemShape(index = 0, count = 3),
+            selected = false,
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.force_stop_app)) },
+            onClick = {
+                dismissMenu()
+                actions.onForceStopApp(packageName, userId)
+            },
+            shapes = MenuDefaults.itemShape(index = 1, count = 3),
+            selected = false,
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.restart_app)) },
+            onClick = {
+                dismissMenu()
+                actions.onRestartApp(packageName, userId)
+            },
+            shapes = MenuDefaults.itemShape(index = 2, count = 3),
+            selected = false,
+        )
+    }
 }

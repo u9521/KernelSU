@@ -12,15 +12,19 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.DropdownMenuGroup
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SnackbarHostState
@@ -158,7 +162,7 @@ fun SettingPagerBreeze(
             SegmentedListGroup {
                 menuItem(
                     content = { Text(stringResource(id = R.string.settings_ui_mode)) },
-                    selected = { uiState.uiMode },
+                    selected = { UiMode.fromValue(uiState.uiMode).name },
                     leadingContent = {
                         Icon(
                             painterResource(R.drawable.ic_dashboard_rounded_filled),
@@ -167,14 +171,25 @@ fun SettingPagerBreeze(
                     },
                     supportingContent = { Text(stringResource(id = R.string.settings_ui_mode_summary)) },
                     menuContent = { dismissMenu ->
-                        uiModes.forEachIndexed { index, name ->
-                            DropdownMenuItem(
-                                text = { Text(name) },
-                                onClick = {
-                                    actions.onSetUiModeIndex(index)
-                                    dismissMenu()
-                                }
-                            )
+                        DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
+                            uiModes.forEachIndexed { index, name ->
+                                DropdownMenuItem(
+                                    text = { Text(name) },
+                                    onClick = {
+                                        actions.onSetUiModeIndex(index)
+                                        dismissMenu()
+                                    },
+                                    shapes = MenuDefaults.itemShape(index = index, count = uiModes.size),
+                                    selected = name == UiMode.fromValue(uiState.uiMode).name,
+                                    selectedLeadingIcon = {
+                                        Icon(
+                                            Icons.Filled.Check,
+                                            modifier = Modifier.size(MenuDefaults.LeadingIconSize),
+                                            contentDescription = null,
+                                        )
+                                    }
+                                )
+                            }
                         }
                     }
                 )
@@ -254,14 +269,25 @@ fun SettingPagerBreeze(
                         },
                         supportingContent = { Text(suSummary) },
                         menuContent = { dismissMenu ->
-                            suCompatModeItems.forEachIndexed { index, name ->
-                                DropdownMenuItem(
-                                    text = { Text(name) },
-                                    onClick = {
-                                        actions.onSetSuCompatMode(index)
-                                        dismissMenu()
-                                    }
-                                )
+                            DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
+                                suCompatModeItems.forEachIndexed { index, name ->
+                                    DropdownMenuItem(
+                                        text = { Text(name) },
+                                        onClick = {
+                                            actions.onSetSuCompatMode(index)
+                                            dismissMenu()
+                                        },
+                                        shapes = MenuDefaults.itemShape(index = index, count = suCompatModeItems.size),
+                                        selected = index == uiState.suCompatMode,
+                                        selectedLeadingIcon = {
+                                            Icon(
+                                                Icons.Filled.Check,
+                                                modifier = Modifier.size(MenuDefaults.LeadingIconSize),
+                                                contentDescription = null,
+                                            )
+                                        }
+                                    )
+                                }
                             }
                         }
                     )
