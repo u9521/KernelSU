@@ -14,6 +14,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,6 +62,7 @@ fun MainScreenBreeze(
     val isTopRoute = navController.isTopRoute()
     val navBarType = currentWindowAdaptiveInfo().getNavBarType()
     val useNavigationRail = isRailNavbar()
+    var railExpandedOverride by rememberSaveable { mutableStateOf<Boolean?>(null) }
     val navState = rememberBreezeNavLayoutState(
         initialValue = if (useNavigationRail) NavigationLayoutType.SIDE else NavigationLayoutType.BOTTOM
     )
@@ -125,6 +127,8 @@ fun MainScreenBreeze(
             sideBar = {
                 NavigationRailBreeze(
                     navBarType = navBarType,
+                    expandedOverride = railExpandedOverride,
+                    onExpandedOverrideChange = { railExpandedOverride = it },
                     modifier = Modifier,
                 )
             },

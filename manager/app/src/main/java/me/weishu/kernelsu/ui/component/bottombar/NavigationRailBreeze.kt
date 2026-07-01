@@ -5,8 +5,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.WideNavigationRail
@@ -47,16 +49,22 @@ private val railItems = listOf(
 )
 
 @Composable
-fun NavigationRailBreeze(modifier: Modifier = Modifier, navBarType: NavigationBarType = NavigationBarType.Rail) {
+fun NavigationRailBreeze(
+    modifier: Modifier = Modifier,
+    navBarType: NavigationBarType = NavigationBarType.Rail,
+    expandedOverride: Boolean? = null,
+    onExpandedOverrideChange: (Boolean?) -> Unit = {},
+) {
     if (!navBarType.isRail()) return
     val isManager = Natives.isManager
     val fullFeatured = isManager && !Natives.requireNewKernel() && rootAvailable()
     if (!fullFeatured) return
     val mainPagerState = LocalMainPagerState.current
 
-    val isExpanded = navBarType != NavigationBarType.Rail
+    val defaultExpanded = navBarType != NavigationBarType.Rail
+    val isExpanded = expandedOverride ?: defaultExpanded
     val state = rememberWideNavigationRailState(
-        initialValue = if (isExpanded) WideNavigationRailValue.Expanded else WideNavigationRailValue.Collapsed
+        initialValue = if (defaultExpanded) WideNavigationRailValue.Expanded else WideNavigationRailValue.Collapsed
     )
 
     LaunchedEffect(isExpanded) {
@@ -96,7 +104,22 @@ fun NavigationRailBreeze(modifier: Modifier = Modifier, navBarType: NavigationBa
             .fillMaxHeight()
             .requiredWidth(animatedWidth),
         state = state,
-        arrangement = Arrangement.Center
+        arrangement = Arrangement.Center,
+        header = {
+            IconButton(
+                modifier = Modifier.padding(start = 24.dp),
+                onClick = {
+                    onExpandedOverrideChange(!isExpanded)
+                },
+            ) {
+                Icon(
+                    painter = painterResource(
+                        if (isExpanded) R.drawable.ic_menu_open_rounded else R.drawable.ic_menu_rounded
+                    ),
+                    contentDescription = null,
+                )
+            }
+        },
     ) {
         railItems.forEachIndexed { index, item ->
             val selected = mainPagerState.selectedPage == index
