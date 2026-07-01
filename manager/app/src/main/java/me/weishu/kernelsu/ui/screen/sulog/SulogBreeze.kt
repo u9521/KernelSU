@@ -325,7 +325,7 @@ private fun SulogItem(
         colors = ListItemDefaults.segmentedColors(
             containerColor = MaterialTheme.colorScheme.surfaceBright,
             disabledContainerColor = MaterialTheme.colorScheme.surfaceBright,
-            supportingContentColor = MaterialTheme.colorScheme.outline,
+            supportingContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         ),
         onClick = { onEntryClick(entry) },
         content = { Text(sulogEntryTitle(entry)) },
@@ -437,7 +437,7 @@ private fun LogTimeCard(
                 onClick = {}, shapes = ListItemDefaults.shapes(shape = MaterialTheme.shapes.large), colors = ListItemDefaults.segmentedColors(
                     containerColor = MaterialTheme.colorScheme.surfaceBright,
                     disabledContainerColor = MaterialTheme.colorScheme.surfaceBright,
-                    supportingContentColor = MaterialTheme.colorScheme.outline,
+                    supportingContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 ), trailingContent = {
                     Text(
                         text = fileSelector.items.getOrNull(fileSelector.selectedIndex) ?: "", color = MaterialTheme.colorScheme.primary
@@ -457,11 +457,11 @@ private fun SulogMessageCard(
         modifier = modifier, contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(title, color = MaterialTheme.colorScheme.outline)
+            Text(title, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (summary != null) {
                 Text(
                     summary,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = MaterialTheme.typography.bodySmall.fontSize,
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis,

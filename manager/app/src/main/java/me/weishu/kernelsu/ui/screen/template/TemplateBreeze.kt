@@ -121,7 +121,7 @@ fun AppProfileTemplateScreenBreeze(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             text = stringResource(R.string.network_offline),
-                            color = MaterialTheme.colorScheme.outline,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Button(onClick = { actions.onRefresh(false) }) {
@@ -132,7 +132,7 @@ fun AppProfileTemplateScreenBreeze(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             text = "No templates found",
-                            color = MaterialTheme.colorScheme.outline,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Button(onClick = { actions.onRefresh(true) }) {
@@ -238,7 +238,7 @@ private fun TemplateItem(
         colors = ListItemDefaults.segmentedColors(
             containerColor = MaterialTheme.colorScheme.surfaceBright,
             disabledContainerColor = MaterialTheme.colorScheme.surfaceBright,
-            supportingContentColor = MaterialTheme.colorScheme.outline,
+            supportingContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         ),
         content = {
             Text(
@@ -255,7 +255,7 @@ private fun TemplateItem(
                 )
                 Text(
                     text = template.description,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 FlowRow {
                     StatusTag(

@@ -412,7 +412,7 @@ private fun AppIconItem(
     colors: androidx.compose.material3.ListItemColors = ListItemDefaults.segmentedColors(
         containerColor = MaterialTheme.colorScheme.surfaceBright,
         disabledContainerColor = MaterialTheme.colorScheme.surfaceBright,
-        supportingContentColor = MaterialTheme.colorScheme.outline,
+        supportingContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
     ),
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
@@ -455,7 +455,7 @@ private fun SimpleAppItem(
         ListItemDefaults.segmentedColors(
             containerColor = MaterialTheme.colorScheme.surfaceBright,
             disabledContainerColor = MaterialTheme.colorScheme.surfaceBright,
-            supportingContentColor = MaterialTheme.colorScheme.outline,
+            supportingContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 
@@ -495,7 +495,7 @@ private fun GroupItem(
         colors = ListItemDefaults.segmentedColors(
             containerColor = MaterialTheme.colorScheme.surfaceBright,
             disabledContainerColor = MaterialTheme.colorScheme.surfaceBright,
-            supportingContentColor = MaterialTheme.colorScheme.outline,
+            supportingContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         ),
         shapes = ListItemDefaults.shapes(shape = shape, pressedShape = shape),
         content = {
