@@ -8,10 +8,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.TopAppBarColors
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import me.weishu.kernelsu.ui.theme.LocalEnableBlur
 
 @Composable
 fun ExpressiveScaffold(
@@ -48,3 +51,23 @@ fun expressiveTopAppBarColors(
     containerColor = containerColor,
     scrolledContainerColor = scrolledContainerColor,
 )
+
+@Composable
+fun expressiveTopBarColors() = if (LocalEnableBlur.current) TopAppBarDefaults.topAppBarColors(
+    containerColor = Color.Transparent, scrolledContainerColor = Color.Transparent
+) else TopAppBarDefaults.topAppBarColors(
+    containerColor = MaterialTheme.colorScheme.surfaceContainer, scrolledContainerColor = MaterialTheme.colorScheme.surfaceBright
+)
+
+@Composable
+fun TopAppBarScrollBehavior.disableDrag(): TopAppBarScrollBehavior {
+    return remember(this) {
+        object : TopAppBarScrollBehavior {
+            override val state = this@disableDrag.state
+            override val isPinned = true
+            override val snapAnimationSpec = this@disableDrag.snapAnimationSpec
+            override val flingAnimationSpec = this@disableDrag.flingAnimationSpec
+            override val nestedScrollConnection = this@disableDrag.nestedScrollConnection
+        }
+    }
+}

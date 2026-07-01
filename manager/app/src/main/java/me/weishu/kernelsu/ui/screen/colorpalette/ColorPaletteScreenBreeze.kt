@@ -19,15 +19,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.captionBar
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -39,7 +36,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.rounded.Check
@@ -47,21 +43,15 @@ import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.DropdownMenuGroup
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -74,7 +64,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -84,15 +73,18 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamiccolor.ColorSpec
-import com.materialkolor.rememberDynamicColorScheme
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ui.component.breeze.BreezeBackButton
 import me.weishu.kernelsu.ui.component.breeze.SegmentedListGroup
+import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
+import me.weishu.kernelsu.ui.component.material.disableDrag
+import me.weishu.kernelsu.ui.component.material.expressiveTopBarColors
 import me.weishu.kernelsu.ui.screen.home.TonalCard
 import me.weishu.kernelsu.ui.theme.ColorMode
-import me.weishu.kernelsu.ui.theme.expressiveTopBarColors
 import me.weishu.kernelsu.ui.theme.keyColorOptions
+import me.weishu.kernelsu.ui.theme.rememberKernelSUColorScheme
 import me.weishu.kernelsu.ui.util.onlyHorizontal
 import me.weishu.kernelsu.ui.util.topBarHazeEffect
 
@@ -101,7 +93,7 @@ fun ColorPaletteScreenBreeze(
     state: ColorPaletteUiState,
     actions: ColorPaletteScreenActions,
 ) {
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior().disableDrag()
     val uiState = state.uiState
     val currentColorMode = state.currentColorMode
     val currentKeyColor = uiState.keyColor
@@ -109,14 +101,15 @@ fun ColorPaletteScreenBreeze(
     val colorSpec = state.currentColorSpec
     val hazeState = rememberHazeState()
     val resource = LocalResources.current
-    Scaffold(
+    ExpressiveScaffold(
         topBar = {
             LargeFlexibleTopAppBar(
                 modifier = Modifier.topBarHazeEffect(hazeState, scrollBehavior),
                 navigationIcon = {
-                    IconButton(
-                        onClick = actions.onBack
-                    ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
+                    BreezeBackButton(
+                        onClick = actions.onBack,
+                        collapseFraction = scrollBehavior.state.collapsedFraction,
+                    )
                 },
                 title = { Text(stringResource(R.string.settings_theme)) },
                 colors = expressiveTopBarColors(),
@@ -124,12 +117,7 @@ fun ColorPaletteScreenBreeze(
                 scrollBehavior = scrollBehavior
             )
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     ) { paddingValues ->
-        val navBars = WindowInsets.navigationBars.asPaddingValues()
-        val captionBar = WindowInsets.captionBar.asPaddingValues()
-
         Column(
             modifier = Modifier
                 .padding(paddingValues.onlyHorizontal())
@@ -140,9 +128,11 @@ fun ColorPaletteScreenBreeze(
         ) {
             Spacer(Modifier.height(paddingValues.calculateTopPadding()))
             val isDark = currentColorMode.isDark || currentColorMode.isSystem && isSystemInDarkTheme()
+            val isAmoled = currentColorMode.isAmoled
             ThemePreviewCard(
                 keyColor = currentKeyColor,
                 isDark = isDark,
+                isAmoled = isAmoled,
                 paletteStyle = colorStyle,
                 colorSpec = colorSpec,
             )
@@ -159,6 +149,7 @@ fun ColorPaletteScreenBreeze(
                         color = Color.Unspecified,
                         isSelected = currentKeyColor == 0,
                         isDark = isDark,
+                        isAmoled = isAmoled,
                         paletteStyle = colorStyle,
                         colorSpec = colorSpec,
                         onClick = {
@@ -172,6 +163,7 @@ fun ColorPaletteScreenBreeze(
                         color = Color(color),
                         isSelected = currentKeyColor == color,
                         isDark = isDark,
+                        isAmoled = isAmoled,
                         paletteStyle = colorStyle,
                         colorSpec = colorSpec,
                         onClick = {
@@ -392,8 +384,11 @@ fun ColorPaletteScreenBreeze(
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(16.dp + navBars.calculateBottomPadding() + captionBar.calculateBottomPadding()))
+            Spacer(
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .height(16.dp)
+            )
         }
     }
 }
@@ -403,39 +398,21 @@ fun ColorPaletteScreenBreeze(
 private fun ThemePreviewCard(
     keyColor: Int,
     isDark: Boolean,
+    isAmoled: Boolean = false,
     paletteStyle: PaletteStyle = PaletteStyle.TonalSpot,
-    colorSpec: ColorSpec.SpecVersion = ColorSpec.SpecVersion.SPEC_2021,
+    colorSpec: ColorSpec.SpecVersion = ColorSpec.SpecVersion.SPEC_2025,
 ) {
-    val context = LocalContext.current
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.toFloat()
     val screenHeight = configuration.screenHeightDp.toFloat()
     val screenRatio = screenWidth / screenHeight
-    val dynamicColor = keyColor == 0
-
-    val colorScheme = if (dynamicColor) {
-        val baseScheme = if (isDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        rememberDynamicColorScheme(
-            seedColor = Color.Unspecified,
-            isDark = isDark,
-            style = paletteStyle,
-            specVersion = colorSpec,
-            primary = baseScheme.primary,
-            secondary = baseScheme.secondary,
-            tertiary = baseScheme.tertiary,
-            neutral = baseScheme.surface,
-            neutralVariant = baseScheme.surfaceVariant,
-            error = baseScheme.error
-        )
-    } else {
-        rememberDynamicColorScheme(
-            seedColor = Color(keyColor),
-            isDark = isDark,
-            style = paletteStyle,
-            specVersion = colorSpec,
-        )
-
-    }
+    val colorScheme = rememberKernelSUColorScheme(
+        seedColor = if (keyColor == 0) Color.Unspecified else Color(keyColor),
+        isDark = isDark,
+        isAmoled = isAmoled,
+        paletteStyle = paletteStyle,
+        colorSpec = colorSpec,
+    )
 
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
         Surface(
@@ -542,33 +519,18 @@ private fun ColorButtonBreeze(
     color: Color,
     isSelected: Boolean,
     isDark: Boolean,
+    isAmoled: Boolean = false,
     paletteStyle: PaletteStyle = PaletteStyle.TonalSpot,
-    colorSpec: ColorSpec.SpecVersion = ColorSpec.SpecVersion.SPEC_2021,
+    colorSpec: ColorSpec.SpecVersion = ColorSpec.SpecVersion.SPEC_2025,
     onClick: () -> Unit
 ) {
-    val context = LocalContext.current
-    val colorScheme = if (color == Color.Unspecified) {
-        val baseScheme = if (isDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        rememberDynamicColorScheme(
-            seedColor = Color.Unspecified,
-            isDark = isDark,
-            style = paletteStyle,
-            specVersion = colorSpec,
-            primary = baseScheme.primary,
-            secondary = baseScheme.secondary,
-            tertiary = baseScheme.tertiary,
-            neutral = baseScheme.surface,
-            neutralVariant = baseScheme.surfaceVariant,
-            error = baseScheme.error
-        )
-    } else {
-        rememberDynamicColorScheme(
-            seedColor = color,
-            isDark = isDark,
-            style = paletteStyle,
-            specVersion = colorSpec,
-        )
-    }
+    val colorScheme = rememberKernelSUColorScheme(
+        seedColor = color,
+        isDark = isDark,
+        isAmoled = isAmoled,
+        paletteStyle = paletteStyle,
+        colorSpec = colorSpec,
+    )
 
     Surface(
         onClick = onClick,

@@ -5,28 +5,19 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.captionBar
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,8 +33,11 @@ import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import me.weishu.kernelsu.BuildConfig
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ui.component.breeze.BreezeBackButton
 import me.weishu.kernelsu.ui.component.breeze.SegmentedListGroup
-import me.weishu.kernelsu.ui.theme.expressiveTopBarColors
+import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
+import me.weishu.kernelsu.ui.component.material.disableDrag
+import me.weishu.kernelsu.ui.component.material.expressiveTopBarColors
 import me.weishu.kernelsu.ui.util.onlyHorizontal
 import me.weishu.kernelsu.ui.util.topBarHazeEffect
 
@@ -52,29 +46,24 @@ fun AboutScreenBreeze(
     state: AboutUiState,
     actions: AboutScreenActions,
 ) {
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior().disableDrag()
     val hazeState = rememberHazeState()
-    Scaffold(
+    ExpressiveScaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             LargeFlexibleTopAppBar(
                 modifier = Modifier.topBarHazeEffect(hazeState, scrollBehavior),
                 title = { Text(state.title) },
                 navigationIcon = {
-                    IconButton(
-                        onClick = actions.onBack
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null
-                        )
-                    }
+                    BreezeBackButton(
+                        onClick = actions.onBack,
+                        collapseFraction = scrollBehavior.state.collapsedFraction,
+                    )
                 },
                 colors = expressiveTopBarColors(),
                 scrollBehavior = scrollBehavior
             )
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -120,12 +109,7 @@ fun AboutScreenBreeze(
                     item(key = linkInfo.url, onClick = { actions.onOpenLink(linkInfo.url) }, content = { Text(linkInfo.fullText) })
                 }
             }
-            Spacer(
-                Modifier.height(
-                    WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() +
-                            WindowInsets.captionBar.asPaddingValues().calculateBottomPadding()
-                )
-            )
+            Spacer(Modifier.navigationBarsPadding())
         }
     }
 }

@@ -17,12 +17,11 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -31,7 +30,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenuGroup
@@ -43,17 +41,15 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.ListItemShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -82,12 +78,15 @@ import kotlinx.coroutines.launch
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.data.model.AppInfo
 import me.weishu.kernelsu.ui.component.AppIconImage
+import me.weishu.kernelsu.ui.component.breeze.BreezeBackButton
 import me.weishu.kernelsu.ui.component.breeze.PopupFeedBack
 import me.weishu.kernelsu.ui.component.breeze.ScrollbarDefaults
 import me.weishu.kernelsu.ui.component.breeze.VerticalScrollbar
 import me.weishu.kernelsu.ui.component.breeze.keyDownFeedBack
 import me.weishu.kernelsu.ui.component.breeze.rememberScrollbarAdapter
+import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
 import me.weishu.kernelsu.ui.component.material.SearchAppBarBreeze
+import me.weishu.kernelsu.ui.component.material.disableDrag
 import me.weishu.kernelsu.ui.component.statustag.StatusTag
 import me.weishu.kernelsu.ui.navigation3.LocalNavigator
 import me.weishu.kernelsu.ui.navigation3.breeze.LocalHasDetailPane
@@ -110,7 +109,7 @@ fun SuperUserPagerBreeze(
         null
     }
     val hazeState = rememberHazeState()
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior().disableDrag()
     val searchBarScrollBehavior = SearchBarDefaults.enterAlwaysSearchBarScrollBehavior()
     val listState = rememberLazyListState()
     val searchListState = rememberLazyListState()
@@ -133,7 +132,7 @@ fun SuperUserPagerBreeze(
 
     val haptic = LocalHapticFeedback.current
 
-    Scaffold(
+    ExpressiveScaffold(
         modifier = Modifier
             .pullToRefresh(
                 state = pullToRefreshState,
@@ -143,7 +142,6 @@ fun SuperUserPagerBreeze(
                     actions.onRefresh()
                 },
             ),
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         topBar = {
             SearchAppBarBreeze(
                 modifier = Modifier.topBarHazeEffect(hazeState, scrollBehavior),
@@ -151,11 +149,12 @@ fun SuperUserPagerBreeze(
                 searchText = localSearchText,
                 navigationIcon = {
                     Row {
-                        BackIconButton(onBack)
+                        BackIconButton(onBack, scrollBehavior)
                         IconButton(onClick = actions.onOpenSulog) {
                             Icon(
                                 painter = painterResource(R.drawable.ic_article_rounded_filled),
-                                contentDescription = stringResource(R.string.settings_sulog)
+                                contentDescription = stringResource(R.string.settings_sulog),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -200,10 +199,22 @@ fun SuperUserPagerBreeze(
                             actions.onOpenProfile(group)
                         },
                     )
+                    VerticalScrollbar(
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .fillMaxHeight()
+                            .padding(bottom = bottomPadding),
+                        adapter = rememberScrollbarAdapter(searchListState),
+                        durationMillis = 1500L,
+                        visible = showListScrollbar,
+                        style = ScrollbarDefaults.style.copy(
+                            color = MaterialTheme.colorScheme.primary,
+                            railColor = MaterialTheme.colorScheme.surfaceBright.copy(alpha = 0.5f),
+                        )
+                    )
                 }
             )
         },
-        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     ) { innerPadding ->
         Box(
             modifier = Modifier
@@ -239,6 +250,7 @@ fun SuperUserPagerBreeze(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
                     .fillMaxHeight()
+                    .navigationBarsPadding()
                     .padding(top = innerPadding.calculateTopPadding(), bottom = scrollBottomPadding),
                 adapter = rememberScrollbarAdapter(listState),
                 durationMillis = 1500L,
@@ -382,6 +394,9 @@ private fun GroupedAppList(
                     }
                 }
             }
+        }
+        item("bottomPadding") {
+            Spacer(Modifier.navigationBarsPadding())
         }
     }
 }
@@ -565,7 +580,7 @@ private fun GroupItem(
 }
 
 @Composable
-private fun BackIconButton(onBack: (() -> Unit)?) {
+private fun BackIconButton(onBack: (() -> Unit)?, scrollBehavior: TopAppBarScrollBehavior) {
     AnimatedVisibility(
         visible = onBack != null,
         enter = fadeIn(animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec()) +
@@ -579,12 +594,10 @@ private fun BackIconButton(onBack: (() -> Unit)?) {
                     animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
                 ),
     ) {
-        IconButton(onClick = onBack ?: {}) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = null,
-            )
-        }
+        BreezeBackButton(
+            onClick = onBack ?: {},
+            collapseFraction = scrollBehavior.state.collapsedFraction,
+        )
     }
 }
 

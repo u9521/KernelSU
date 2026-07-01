@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -16,7 +17,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
@@ -29,14 +29,11 @@ import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.animateFloatingActionButton
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -52,12 +49,15 @@ import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ui.component.breeze.BreezeBackButton
 import me.weishu.kernelsu.ui.component.breeze.BreezeSnackBarHost
 import me.weishu.kernelsu.ui.component.breeze.SegmentedListGroup
 import me.weishu.kernelsu.ui.component.breeze.SegmentedListScope
 import me.weishu.kernelsu.ui.component.breeze.keyDownFeedBack
 import me.weishu.kernelsu.ui.component.dialog.rememberConfirmDialog
-import me.weishu.kernelsu.ui.theme.expressiveTopBarColors
+import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
+import me.weishu.kernelsu.ui.component.material.disableDrag
+import me.weishu.kernelsu.ui.component.material.expressiveTopBarColors
 import me.weishu.kernelsu.ui.util.LkmSelection
 import me.weishu.kernelsu.ui.util.fABBottomPadding
 import me.weishu.kernelsu.ui.util.onlyHorizontal
@@ -73,11 +73,11 @@ internal fun InstallScreenBreeze(
     actions: InstallScreenActions,
     snackbarHostState: SnackbarHostState
 ) {
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior().disableDrag()
     val hazeState = rememberHazeState()
     val keyDownFeedBack = keyDownFeedBack()
 
-    Scaffold(
+    ExpressiveScaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         snackbarHost = {
             BreezeSnackBarHost(snackbarHostState, modifier = Modifier.let {
@@ -91,8 +91,6 @@ internal fun InstallScreenBreeze(
                 hazeState = hazeState,
             )
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 content = {
@@ -141,7 +139,11 @@ internal fun InstallScreenBreeze(
                 onSelectAllowShell = actions.onSelectAllowShell,
                 onSelectEnableAdb = actions.onSelectEnableAdb,
             )
-            Spacer(Modifier.height(fABBottomPadding() + 56.dp + 16.dp * 2 + 6.dp * 2 + 48.dp))
+            Spacer(
+                Modifier
+                    .navigationBarsPadding()
+                    .height(fABBottomPadding() + 56.dp + 16.dp * 2 + 6.dp * 2 + 48.dp)
+            )
         }
     }
 }
@@ -303,24 +305,24 @@ private fun SegmentedListScope.partitionSelector(
         selected = { partition },
         menuContent = { dismiss ->
             DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
-            partitions.forEachIndexed { index, name ->
-                DropdownMenuItem(
-                    text = { Text(name) },
-                    onClick = {
-                        onPartitionChange(index)
-                        dismiss()
-                    },
-                    shapes = MenuDefaults.itemShape(index = index, count = partitions.size),
-                    selected = name == partition,
-                    selectedLeadingIcon = {
-                        Icon(
-                            Icons.Filled.Check,
-                            modifier = Modifier.size(MenuDefaults.LeadingIconSize),
-                            contentDescription = null,
-                        )
-                    }
-                )
-            }
+                partitions.forEachIndexed { index, name ->
+                    DropdownMenuItem(
+                        text = { Text(name) },
+                        onClick = {
+                            onPartitionChange(index)
+                            dismiss()
+                        },
+                        shapes = MenuDefaults.itemShape(index = index, count = partitions.size),
+                        selected = name == partition,
+                        selectedLeadingIcon = {
+                            Icon(
+                                Icons.Filled.Check,
+                                modifier = Modifier.size(MenuDefaults.LeadingIconSize),
+                                contentDescription = null,
+                            )
+                        }
+                    )
+                }
             }
         },
     )
@@ -336,9 +338,10 @@ private fun TopBar(
         modifier = Modifier.topBarHazeEffect(hazeState, scrollBehavior),
         title = { Text(stringResource(R.string.install)) },
         navigationIcon = {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-            }
+            BreezeBackButton(
+                onClick = onBack,
+                collapseFraction = scrollBehavior.state.collapsedFraction,
+            )
         },
         colors = expressiveTopBarColors(),
         windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),

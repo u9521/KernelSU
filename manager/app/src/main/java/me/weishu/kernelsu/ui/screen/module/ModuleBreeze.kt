@@ -1,6 +1,9 @@
 package me.weishu.kernelsu.ui.screen.module
 
 import android.app.Activity.RESULT_OK
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
@@ -28,20 +31,23 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
@@ -61,8 +67,6 @@ import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
@@ -74,7 +78,6 @@ import androidx.compose.material3.animateFloatingActionButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -125,11 +128,12 @@ import me.weishu.kernelsu.ui.component.breeze.VerticalScrollbar
 import me.weishu.kernelsu.ui.component.breeze.rememberScrollbarAdapter
 import me.weishu.kernelsu.ui.component.dialog.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.dialog.rememberLoadingDialog
+import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
 import me.weishu.kernelsu.ui.component.material.ExpressiveSwitch
 import me.weishu.kernelsu.ui.component.material.SearchAppBarBreeze
+import me.weishu.kernelsu.ui.component.material.disableDrag
 import me.weishu.kernelsu.ui.component.rebootlistpopup.RebootListPopup
 import me.weishu.kernelsu.ui.component.statustag.StatusTag
-import me.weishu.kernelsu.ui.navigation3.breeze.isRailNavbar
 import me.weishu.kernelsu.ui.screen.home.TonalCard
 import me.weishu.kernelsu.ui.util.fABBottomPadding
 import me.weishu.kernelsu.ui.util.onlyHorizontal
@@ -152,7 +156,7 @@ fun ModulePagerBreeze(
     val resource = LocalResources.current
     val hazeState = remember { HazeState() }
 
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior().disableDrag()
     val searchBarScrollBehavior = SearchBarDefaults.enterAlwaysSearchBarScrollBehavior()
 
     val pullToRefreshState = rememberPullToRefreshState()
@@ -235,7 +239,7 @@ fun ModulePagerBreeze(
         }
     }
 
-    Scaffold(
+    ExpressiveScaffold(
         modifier = Modifier
             .pullToRefresh(
                 state = pullToRefreshState,
@@ -282,7 +286,8 @@ fun ModulePagerBreeze(
                     VerticalScrollbar(
                         modifier = Modifier
                             .align(Alignment.CenterEnd)
-                            .fillMaxHeight(),
+                            .fillMaxHeight()
+                            .padding(bottom = bottomPadding),
                         adapter = rememberScrollbarAdapter(searchListState),
                         durationMillis = 1500L,
                         visible = true,
@@ -297,8 +302,6 @@ fun ModulePagerBreeze(
         floatingActionButton = {
             ModuleInstallFAB(uiState, actions, bottomInnerPadding)
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
         snackbarHost = {
             BreezeSnackBarHost(hostState = snackBarHost, Modifier.let {
                 if (!uiState.installButtonVisible) it.padding(
@@ -320,7 +323,7 @@ fun ModulePagerBreeze(
                     textAlign = TextAlign.Center,
                 )
             }
-            return@Scaffold
+            return@ExpressiveScaffold
         }
         Box(
             modifier = Modifier
@@ -360,12 +363,12 @@ fun ModulePagerBreeze(
                     isRefreshing = uiState.isRefreshing,
                 )
             }
-            val scrollBottomPadding = if (isRailNavbar()) 0.dp else bottomInnerPadding
             VerticalScrollbar(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
                     .fillMaxHeight()
-                    .padding(top = innerPadding.calculateTopPadding(), bottom = scrollBottomPadding),
+                    .navigationBarsPadding()
+                    .padding(top = innerPadding.calculateTopPadding(), bottom = bottomInnerPadding),
                 adapter = rememberScrollbarAdapter(listState),
                 durationMillis = 1500L,
                 visible = showListScrollbar,
@@ -423,7 +426,7 @@ private fun ModuleList(
             start = 16.dp,
             top = 8.dp + topInnerPadding,
             end = 16.dp,
-            bottom = 16.dp + bottomInnerPadding + 56.dp + 16.dp + 48.dp + 12.dp
+            bottom = 16.dp
         ),
     ) {
         items(displayModules, key = { it.id }) { module ->
@@ -456,6 +459,14 @@ private fun ModuleList(
                 closeSearch = { closeSearch() }
             )
         }
+        item(key = "bottomPadding") {
+            Spacer(
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .let { if (topInnerPadding != 0.dp) it.padding(top = 56.dp + 48.dp + 12.dp - 20.dp) else it }
+                    .height(bottomInnerPadding + 20.dp)
+            )
+        }
     }
 }
 
@@ -469,18 +480,30 @@ private fun ModuleShortcutSheet(
     onConfirmShortcut: () -> Unit,
 ) {
     if (!show) return
+    val context = LocalContext.current
+    val resources = LocalResources.current
+
+    fun copyShortcutUrl() {
+        val url = shortcutState.buildShortcutUrl() ?: return
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText("KernelSU deep link", url))
+        Toast.makeText(context, resources.getString(R.string.module_shortcut_scheme_copied), Toast.LENGTH_SHORT).show()
+    }
 
     ModalBottomSheet(
-        modifier = Modifier.windowBlurBehind(),
+        modifier = Modifier
+            .windowBlurBehind()
+            .imePadding(),
         onDismissRequest = onDismiss,
-        sheetState = rememberBSState(skipPartiallyExpanded = true)
+        sheetState = rememberBSState(skipPartiallyExpanded = true),
+        contentWindowInsets = { WindowInsets(left = 16.dp, right = 16.dp) }
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp)
+                .verticalScroll(rememberScrollState())
         ) {
             Text(
                 text = stringResource(R.string.module_shortcut_title),
@@ -489,7 +512,7 @@ private fun ModuleShortcutSheet(
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .padding(vertical = 16.dp)
+                    .padding(vertical = 13.dp)
                     .size(100.dp)
                     .clip(RoundedCornerShape(25.dp))
             ) {
@@ -518,8 +541,16 @@ private fun ModuleShortcutSheet(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TextButton(onClick = onPickShortcutIcon) {
-                    Text(stringResource(id = R.string.module_shortcut_icon_pick))
+                TextButton(
+                    onClick = onPickShortcutIcon,
+                    colors = ButtonDefaults.textButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    )
+                ) {
+                    Text(
+                        modifier = Modifier.padding(horizontal = 4.dp),
+                        text = stringResource(id = R.string.module_shortcut_icon_pick)
+                    )
                 }
                 AnimatedVisibility(
                     visible = shortcutState.iconUri != shortcutState.defaultShortcutIconUri,
@@ -542,19 +573,33 @@ private fun ModuleShortcutSheet(
                 value = shortcutState.name,
                 onValueChange = shortcutState::updateName,
                 label = { Text(stringResource(id = R.string.module_shortcut_name_label)) },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 3.dp)
             )
             if (shortcutState.hasExistingShortcut) {
                 TextButton(
                     onClick = onDeleteShortcut,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    colors = ButtonDefaults.textButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        contentColor = MaterialTheme.colorScheme.error,
+                    )
                 ) {
                     Text(stringResource(id = R.string.module_shortcut_delete))
                 }
             }
+            TextButton(
+                onClick = ::copyShortcutUrl,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.textButtonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                )
+            ) {
+                Text(stringResource(id = R.string.module_shortcut_copy_scheme))
+            }
             Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(13.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 OutlinedButton(
@@ -576,7 +621,8 @@ private fun ModuleShortcutSheet(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.navigationBarsPadding())
         }
     }
 }

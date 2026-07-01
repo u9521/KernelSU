@@ -7,25 +7,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -38,11 +31,14 @@ import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ui.component.breeze.BreezeBackButton
 import me.weishu.kernelsu.ui.component.breeze.OutlinedTextEdit
 import me.weishu.kernelsu.ui.component.breeze.SplitScreenRatioButton
+import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
+import me.weishu.kernelsu.ui.component.material.disableDrag
+import me.weishu.kernelsu.ui.component.material.expressiveTopBarColors
 import me.weishu.kernelsu.ui.component.profile.RootProfileConfigBreeze
 import me.weishu.kernelsu.ui.navigation3.breeze.LocalIsDetailPane
-import me.weishu.kernelsu.ui.theme.expressiveTopBarColors
 import me.weishu.kernelsu.ui.util.onlyHorizontal
 import me.weishu.kernelsu.ui.util.topBarHazeEffect
 
@@ -52,10 +48,10 @@ fun TemplateEditorScreenBreeze(
     actions: TemplateEditorActions,
 ) {
     val hazeState = rememberHazeState()
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior().disableDrag()
 
 
-    Scaffold(
+    ExpressiveScaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopBar(
@@ -74,8 +70,6 @@ fun TemplateEditorScreenBreeze(
                 scrollBehavior = scrollBehavior,
             )
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
     ) { innerPadding ->
         val idConflictError = stringResource(id = R.string.app_profile_template_id_exist)
         val idInvalidError = stringResource(id = R.string.app_profile_template_id_invalid)
@@ -88,8 +82,6 @@ fun TemplateEditorScreenBreeze(
                 .hazeSource(hazeState)
                 .padding(innerPadding.onlyHorizontal())
                 .verticalScroll(rememberScrollState())
-                .navigationBarsPadding()
-                .imePadding()
                 .padding(horizontal = 16.dp),
         ) {
             Spacer(Modifier.height(innerPadding.calculateTopPadding() + 16.dp))
@@ -156,7 +148,11 @@ fun TemplateEditorScreenBreeze(
                 onProfileChange = actions.onProfileChange,
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(
+                Modifier
+                    .imePadding()
+                    .height(16.dp + innerPadding.calculateBottomPadding())
+            )
         }
     }
 }
@@ -176,9 +172,10 @@ private fun TopBar(
         title = { Text(title) },
         navigationIcon = {
             if (LocalIsDetailPane.current) return@LargeFlexibleTopAppBar
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-            }
+            BreezeBackButton(
+                onClick = onBack,
+                collapseFraction = scrollBehavior.state.collapsedFraction,
+            )
         },
         actions = {
             SplitScreenRatioButton()

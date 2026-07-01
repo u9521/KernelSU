@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -21,23 +20,18 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material3.DropdownMenuGroup
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -57,15 +51,18 @@ import me.weishu.kernelsu.R
 import me.weishu.kernelsu.data.model.AppInfo
 import me.weishu.kernelsu.ui.animation.breeze.slideHorizontal
 import me.weishu.kernelsu.ui.component.AppIconImage
+import me.weishu.kernelsu.ui.component.breeze.BreezeBackButton
 import me.weishu.kernelsu.ui.component.breeze.BreezeSnackBarHost
 import me.weishu.kernelsu.ui.component.breeze.SegmentedListGroup
 import me.weishu.kernelsu.ui.component.breeze.SplitScreenRatioButton
+import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
+import me.weishu.kernelsu.ui.component.material.disableDrag
+import me.weishu.kernelsu.ui.component.material.expressiveTopBarColors
 import me.weishu.kernelsu.ui.component.profile.AppProfileConfigBreeze
 import me.weishu.kernelsu.ui.component.profile.RootProfileConfigBreeze
 import me.weishu.kernelsu.ui.component.profile.TemplateConfigBreeze
 import me.weishu.kernelsu.ui.component.statustag.StatusTag
 import me.weishu.kernelsu.ui.navigation3.breeze.LocalIsDetailPane
-import me.weishu.kernelsu.ui.theme.expressiveTopBarColors
 import me.weishu.kernelsu.ui.util.onlyHorizontal
 import me.weishu.kernelsu.ui.util.ownerNameForUid
 import me.weishu.kernelsu.ui.util.topBarHazeEffect
@@ -80,7 +77,7 @@ fun AppProfileScreenBreeze(
     actions: AppProfileActions,
     snackBarHost: SnackbarHostState
 ) {
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior().disableDrag()
     val profile = state.profile
     val isRootGranted = profile.allowSu
     val hazeState = rememberHazeState()
@@ -98,7 +95,7 @@ fun AppProfileScreenBreeze(
     }
     val currentMode = if (isRootGranted) rootMode else nonRootMode
 
-    Scaffold(
+    ExpressiveScaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopBar(
@@ -107,16 +104,7 @@ fun AppProfileScreenBreeze(
                 scrollBehavior = scrollBehavior,
             )
         },
-        snackbarHost = {
-            BreezeSnackBarHost(
-                hostState = snackBarHost, modifier = Modifier.padding(
-                    bottom = ScaffoldDefaults.contentWindowInsets
-                        .asPaddingValues().calculateBottomPadding()
-                )
-            )
-        },
-        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        snackbarHost = { BreezeSnackBarHost(hostState = snackBarHost) },
     ) { paddingValues ->
         val innerTopPadding = paddingValues.calculateTopPadding()
         Column(
@@ -201,7 +189,11 @@ fun AppProfileScreenBreeze(
                 affectedApps = state.appGroup.apps,
                 actions = actions,
             )
-            Spacer(modifier = Modifier.height(6.dp + 48.dp + 6.dp))
+            Spacer(
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .height(18.dp)
+            )
         }
     }
 }
@@ -293,9 +285,10 @@ private fun TopBar(
         title = { Text(stringResource(R.string.profile)) },
         navigationIcon = {
             if (LocalIsDetailPane.current) return@LargeFlexibleTopAppBar
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-            }
+            BreezeBackButton(
+                onClick = onBack,
+                collapseFraction = scrollBehavior.state.collapsedFraction,
+            )
         },
         actions = { SplitScreenRatioButton() },
         colors = expressiveTopBarColors(),

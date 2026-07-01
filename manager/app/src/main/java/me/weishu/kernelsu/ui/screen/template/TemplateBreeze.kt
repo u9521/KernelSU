@@ -7,17 +7,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuGroup
@@ -30,8 +27,6 @@ import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -40,7 +35,6 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -59,14 +53,17 @@ import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.data.model.TemplateInfo
+import me.weishu.kernelsu.ui.component.breeze.BreezeBackButton
 import me.weishu.kernelsu.ui.component.breeze.BreezeSnackBarHost
 import me.weishu.kernelsu.ui.component.breeze.PopupFeedBack
 import me.weishu.kernelsu.ui.component.breeze.ScrollbarDefaults
 import me.weishu.kernelsu.ui.component.breeze.VerticalScrollbar
 import me.weishu.kernelsu.ui.component.breeze.keyDownFeedBack
 import me.weishu.kernelsu.ui.component.breeze.rememberScrollbarAdapter
+import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
+import me.weishu.kernelsu.ui.component.material.disableDrag
+import me.weishu.kernelsu.ui.component.material.expressiveTopBarColors
 import me.weishu.kernelsu.ui.component.statustag.StatusTag
-import me.weishu.kernelsu.ui.theme.expressiveTopBarColors
 import me.weishu.kernelsu.ui.util.fABBottomPadding
 import me.weishu.kernelsu.ui.util.onlyHorizontal
 import me.weishu.kernelsu.ui.util.topBarHazeEffect
@@ -78,7 +75,7 @@ fun AppProfileTemplateScreenBreeze(
     snackBarHost: SnackbarHostState,
 ) {
     val hazeState = rememberHazeState()
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior().disableDrag()
     val pullToRefreshState = rememberPullToRefreshState()
     val listState = rememberLazyListState()
     val showListScrollbar by remember {
@@ -90,7 +87,7 @@ fun AppProfileTemplateScreenBreeze(
         else LinearOutSlowInEasing.transform(pullToRefreshState.distanceFraction).coerceIn(0f, 1f)
     }
 
-    Scaffold(
+    ExpressiveScaffold(
         modifier = Modifier.pullToRefresh(
             state = pullToRefreshState,
             isRefreshing = state.isRefreshing,
@@ -110,8 +107,6 @@ fun AppProfileTemplateScreenBreeze(
         floatingActionButton = {
             NewTemplateFab(onClick = actions.onCreateTemplate)
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
     ) { innerPadding ->
         val templates = state.templateList
 
@@ -161,7 +156,7 @@ fun AppProfileTemplateScreenBreeze(
                         start = 16.dp,
                         end = 16.dp,
                         top = 16.dp + innerPadding.calculateTopPadding(),
-                        bottom = 16.dp + 56.dp + 12.dp + 48.dp + 12.dp + fABBottomPadding(),
+                        bottom = 16.dp + 56.dp + 12.dp + 48.dp + 12.dp + fABBottomPadding() + innerPadding.calculateBottomPadding(),
                     ),
                     verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
                 ) {
@@ -310,9 +305,10 @@ private fun TopBar(
         modifier = Modifier.topBarHazeEffect(hazeState, scrollBehavior),
         title = { Text(stringResource(R.string.settings_profile_template)) },
         navigationIcon = {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-            }
+            BreezeBackButton(
+                onClick = onBack,
+                collapseFraction = scrollBehavior.state.collapsedFraction,
+            )
         },
         actions = {
             IconButton(onClick = onRefresh) {

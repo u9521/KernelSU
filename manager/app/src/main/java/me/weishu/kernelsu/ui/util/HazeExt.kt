@@ -14,6 +14,7 @@ import dev.chrisbanes.haze.hazeEffect
 import me.weishu.kernelsu.ui.theme.LocalEnableBlur
 
 private const val TopBarMaxTintAlpha = 0.7f
+private val DefaultBarBlurRadius = 15.dp
 
 @Composable
 @OptIn(ExperimentalHazeApi::class)
@@ -44,7 +45,7 @@ fun Modifier.topBarHazeEffect(
 @Composable
 fun topBarHazeStyle(collapseFraction: Float) = HazeStyle(
     backgroundColor = MaterialTheme.colorScheme.surfaceContainer,
-    blurRadius = 20.dp,
+    blurRadius = DefaultBarBlurRadius,
     noiseFactor = 0f,
     tint = HazeTint(
         MaterialTheme.colorScheme.surfaceBright.copy(
@@ -56,7 +57,7 @@ fun topBarHazeStyle(collapseFraction: Float) = HazeStyle(
 @Composable
 fun bottomBarHazeStyle() = HazeStyle(
     backgroundColor = MaterialTheme.colorScheme.surfaceContainer,
-    blurRadius = 20.dp,
+    blurRadius = DefaultBarBlurRadius,
     noiseFactor = 0f,
     tint = HazeTint(
         MaterialTheme.colorScheme.surfaceBright.copy(alpha = TopBarMaxTintAlpha)

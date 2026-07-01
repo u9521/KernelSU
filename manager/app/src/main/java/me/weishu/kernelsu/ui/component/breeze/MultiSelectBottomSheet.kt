@@ -7,21 +7,15 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -54,8 +48,6 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -81,16 +73,11 @@ fun <T> MultiSelectBottomSheet(
 ) {
     val sheetState = rememberBSState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
-    val haptic = LocalHapticFeedback.current
-
+    val kdFeedback = keyDownFeedBack()
     val selectedItems = remember { initialSelection.toMutableStateList() }
     var searchQuery by remember { mutableStateOf("") }
 
     val listState = rememberLazyListState()
-
-    LaunchedEffect(Unit) {
-        haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
-    }
 
     val filteredList = remember(options, searchQuery) {
         if (searchQuery.isBlank()) options
@@ -114,6 +101,8 @@ fun <T> MultiSelectBottomSheet(
         }
     }
 
+    PopupFeedBack()
+
     fun closeSheet() {
         scope.launch {
             sheetState.hide()
@@ -127,10 +116,10 @@ fun <T> MultiSelectBottomSheet(
     ModalBottomSheet(
         modifier = Modifier
             .windowBlurBehind()
-            .padding(WindowInsets.statusBars.only(WindowInsetsSides.Top + WindowInsetsSides.Bottom).asPaddingValues()),
+            .statusBarsPadding(),
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
-        contentWindowInsets = { WindowInsets(left = 16.dp, right = 16.dp).union(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom)) },
+        contentWindowInsets = { WindowInsets(left = 16.dp, right = 16.dp) },
         dragHandle = { BottomSheetDefaults.DragHandle() },
         containerColor = MaterialTheme.colorScheme.surfaceContainer
     ) {
@@ -161,7 +150,7 @@ fun <T> MultiSelectBottomSheet(
                 if (showToggleButton) {
                     TextButton(
                         shapes = ButtonDefaults.shapes(), enabled = !readOnly, onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                            kdFeedback()
                             if (isDeselectMode) {
                                 selectedItems.clear()
                             } else {
@@ -179,14 +168,14 @@ fun <T> MultiSelectBottomSheet(
                 // Confirm Button
                 if (readOnly) {
                     OutlinedButton(shapes = ButtonDefaults.shapes(), onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                        kdFeedback()
                         closeSheet()
                     }) { Text(stringResource(R.string.close)) }
                     return@Row
                 }
                 Button(
                     enabled = !isLimitEnabled || selectedItems.size <= maxSelection, shapes = ButtonDefaults.shapes(), onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                        kdFeedback()
                         onConfirm(selectedItems.toSet())
                         closeSheet()
                     }) {
@@ -226,9 +215,9 @@ fun <T> MultiSelectBottomSheet(
             state = listState,
             modifier = Modifier.weight(1f, fill = true),
             verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
-            contentPadding = PaddingValues(bottom = 16.dp)
+//            contentPadding = PaddingValues(bottom = 16.dp)
         ) {
-            items(filteredList, key = { optionTitle(it) to (optionSubtitle(it) ?: "") }) { item ->
+            items(items = filteredList, key = { optionTitle(it) to (optionSubtitle(it) ?: "") }) { item ->
                 val isSelected = selectedItems.contains(item)
                 val canToggle = isSelected || (!isLimitEnabled || selectedItems.size < maxSelection)
                 SegmentedListItem(
@@ -266,6 +255,9 @@ fun <T> MultiSelectBottomSheet(
                     } else {
                         null
                     })
+            }
+            item("bottomPadding") {
+                Spacer(modifier = Modifier.navigationBarsPadding())
             }
         }
         if (filteredList.isEmpty()) {

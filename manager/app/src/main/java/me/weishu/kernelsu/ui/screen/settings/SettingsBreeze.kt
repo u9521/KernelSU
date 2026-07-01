@@ -5,9 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -23,15 +22,11 @@ import androidx.compose.material3.DropdownMenuGroup
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeFlexibleTopAppBar
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,10 +47,12 @@ import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.UiMode
 import me.weishu.kernelsu.ui.component.breeze.BreezeSnackBarHost
 import me.weishu.kernelsu.ui.component.breeze.SegmentedListGroup
+import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
 import me.weishu.kernelsu.ui.component.material.SendLogBottomSheetBreeze
+import me.weishu.kernelsu.ui.component.material.disableDrag
+import me.weishu.kernelsu.ui.component.material.expressiveTopBarColors
 import me.weishu.kernelsu.ui.component.uninstalldialog.UninstallDialog
 import me.weishu.kernelsu.ui.navigation3.breeze.isRailNavbar
-import me.weishu.kernelsu.ui.theme.expressiveTopBarColors
 import me.weishu.kernelsu.ui.util.onlyHorizontal
 import me.weishu.kernelsu.ui.util.topBarHazeEffect
 
@@ -69,7 +66,7 @@ fun SettingPagerBreeze(
     actions: SettingsScreenActions,
     bottomInnerPadding: Dp,
 ) {
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior().disableDrag()
     val hazeState = rememberHazeState()
     val snackBarHost = remember { SnackbarHostState() }
     val ksuVersion = if (Natives.isManager) Natives.version else null
@@ -82,14 +79,13 @@ fun SettingPagerBreeze(
         onDismissRequest = { showUninstallDialog.value = false }
     )
 
-    Scaffold(
+    ExpressiveScaffold(
         topBar = {
             TopBar(
                 scrollBehavior = scrollBehavior,
                 hazeState = hazeState,
             )
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         snackbarHost = {
             BreezeSnackBarHost(
                 hostState = snackBarHost, modifier = Modifier.padding(
@@ -97,7 +93,6 @@ fun SettingPagerBreeze(
                 ).let { if (isRailNavbar()) it.safeDrawingPadding() else it }
             )
         },
-        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -440,8 +435,12 @@ fun SettingPagerBreeze(
                     snackBarHost = snackBarHost
                 ) { showBottomSheet = false }
             }
-            val bottomPadding = bottomInnerPadding + if (isRailNavbar()) WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() else 0.dp
-            Spacer(modifier = Modifier.height(bottomPadding))
+
+            Spacer(
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .height(bottomInnerPadding)
+            )
         }
     }
 }

@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.material.icons.Icons
@@ -31,7 +31,6 @@ import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.SearchBarScrollBehavior
 import androidx.compose.material3.SearchBarValue
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -253,17 +252,16 @@ fun SearchAppBarBreeze(
         content = {
             val bottomPadding = SearchBarDefaults.fullScreenWindowInsets.asPaddingValues().calculateBottomPadding()
             Box(Modifier.fillMaxSize()) {
-                Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
-                    if (currentQuery.isNotEmpty()) {
-                        searchContent(bottomPadding, collapseAndClear)
-                    }
+                if (currentQuery.isNotEmpty()) {
+                    searchContent(bottomPadding, collapseAndClear)
                 }
-                BreezeSnackBarHost(
-                    hostState = snackbarHostState,
+                Box(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .safeContentPadding()
-                )
+                        .safeDrawingPadding()
+                ) {
+                    BreezeSnackBarHost(hostState = snackbarHostState)
+                }
             }
         })
 }

@@ -3,9 +3,7 @@ package me.weishu.kernelsu.ui.theme
 import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialExpressiveTheme
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MotionScheme
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.graphics.Color
@@ -52,13 +50,3 @@ fun MaterialKernelSUTheme(
         }
     )
 }
-
-@Composable
-fun expressiveTopBarColors() =
-    if (LocalEnableBlur.current) TopAppBarDefaults.topAppBarColors(
-        containerColor = Color.Transparent, scrolledContainerColor =
-            Color.Transparent
-    ) else TopAppBarDefaults.topAppBarColors(
-        containerColor = MaterialTheme.colorScheme.surfaceContainer, scrolledContainerColor =
-            MaterialTheme.colorScheme.surfaceBright
-    )

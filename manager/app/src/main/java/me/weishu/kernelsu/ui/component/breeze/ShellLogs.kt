@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,19 +16,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -49,7 +43,9 @@ import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.launch
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.KeyEventBlocker
-import me.weishu.kernelsu.ui.theme.expressiveTopBarColors
+import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
+import me.weishu.kernelsu.ui.component.material.disableDrag
+import me.weishu.kernelsu.ui.component.material.expressiveTopBarColors
 import me.weishu.kernelsu.ui.util.onlyHorizontal
 import me.weishu.kernelsu.ui.util.topBarHazeEffect
 
@@ -63,19 +59,15 @@ fun ShellLogScaffold(
     onSave: () -> Unit,
     floatingActionButton: @Composable () -> Unit = {},
 ) {
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior().disableDrag()
     val scrollState = rememberScrollState()
     val showScrollbar by remember {
         derivedStateOf { scrollBehavior.state.collapsedFraction > 0.99f }
     }
     val hazeState = rememberHazeState()
 
-    Scaffold(
+    ExpressiveScaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(
-            WindowInsetsSides.Horizontal + WindowInsetsSides.Top,
-        ),
         topBar = {
             ShellTopAppBar(
                 modifier = Modifier.topBarHazeEffect(hazeState, scrollBehavior),
@@ -95,14 +87,12 @@ fun ShellLogScaffold(
         Box(
             modifier = Modifier
                 .hazeSource(hazeState)
-                .padding(innerPadding.onlyHorizontal())
-                .consumeWindowInsets(innerPadding),
+                .padding(innerPadding.onlyHorizontal()),
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(scrollState)
-                    .navigationBarsPadding(),
+                    .verticalScroll(scrollState),
             ) {
                 Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
                 ShellLogText(
@@ -116,8 +106,9 @@ fun ShellLogScaffold(
             VerticalScrollbar(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
+                    .fillMaxHeight()
                     .padding(top = innerPadding.calculateTopPadding())
-                    .fillMaxHeight(),
+                    .navigationBarsPadding(),
                 adapter = rememberScrollbarAdapter(scrollState),
                 durationMillis = 1500L,
                 visible = showScrollbar,
@@ -180,9 +171,10 @@ private fun ShellTopAppBar(
         title = title,
         subtitle = subtitle,
         navigationIcon = {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-            }
+            BreezeBackButton(
+                onClick = onBack,
+                collapseFraction = scrollBehavior.state.collapsedFraction,
+            )
         },
         actions = {
             IconButton(onClick = onSave) {

@@ -7,17 +7,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.captionBar
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.plus
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -27,7 +22,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -40,8 +34,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.SnackbarHostState
@@ -73,14 +65,16 @@ import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.launch
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.breeze.BrMenuBox
+import me.weishu.kernelsu.ui.component.breeze.BreezeBackButton
 import me.weishu.kernelsu.ui.component.breeze.PopupFeedBack
 import me.weishu.kernelsu.ui.component.breeze.ScrollbarDefaults
 import me.weishu.kernelsu.ui.component.breeze.VerticalScrollbar
 import me.weishu.kernelsu.ui.component.breeze.rememberScrollbarAdapter
+import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
 import me.weishu.kernelsu.ui.component.material.SearchAppBarBreeze
 import me.weishu.kernelsu.ui.component.material.TonalCard
+import me.weishu.kernelsu.ui.component.material.disableDrag
 import me.weishu.kernelsu.ui.component.statustag.StatusTag
-import me.weishu.kernelsu.ui.navigation3.breeze.isRailNavbar
 import me.weishu.kernelsu.ui.util.SulogEntry
 import me.weishu.kernelsu.ui.util.SulogEventFilter
 import me.weishu.kernelsu.ui.util.onlyHorizontal
@@ -93,17 +87,15 @@ fun SulogScreenBreeze(
     state: SulogScreenState,
     actions: SulogActions,
 ) {
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior().disableDrag()
     val searchBarScrollBehavior = SearchBarDefaults.enterAlwaysSearchBarScrollBehavior()
     val pullToRefreshState = rememberPullToRefreshState()
     val listState = rememberLazyListState()
     val searchListState = rememberLazyListState()
     val scope = rememberCoroutineScope()
-    val fileSelector = buildSulogFileSelector(state.files, state.selectedFilePath)
     var selectedEntry by remember { mutableStateOf<SulogEntry?>(null) }
     var localSearchText by remember { mutableStateOf(state.searchText) }
     val hazeState = rememberHazeState()
-    val bottomInnerPadding = ScaffoldDefaults.contentWindowInsets.asPaddingValues().calculateBottomPadding()
     val showListScrollbar by remember {
         derivedStateOf { scrollBehavior.state.collapsedFraction > 0.99f }
     }
@@ -124,14 +116,12 @@ fun SulogScreenBreeze(
         )
     }
 
-    Scaffold(
-        modifier = Modifier
-            .pullToRefresh(
-                state = pullToRefreshState,
-                isRefreshing = state.isLoading || state.isRefreshing,
-                onRefresh = actions.onRefresh,
-            ),
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+    ExpressiveScaffold(
+        modifier = Modifier.pullToRefresh(
+            state = pullToRefreshState,
+            isRefreshing = state.isLoading || state.isRefreshing,
+            onRefresh = actions.onRefresh,
+        ),
         topBar = {
             SearchAppBarBreeze(
                 modifier = Modifier.topBarHazeEffect(hazeState, scrollBehavior),
@@ -147,9 +137,10 @@ fun SulogScreenBreeze(
                     actions.onSearchTextChange("")
                 },
                 navigationIcon = {
-                    IconButton(onClick = actions.onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                    }
+                    BreezeBackButton(
+                        onClick = actions.onBack,
+                        collapseFraction = scrollBehavior.state.collapsedFraction,
+                    )
                 },
                 actions = {
                     IconButton(onClick = actions.onCleanFile) {
@@ -176,16 +167,28 @@ fun SulogScreenBreeze(
                             bottom = 16.dp + bottomPadding,
                         ),
                     ) {
-                        sulogEntriesSection(
+                        suLogEntriesSection(
                             entries = state.visibleEntries,
                             errorMessage = state.errorMessage,
                             onEntryClick = { selectedEntry = it },
                         )
                     }
+                    VerticalScrollbar(
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .fillMaxHeight()
+                            .padding(bottom = bottomPadding),
+                        adapter = rememberScrollbarAdapter(searchListState),
+                        durationMillis = 1500L,
+                        visible = showListScrollbar,
+                        style = ScrollbarDefaults.style.copy(
+                            color = MaterialTheme.colorScheme.primary,
+                            railColor = MaterialTheme.colorScheme.surfaceBright.copy(alpha = 0.5f),
+                        )
+                    )
                 },
             )
         },
-        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
     ) { innerPadding ->
         Box(
             modifier = Modifier
@@ -199,74 +202,25 @@ fun SulogScreenBreeze(
                     .fillMaxSize()
                     .nestedScroll(searchBarScrollBehavior.nestedScrollConnection)
                     .nestedScroll(scrollBehavior.nestedScrollConnection),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp + innerPadding.calculateTopPadding()),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp).plus(PaddingValues(top = innerPadding.calculateTopPadding())),
             ) {
                 item {
                     SulogStatusSection(state, actions)
                 }
 
                 item {
-                    BrMenuBox(
-                        modifier = Modifier
-                            .padding(bottom = 16.dp, top = 8.dp)
-                            .clip(MaterialTheme.shapes.large),
-                        enabled = fileSelector.items.isNotEmpty(),
-                        menuContent = { dismiss ->
-                            DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
-                                fileSelector.items.forEachIndexed { index, string ->
-                                    DropdownMenuItem(
-                                        text = { Text(string) },
-                                        selected = fileSelector.selectedIndex == index,
-                                        selectedLeadingIcon = {
-                                            Icon(
-                                                Icons.Filled.Check,
-                                                modifier = Modifier.size(MenuDefaults.LeadingIconSize),
-                                                contentDescription = null,
-                                            )
-                                        },
-                                        onClick = {
-                                            state.files.getOrNull(index)?.let { file ->
-                                                actions.onSelectFile(file.path)
-                                                dismiss()
-                                            }
-                                        }, shapes = MenuDefaults.itemShape(index, fileSelector.items.size)
-                                    )
-                                }
-                            }
-                        },
-                        content = {
-                            SegmentedListItem(
-                                onClick = {},
-                                shapes = ListItemDefaults.shapes(shape = MaterialTheme.shapes.large),
-                                colors = ListItemDefaults.segmentedColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceBright,
-                                    disabledContainerColor = MaterialTheme.colorScheme.surfaceBright,
-                                    supportingContentColor = MaterialTheme.colorScheme.outline,
-                                ),
-                                trailingContent = {
-                                    Text(
-                                        text = fileSelector.items.getOrNull(fileSelector.selectedIndex) ?: "",
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            ) { Text(stringResource(R.string.sulog_log_files)) }
-                        },
-                    )
+                    LogTimeCard(state, actions)
                 }
 
-                sulogEntriesSection(
+                suLogEntriesSection(
                     entries = state.visibleEntries,
                     errorMessage = state.errorMessage,
                     onEntryClick = { selectedEntry = it },
                 )
 
-                item {
+                item(key = "BottomPadding") {
                     Spacer(
-                        Modifier.height(
-                            WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() +
-                                    WindowInsets.captionBar.asPaddingValues().calculateBottomPadding() +
-                                    16.dp
-                        )
+                        Modifier.navigationBarsPadding()
                     )
                 }
             }
@@ -286,12 +240,12 @@ fun SulogScreenBreeze(
                     isRefreshing = state.isLoading || state.isRefreshing,
                 )
             }
-            val scrollBottomPadding = if (isRailNavbar()) 0.dp else bottomInnerPadding
             VerticalScrollbar(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
                     .fillMaxHeight()
-                    .padding(top = innerPadding.calculateTopPadding(), bottom = scrollBottomPadding),
+                    .navigationBarsPadding()
+                    .padding(top = innerPadding.calculateTopPadding()),
                 adapter = rememberScrollbarAdapter(listState),
                 durationMillis = 1500L,
                 visible = showListScrollbar,
@@ -324,26 +278,22 @@ private fun FilterMenu(
         DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
             SulogEventFilter.entries.forEachIndexed { index, filter ->
                 DropdownMenuItem(
-                    text = { Text(sulogFilterLabel(filter)) },
-                    checked = filter in state.selectedFilters,
-                    checkedLeadingIcon = {
+                    text = { Text(sulogFilterLabel(filter)) }, checked = filter in state.selectedFilters, checkedLeadingIcon = {
                         Icon(
                             Icons.Filled.Check,
                             modifier = Modifier.size(MenuDefaults.LeadingIconSize),
                             contentDescription = null,
                         )
-                    },
-                    onCheckedChange = {
+                    }, onCheckedChange = {
                         actions.onToggleFilter(filter)
-                    },
-                    shapes = MenuDefaults.itemShape(index = index, count = SulogEventFilter.entries.size)
+                    }, shapes = MenuDefaults.itemShape(index = index, count = SulogEventFilter.entries.size)
                 )
             }
         }
     }
 }
 
-private fun LazyListScope.sulogEntriesSection(
+private fun LazyListScope.suLogEntriesSection(
     entries: List<SulogEntry>,
     errorMessage: String?,
     onEntryClick: (SulogEntry) -> Unit,
@@ -367,11 +317,7 @@ private fun LazyListScope.sulogEntriesSection(
 
 @Composable
 private fun SulogItem(
-    modifier: Modifier = Modifier,
-    index: Int,
-    count: Int,
-    onEntryClick: (SulogEntry) -> Unit,
-    entry: SulogEntry
+    modifier: Modifier = Modifier, index: Int, count: Int, onEntryClick: (SulogEntry) -> Unit, entry: SulogEntry
 ) {
     SegmentedListItem(
         modifier = modifier,
@@ -388,10 +334,7 @@ private fun SulogItem(
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 sulogEntryDescription(entry)?.let {
                     Text(
-                        it,
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
+                        it, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis
                     )
                 }
                 entry.timestampText?.let {
@@ -457,6 +400,53 @@ private fun SulogStatusSection(
     }
 }
 
+
+@Composable
+private fun LogTimeCard(
+    state: SulogScreenState,
+    actions: SulogActions,
+) {
+    val fileSelector = buildSulogFileSelector(state.files, state.selectedFilePath)
+    BrMenuBox(
+        modifier = Modifier
+            .padding(bottom = 16.dp, top = 8.dp)
+            .clip(MaterialTheme.shapes.large),
+        enabled = fileSelector.items.isNotEmpty(),
+        menuContent = { dismiss ->
+            DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
+                fileSelector.items.forEachIndexed { index, string ->
+                    DropdownMenuItem(
+                        text = { Text(string) }, selected = fileSelector.selectedIndex == index, selectedLeadingIcon = {
+                            Icon(
+                                Icons.Filled.Check,
+                                modifier = Modifier.size(MenuDefaults.LeadingIconSize),
+                                contentDescription = null,
+                            )
+                        }, onClick = {
+                            state.files.getOrNull(index)?.let { file ->
+                                actions.onSelectFile(file.path)
+                                dismiss()
+                            }
+                        }, shapes = MenuDefaults.itemShape(index, fileSelector.items.size)
+                    )
+                }
+            }
+        },
+        content = {
+            SegmentedListItem(
+                onClick = {}, shapes = ListItemDefaults.shapes(shape = MaterialTheme.shapes.large), colors = ListItemDefaults.segmentedColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceBright,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceBright,
+                    supportingContentColor = MaterialTheme.colorScheme.outline,
+                ), trailingContent = {
+                    Text(
+                        text = fileSelector.items.getOrNull(fileSelector.selectedIndex) ?: "", color = MaterialTheme.colorScheme.primary
+                    )
+                }) { Text(stringResource(R.string.sulog_log_files)) }
+        },
+    )
+}
+
 @Composable
 private fun SulogMessageCard(
     modifier: Modifier,
@@ -464,8 +454,7 @@ private fun SulogMessageCard(
     summary: String? = null,
 ) {
     Box(
-        modifier = modifier,
-        contentAlignment = Alignment.Center
+        modifier = modifier, contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(title, color = MaterialTheme.colorScheme.outline)
@@ -488,8 +477,7 @@ private fun WarningCard(
     action: (@Composable () -> Unit)? = null,
 ) {
     TonalCard(
-        modifier = Modifier.padding(bottom = 16.dp),
-        containerColor = MaterialTheme.colorScheme.errorContainer
+        modifier = Modifier.padding(bottom = 16.dp), containerColor = MaterialTheme.colorScheme.errorContainer
     ) {
         Row(
             modifier = Modifier
