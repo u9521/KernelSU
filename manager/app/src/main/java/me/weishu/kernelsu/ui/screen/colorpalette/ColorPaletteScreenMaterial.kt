@@ -299,7 +299,7 @@ fun ColorPaletteScreenMaterial(
                                 Text(
                                     text = stringResource(id = R.string.settings_page_scale_summary),
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.outline
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                             Text(
