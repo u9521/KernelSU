@@ -46,6 +46,7 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import me.weishu.kernelsu.R
@@ -128,6 +129,7 @@ internal fun InstallScreenBreeze(
             Spacer(Modifier.height(16.dp))
             InstallConfigGroup(
                 state = uiState,
+                onForceBackup = actions.onSelectForceBackup,
                 onSelectPartition = actions.onSelectPartition,
                 onUploadLkm = actions.onUploadLkm,
                 onClearLkm = actions.onClearLkm,
@@ -189,6 +191,7 @@ private fun InstallMethodSelector(
 @Composable
 private fun InstallConfigGroup(
     state: InstallUiState,
+    onForceBackup: (Boolean) -> Unit,
     onSelectPartition: (Int) -> Unit,
     onUploadLkm: () -> Unit,
     onClearLkm: () -> Unit,
@@ -198,8 +201,17 @@ private fun InstallConfigGroup(
     }
     val selectedPartition = state.displayPartitions.getOrNull(state.partitionSelectionIndex).orEmpty()
     val slotSuffix = state.slotSuffix.ifBlank { null }
+    val resources = LocalResources.current
 
     SegmentedListGroup {
+        checkboxItem(
+            visible = state.canForceBackup, summary = resources.getString(R.string.install_force_backup_summary), title = resources.getString(
+                R.string
+                    .install_force_backup
+            ),
+            checked = { state.forceBackup },
+            onCheckedChange = onForceBackup
+        )
         partitionSelector(
             visible = state.canSelectPartition,
             partitions = state.displayPartitions,
@@ -264,6 +276,7 @@ private fun SegmentedListScope.lkmSelector(
     onClearLkm: () -> Unit,
 ) {
     item(
+        key = selectedLkmName,
         onClick = {
             onLaunchLkmPicker()
         },
@@ -299,6 +312,7 @@ private fun SegmentedListScope.partitionSelector(
 ) {
     val suffix = if (partitionSuffix != null) " ($partitionSuffix)" else ""
     menuItem(
+        key = "$partition$partitionSuffix",
         visible = visible,
         content = { Text("${stringResource(R.string.install_select_partition)}$suffix") },
         leadingContent = { Icon(painterResource(R.drawable.ic_hard_drive_rounded), null) },
@@ -332,7 +346,7 @@ private fun SegmentedListScope.partitionSelector(
 private fun TopBar(
     onBack: () -> Unit = {},
     scrollBehavior: TopAppBarScrollBehavior,
-    hazeState: dev.chrisbanes.haze.HazeState,
+    hazeState: HazeState,
 ) {
     LargeFlexibleTopAppBar(
         modifier = Modifier.topBarHazeEffect(hazeState, scrollBehavior),

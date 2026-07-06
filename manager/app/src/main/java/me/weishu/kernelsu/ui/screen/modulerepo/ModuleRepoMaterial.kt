@@ -116,7 +116,7 @@ fun ModuleRepoScreenMaterial(
     val haptic = LocalHapticFeedback.current
     val listState = rememberLazyListState()
     val searchListState = rememberLazyListState()
-    val refreshTick = remember { mutableStateOf(0) }
+    val refreshTick = remember { mutableIntStateOf(0) }
     val pullToRefreshState = rememberPullToRefreshState()
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
@@ -233,7 +233,7 @@ fun ModuleRepoScreenMaterial(
             ScrollToTopOnChange(
                 listState,
                 state.sortOrder,
-                refreshTick.value,
+                refreshTick.intValue,
                 isBusy = { latestRefreshing.value },
             ) { latestModules.value }
             PullToRefreshBox(
@@ -244,7 +244,7 @@ fun ModuleRepoScreenMaterial(
                 onRefresh = {
                     haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
                     actions.onRefresh()
-                    refreshTick.value++
+                    refreshTick.intValue++
                 },
                 state = pullToRefreshState,
                 indicator = {
@@ -653,6 +653,7 @@ fun ReleasesPage(
     }
 }
 
+@SuppressLint("DefaultLocale")
 @Composable
 private fun ReleaseAssetSegmentedItem(
     asset: ReleaseAssetArg,

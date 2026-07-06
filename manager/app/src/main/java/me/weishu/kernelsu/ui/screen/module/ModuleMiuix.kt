@@ -67,6 +67,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -257,7 +258,7 @@ fun ModulePagerMiuix(
     }
 
     val listState = rememberLazyListState()
-    val refreshTick = remember { mutableStateOf(0) }
+    val refreshTick = remember { mutableIntStateOf(0) }
     val nestedScrollConnection = remember(uiState.installButtonVisible) {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
@@ -533,7 +534,7 @@ fun ModulePagerMiuix(
                     pullToRefreshState = pullToRefreshState,
                     onRefresh = {
                         actions.onRefresh()
-                        refreshTick.value++
+                        refreshTick.intValue++
                     },
                     refreshTexts = refreshTexts,
                     contentPadding = contentPadding,
@@ -563,7 +564,7 @@ fun ModulePagerMiuix(
                             listState,
                             uiState.sortEnabledFirst,
                             uiState.sortActionFirst,
-                            refreshTick.value,
+                            refreshTick.intValue,
                             isBusy = { latestRefreshing.value },
                         ) { latestModules.value }
                         Box(modifier = if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier) {

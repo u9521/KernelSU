@@ -94,6 +94,7 @@ import me.weishu.kernelsu.ui.navigation3.breeze.isRailNavbar
 import me.weishu.kernelsu.ui.util.onlyHorizontal
 import me.weishu.kernelsu.ui.util.ownerNameForUid
 import me.weishu.kernelsu.ui.util.topBarHazeEffect
+import me.weishu.kernelsu.ui.viewmodel.AppSortType
 
 @Composable
 fun SuperUserPagerBreeze(
@@ -664,14 +665,13 @@ private fun SortMenu(
 ) {
     var showSortMenu by remember { mutableStateOf(false) }
     val keydownFB = keyDownFeedBack()
-    val isReverse = uiState.sortOption % 2 != 0
-    val currentSortType = uiState.sortOption / 2
-    val sortResIds = listOf(
-        R.string.sort_by_name,
-        R.string.sort_by_package_name,
-        R.string.sort_by_install_time,
-        R.string.sort_by_update_time,
+    val sortEntries = listOf(
+        AppSortType.NAME to R.string.sort_by_name,
+        AppSortType.PACKAGE_NAME to R.string.sort_by_package_name,
+        AppSortType.INSTALL_TIME to R.string.sort_by_install_time,
+        AppSortType.UPDATE_TIME to R.string.sort_by_update_time,
     )
+    val sortConfig = uiState.sortConfig
     IconButton(onClick = { showSortMenu = true }) {
         Icon(
             painter = painterResource(R.drawable.ic_sort_rounded),
@@ -684,10 +684,10 @@ private fun SortMenu(
         ) {
             PopupFeedBack()
             DropdownMenuGroup(shapes = MenuDefaults.groupShape(index = 0, count = 2)) {
-                sortResIds.forEachIndexed { index, resId ->
+                sortEntries.onEachIndexed { index, (type, resId) ->
                     DropdownMenuItem(
                         text = { Text(stringResource(resId)) },
-                        selected = currentSortType == index,
+                        selected = sortConfig.sortType == type,
                         selectedLeadingIcon = {
                             Icon(
                                 Icons.Filled.Check,
@@ -697,12 +697,11 @@ private fun SortMenu(
                         },
                         onClick = {
                             keydownFB()
-                            val newOption = index * 2 + (if (isReverse) 1 else 0)
-                            actions.onUpdateSortOption(newOption)
+                            actions.onUpdateSortConfig(sortConfig.withType(type))
                         },
                         shapes = MenuDefaults.itemShape(
                             index = index,
-                            count = sortResIds.size + 1
+                            count = sortEntries.size
                         )
                     )
                 }
@@ -711,7 +710,7 @@ private fun SortMenu(
             DropdownMenuGroup(shapes = MenuDefaults.groupShape(index = 1, count = 2)) {
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.sort_reverse)) },
-                    selected = isReverse,
+                    selected = sortConfig.reversed,
                     selectedLeadingIcon = {
                         Icon(
                             Icons.Filled.Check,
@@ -721,12 +720,11 @@ private fun SortMenu(
                     },
                     onClick = {
                         keydownFB()
-                        val newOption = currentSortType * 2 + (if (!isReverse) 1 else 0)
-                        actions.onUpdateSortOption(newOption)
+                        actions.onUpdateSortConfig(sortConfig.toggleReversed())
                     },
                     shapes = MenuDefaults.itemShape(
-                        index = 1,
-                        count = 2
+                        index = 0,
+                        count = 1
                     ),
                 )
             }
