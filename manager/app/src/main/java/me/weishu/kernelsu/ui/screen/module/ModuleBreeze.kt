@@ -993,7 +993,7 @@ private fun ModuleInstallFAB(
     val moduleInstall = stringResource(id = R.string.module_install)
     var zipUris by rememberSaveable { mutableStateOf<List<Uri>>(emptyList()) }
     InstallModuleDialog(
-        zipUris, uiState.moduleList,
+        zipUris, { uiState.moduleList },
         onConfirmInstall = { actions.onOpenFlash(zipUris) },
         onDismiss = { zipUris = emptyList() }
     )

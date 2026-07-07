@@ -2,6 +2,7 @@ package me.weishu.kernelsu.ui.screen.module
 
 import android.Manifest
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -11,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
@@ -24,6 +26,7 @@ import kotlinx.coroutines.launch
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.LocalUiMode
 import me.weishu.kernelsu.ui.UiMode
+import me.weishu.kernelsu.ui.component.breeze.InstallModuleDialog
 import me.weishu.kernelsu.ui.navigation3.LocalNavigator
 import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.screen.flash.FlashIt
@@ -45,7 +48,7 @@ fun ModulePager(
     val viewModel = viewModel<ModuleViewModel>()
     val scope = rememberCoroutineScope()
     val rawUiState by viewModel.uiState.collectAsStateWithLifecycle()
-
+    var pendingInstallModuleUri by rememberSaveable { mutableStateOf<Uri?>(null) }
     val webUILauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { viewModel.fetchModuleList(resort = false) }
@@ -104,6 +107,10 @@ fun ModulePager(
                     url = request.downloadUrl,
                     fileName = request.fileName,
                     onDownloaded = { uri ->
+                        if (uiMode == UiMode.Breeze) {
+                            pendingInstallModuleUri = uri
+                            return@download
+                        }
                         if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
                             navigator.push(Route.Flash(FlashIt.FlashModules(listOf(uri))))
                             viewModel.markNeedRefresh()
@@ -181,4 +188,10 @@ fun ModulePager(
             bottomInnerPadding = bottomInnerPadding,
         )
     }
+    InstallModuleDialog(
+        uris = pendingInstallModuleUri?.let { listOf(it) } ?: emptyList(),
+        getInstalledModules = { rawUiState.moduleList },
+        onConfirmInstall = { pendingInstallModuleUri?.let { navigator.push(Route.Flash(FlashIt.FlashModules(listOf(it)))) } },
+        onDismiss = { pendingInstallModuleUri = null }
+    )
 }

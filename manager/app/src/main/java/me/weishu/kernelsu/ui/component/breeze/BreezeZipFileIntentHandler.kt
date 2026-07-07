@@ -43,7 +43,7 @@ fun BreezeZipFileIntentHandler(
     val moduleRepo = ModuleRepositoryImpl()
     InstallModuleDialog(
         zipUri?.let { listOf(zipUri!!) } ?: emptyList(),
-        installedModules,
+        { installedModules },
         onConfirmInstall = {
             navigator.push(Route.Flash(FlashIt.FlashModules(it)))
             clearZipUri()

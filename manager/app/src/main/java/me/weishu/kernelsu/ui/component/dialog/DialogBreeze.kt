@@ -2,11 +2,11 @@ package me.weishu.kernelsu.ui.component.dialog
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -33,7 +33,7 @@ fun LoadingDialogBreeze(showDialog: MutableState<Boolean>) {
         Surface(
             modifier = Modifier
                 .size(100.dp)
-                .windowBlurBehind(), shape = RoundedCornerShape(8.dp)
+                .windowBlurBehind(), shape = MaterialTheme.shapes.extraLarge
         ) {
             Box(
                 contentAlignment = Alignment.Center,

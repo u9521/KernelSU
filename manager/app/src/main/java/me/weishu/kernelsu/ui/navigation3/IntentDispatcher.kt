@@ -17,9 +17,10 @@ import androidx.core.net.toUri
 import kotlinx.coroutines.channels.ReceiveChannel
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.data.repository.ModuleRepositoryImpl
 import me.weishu.kernelsu.data.repository.SettingsRepositoryImpl
 import me.weishu.kernelsu.ksuApp
-import me.weishu.kernelsu.ui.component.dialog.rememberConfirmDialog
+import me.weishu.kernelsu.ui.component.breeze.InstallModuleDialog
 import me.weishu.kernelsu.ui.screen.flash.FlashIt
 import me.weishu.kernelsu.ui.util.DownloadService
 import me.weishu.kernelsu.ui.util.getFileName
@@ -108,7 +109,7 @@ private fun resolveIntent(intent: Intent): PendingAction? {
         return PendingAction.InstallModule(
             uri = uri,
             displayName = getDisplayName(uri),
-            requiresConfirmation = false,
+            requiresConfirmation = true,
         )
     }
 
@@ -154,8 +155,10 @@ fun IntentDispatcher(intentChannel: ReceiveChannel<Intent>) {
     val isManager = Natives.isManager
     var pendingZipInstall by rememberSaveable(stateSaver = PendingAction.InstallModule.InstallModuleSaver) { mutableStateOf(null) }
 
-    val installDialog = rememberConfirmDialog(
-        onConfirm = {
+    InstallModuleDialog(
+        uris = pendingZipInstall?.let { listOf(it.uri) } ?: emptyList(),
+        getInstalledModules = { ModuleRepositoryImpl().getModules().getOrDefault(defaultValue = emptyList()) },
+        onConfirmInstall = {
             pendingZipInstall?.let { action ->
                 navigator.push(Route.Flash(FlashIt.FlashModules(listOf(action.uri))))
             }
@@ -180,13 +183,6 @@ fun IntentDispatcher(intentChannel: ReceiveChannel<Intent>) {
                 }
                 if (action.requiresConfirmation) {
                     pendingZipInstall = action
-                    installDialog.showConfirm(
-                        title = resources.getString(R.string.module),
-                        content = resources.getString(
-                            R.string.module_install_prompt_with_name,
-                            "\n${action.displayName}"
-                        )
-                    )
                 } else {
                     navigator.push(Route.Flash(FlashIt.FlashModules(listOf(action.uri))))
                 }

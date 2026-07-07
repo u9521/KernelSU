@@ -17,7 +17,7 @@ import me.weishu.kernelsu.ui.util.module.ModuleParser
 @Composable
 fun InstallModuleDialog(
     uris: List<Uri>,
-    installedModules: List<Module>,
+    getInstalledModules: suspend () -> List<Module>,
     onConfirmInstall: (List<Uri>) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -40,8 +40,9 @@ fun InstallModuleDialog(
         val confirmContent = if (uris.size == 1) {
             isMarkdown = true
             loadingDialog.withLoading {
+                val moduleList = getInstalledModules()
                 withContext(Dispatchers.IO) {
-                    ModuleParser.getModuleInstallDesc(context, uris.first(), installedModules)
+                    ModuleParser.getModuleInstallDesc(context, uris.first(), moduleList)
                 }
             }
         } else {
