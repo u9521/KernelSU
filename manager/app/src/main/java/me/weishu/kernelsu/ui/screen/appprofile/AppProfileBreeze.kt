@@ -152,13 +152,15 @@ fun AppProfileScreenBreeze(
 
             ModeChipBar(mode = currentMode, showTemplate = isRootGranted) { newMode ->
                 if (isRootGranted) {
-                    val shouldClearTemplate = newMode == Mode.Default || newMode == Mode.Custom
-                    actions.onProfileChange(
-                        profile.copy(
-                            rootUseDefault = newMode == Mode.Default,
-                            rootTemplate = if (shouldClearTemplate) null else profile.rootTemplate,
+                    // template mode shouldn't change profile here!
+                    if (newMode == Mode.Default || newMode == Mode.Custom) {
+                        actions.onProfileChange(
+                            profile.copy(
+                                rootUseDefault = newMode == Mode.Default,
+                                rootTemplate = null,
+                            )
                         )
-                    )
+                    }
                     rootMode = newMode
                 } else {
                     actions.onProfileChange(
