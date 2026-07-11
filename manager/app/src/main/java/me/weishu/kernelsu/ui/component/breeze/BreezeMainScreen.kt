@@ -18,6 +18,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
@@ -27,6 +29,7 @@ import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.ui.LocalMainPagerState
 import me.weishu.kernelsu.ui.component.bottombar.BottomBarBreeze
 import me.weishu.kernelsu.ui.component.bottombar.MainPagerState
+import me.weishu.kernelsu.ui.component.bottombar.ModuleBadgeState
 import me.weishu.kernelsu.ui.component.bottombar.NavigationRailBreeze
 import me.weishu.kernelsu.ui.component.bottombar.rememberMainPagerState
 import me.weishu.kernelsu.ui.navigation3.LocalNavigator
@@ -39,12 +42,14 @@ import me.weishu.kernelsu.ui.screen.home.HomePager
 import me.weishu.kernelsu.ui.screen.module.ModulePager
 import me.weishu.kernelsu.ui.screen.settings.SettingPager
 import me.weishu.kernelsu.ui.screen.superuser.SuperUserPager
+import me.weishu.kernelsu.ui.theme.LocalEnableNavigationBadge
 import me.weishu.kernelsu.ui.util.bottomBarHazeStyle
 import me.weishu.kernelsu.ui.util.defaultHazeEffect
 import me.weishu.kernelsu.ui.util.onlyHorizontal
 import me.weishu.kernelsu.ui.util.rememberContentReady
 import me.weishu.kernelsu.ui.util.rootAvailable
 import me.weishu.kernelsu.ui.viewmodel.MainPagerConfig
+import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel
 
 @Composable
 fun MainScreenBreeze(
@@ -66,6 +71,29 @@ fun MainScreenBreeze(
     val navState = rememberBreezeNavLayoutState(
         initialValue = if (useNavigationRail) NavigationLayoutType.SIDE else NavigationLayoutType.BOTTOM
     )
+    val enableNavigationBadge = LocalEnableNavigationBadge.current
+    val moduleViewModel = viewModel<ModuleViewModel>()
+    val moduleUiState by moduleViewModel.uiState.collectAsStateWithLifecycle()
+
+    val moduleBadge = if (enableNavigationBadge && isFullFeatured) {
+        ModuleBadgeState(
+            enabledCount = moduleUiState.modules.count { it.enabled },
+            updatableCount = moduleUiState.updateInfo.count { it.value.downloadUrl.isNotBlank() },
+        )
+    } else {
+        ModuleBadgeState()
+    }
+
+    LaunchedEffect(enableNavigationBadge, isFullFeatured) {
+        // The module list normally loads when the module pager is first visited; load it eagerly
+        // so the badge is populated while the user is still on another tab.
+        if (enableNavigationBadge && isFullFeatured && moduleViewModel.uiState.value.modules.isEmpty()) {
+            moduleViewModel.initializePreferences()
+            moduleViewModel.loadModuleList()
+            moduleViewModel.syncModuleUpdateInfo(moduleViewModel.uiState.value.modules)
+        }
+    }
+
     LaunchedEffect(isTopRoute, useNavigationRail) {
         if (!isTopRoute) {
             navState.hideNavController()
@@ -120,13 +148,15 @@ fun MainScreenBreeze(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .defaultHazeEffect(mainScreenHazeState, bottomBarHazeStyle()),
-                        navBarType
+                        navBarType = navBarType,
+                        moduleBadge = moduleBadge
                     )
                 }
             },
             sideBar = {
                 NavigationRailBreeze(
                     navBarType = navBarType,
+                    moduleBadge = moduleBadge,
                     expandedOverride = railExpandedOverride,
                     onExpandedOverrideChange = { railExpandedOverride = it },
                     modifier = Modifier,

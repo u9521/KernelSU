@@ -254,6 +254,21 @@ fun ColorPaletteScreenMaterial(
                     )
                 )
 
+                SegmentedColumn(
+                    modifier = Modifier.padding(top = 4.dp),
+                    content = listOf(
+                        {
+                            SegmentedSwitchItem(
+                                icon = ImageVector.vectorResource(R.drawable.ic_pin_outlined_filled),
+                                title = stringResource(id = R.string.settings_navigation_badge),
+                                summary = stringResource(id = R.string.settings_navigation_badge_summary),
+                                checked = uiState.enableNavigationBadge,
+                                onCheckedChange = actions.onSetEnableNavigationBadge
+                            )
+                        }
+                    )
+                )
+
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                     SegmentedColumn(
                         modifier = Modifier.padding(top = 4.dp),

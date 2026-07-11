@@ -2,7 +2,6 @@ package me.weishu.kernelsu.ui.component.bottombar
 
 import androidx.compose.material3.BottomAppBarDefaults
 import androidx.compose.material3.FlexibleBottomAppBar
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
@@ -21,7 +20,11 @@ import me.weishu.kernelsu.ui.theme.LocalEnableBlur
 import me.weishu.kernelsu.ui.util.rootAvailable
 
 @Composable
-fun BottomBarBreeze(modifier: Modifier = Modifier, navBarType: NavigationBarType = NavigationBarType.Bar) {
+fun BottomBarBreeze(
+    modifier: Modifier = Modifier,
+    navBarType: NavigationBarType = NavigationBarType.Bar,
+    moduleBadge: ModuleBadgeState,
+) {
     val isManager = Natives.isManager
     val fullFeatured = isManager && !Natives.requireNewKernel() && rootAvailable()
     val mainPagerState = LocalMainPagerState.current
@@ -53,9 +56,10 @@ fun BottomBarBreeze(modifier: Modifier = Modifier, navBarType: NavigationBarType
                     }
                 },
                 icon = {
-                    Icon(
-                        painterResource(if (selected) selectedIcon else unselectedIcon),
-                        stringResource(label)
+                    NavigationIconWithBadge(
+                        icon = painterResource(if (selected) selectedIcon else unselectedIcon),
+                        contentDescription = stringResource(id = label),
+                        badge = if (index == BottomBarDestination.Module.ordinal) moduleBadge else null,
                     )
                 },
                 label = {

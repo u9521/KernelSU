@@ -29,7 +29,6 @@ import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
 
 @Composable
@@ -97,8 +96,7 @@ fun BrMenuBox(
             modifier = Modifier.offset { IntOffset(touchPoint.x.toInt(), touchPoint.y.toInt()) }) {
             DropdownMenuPopup(
                 expanded = expanded,
-                onDismissRequest = dismissMenu,
-                offset = DpOffset.Zero,
+                onDismissRequest = dismissMenu
             ) {
                 PopupFeedBack()
                 menuContent(dismissMenu)

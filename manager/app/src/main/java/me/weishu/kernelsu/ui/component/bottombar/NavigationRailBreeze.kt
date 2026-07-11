@@ -51,6 +51,7 @@ private val railItems = listOf(
 @Composable
 fun NavigationRailBreeze(
     modifier: Modifier = Modifier,
+    moduleBadge: ModuleBadgeState,
     navBarType: NavigationBarType = NavigationBarType.Rail,
     expandedOverride: Boolean? = null,
     onExpandedOverrideChange: (Boolean?) -> Unit = {},
@@ -116,12 +117,14 @@ fun NavigationRailBreeze(
                     painter = painterResource(
                         if (isExpanded) R.drawable.ic_menu_open_rounded else R.drawable.ic_menu_rounded
                     ),
-                    contentDescription = null,
+                    contentDescription = stringResource(
+                        if (isExpanded) R.string.nav_rail_collapse else R.string.nav_rail_expand
+                    ),
                 )
             }
         },
     ) {
-        railItems.forEachIndexed { index, item ->
+        railItems.forEachIndexed { index, (label, selectedIcon, unselectedIcon) ->
             val selected = mainPagerState.selectedPage == index
             WideNavigationRailItem(
                 selected = selected,
@@ -129,12 +132,13 @@ fun NavigationRailBreeze(
                     if (!selected) mainPagerState.animateToPage(index)
                 },
                 icon = {
-                    Icon(
-                        painterResource(if (selected) item.selectedIcon else item.unselectedIcon),
-                        stringResource(item.label),
+                    NavigationIconWithBadge(
+                        icon = painterResource(if (selected) selectedIcon else unselectedIcon),
+                        contentDescription = stringResource(id = label),
+                        badge = if (index == BottomBarDestination.Module.ordinal) moduleBadge else null,
                     )
                 },
-                label = { Text(stringResource(item.label)) },
+                label = { Text(stringResource(id = label)) },
                 railExpanded = isExpanded,
             )
         }

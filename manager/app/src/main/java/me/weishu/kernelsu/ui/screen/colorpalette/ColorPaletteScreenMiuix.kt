@@ -322,6 +322,22 @@ fun ColorPaletteScreenMiuix(
                                 }
                             )
                         }
+                        SwitchPreference(
+                            title = stringResource(id = R.string.settings_navigation_badge),
+                            summary = stringResource(id = R.string.settings_navigation_badge_summary),
+                            startAction = {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_pin_outlined_filled),
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = stringResource(id = R.string.settings_navigation_badge),
+                                    tint = colorScheme.onBackground
+                                )
+                            },
+                            checked = uiState.enableNavigationBadge,
+                            onCheckedChange = {
+                                actions.onSetEnableNavigationBadge(it)
+                            }
+                        )
                     }
 
                     Card(

@@ -6,12 +6,15 @@ import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ShortNavigationBar
 import androidx.compose.material3.ShortNavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -21,7 +24,7 @@ import me.weishu.kernelsu.ui.LocalMainPagerState
 import me.weishu.kernelsu.ui.util.rootAvailable
 
 @Composable
-fun BottomBarMaterial() {
+fun BottomBarMaterial(moduleBadge: ModuleBadgeState) {
     val isManager = Natives.isManager
     val fullFeatured = isManager && !Natives.requireNewKernel() && rootAvailable()
     val mainPagerState = LocalMainPagerState.current
@@ -51,9 +54,10 @@ fun BottomBarMaterial() {
                     }
                 },
                 icon = {
-                    Icon(
-                        painterResource(if (selected) selectedIcon else unselectedIcon),
-                        stringResource(label)
+                    NavigationIconWithBadge(
+                        icon = painterResource(if (selected) selectedIcon else unselectedIcon),
+                        contentDescription = stringResource(label),
+                        badge = if (index == BottomBarDestination.Module.ordinal) moduleBadge else null,
                     )
                 },
                 label = {
@@ -65,5 +69,37 @@ fun BottomBarMaterial() {
                 }
             )
         }
+    }
+}
+
+@Composable
+internal fun NavigationIconWithBadge(
+    icon: Painter,
+    contentDescription: String?,
+    badge: ModuleBadgeState?,
+) {
+    if (badge != null && (badge.updatableCount > 0 || badge.enabledCount > 0)) {
+        BadgedBox(
+            badge = {
+                // Pending updates take priority: default badge color (red) with the updatable
+                // count; otherwise the theme-colored badge shows the enabled count.
+                if (badge.updatableCount > 0) {
+                    Badge {
+                        Text(badge.updatableCount.toString())
+                    }
+                } else {
+                    Badge(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ) {
+                        Text(badge.enabledCount.toString())
+                    }
+                }
+            }
+        ) {
+            Icon(icon, contentDescription)
+        }
+    } else {
+        Icon(icon, contentDescription)
     }
 }

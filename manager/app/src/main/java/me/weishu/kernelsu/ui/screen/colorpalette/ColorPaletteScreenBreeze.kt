@@ -299,6 +299,22 @@ fun ColorPaletteScreenBreeze(
                         }
                     )
                 }
+                SegmentedListGroup(
+                    modifier = Modifier.padding(top = 4.dp),
+                ) {
+                    switchItem(
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_pin_outlined_filled),
+                                contentDescription = stringResource(id = R.string.settings_navigation_badge),
+                            )
+                        },
+                        title = resource.getString(R.string.settings_navigation_badge),
+                        summary = resource.getString(R.string.settings_navigation_badge_summary),
+                        checked = { uiState.enableNavigationBadge },
+                        onCheckedChange = actions.onSetEnableNavigationBadge,
+                    )
+                }
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     SegmentedListGroup(
