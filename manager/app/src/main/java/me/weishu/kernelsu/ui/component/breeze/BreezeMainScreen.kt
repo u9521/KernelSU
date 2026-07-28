@@ -12,6 +12,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -25,11 +26,15 @@ import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.ui.LocalMainPagerState
 import me.weishu.kernelsu.ui.component.bottombar.BottomBarBreeze
 import me.weishu.kernelsu.ui.component.bottombar.MainPagerState
-import me.weishu.kernelsu.ui.component.bottombar.ModuleBadgeState
+import me.weishu.kernelsu.ui.component.bottombar.NavigationBadgeState
 import me.weishu.kernelsu.ui.component.bottombar.NavigationRailBreeze
 import me.weishu.kernelsu.ui.component.bottombar.rememberMainPagerState
 import me.weishu.kernelsu.ui.navigation3.LocalNavigator
@@ -45,11 +50,13 @@ import me.weishu.kernelsu.ui.screen.superuser.SuperUserPager
 import me.weishu.kernelsu.ui.theme.LocalEnableNavigationBadge
 import me.weishu.kernelsu.ui.util.bottomBarHazeStyle
 import me.weishu.kernelsu.ui.util.defaultHazeEffect
+import me.weishu.kernelsu.ui.util.getSuperuserCount
 import me.weishu.kernelsu.ui.util.onlyHorizontal
 import me.weishu.kernelsu.ui.util.rememberContentReady
 import me.weishu.kernelsu.ui.util.rootAvailable
 import me.weishu.kernelsu.ui.viewmodel.MainPagerConfig
 import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel
+import me.weishu.kernelsu.ui.viewmodel.SuperUserViewModel
 
 @Composable
 fun MainScreenBreeze(
@@ -72,26 +79,40 @@ fun MainScreenBreeze(
         initialValue = if (useNavigationRail) NavigationLayoutType.SIDE else NavigationLayoutType.BOTTOM
     )
     val enableNavigationBadge = LocalEnableNavigationBadge.current
+    val badgeEnabled = enableNavigationBadge && isFullFeatured
     val moduleViewModel = viewModel<ModuleViewModel>()
     val moduleUiState by moduleViewModel.uiState.collectAsStateWithLifecycle()
 
-    val moduleBadge = if (enableNavigationBadge && isFullFeatured) {
-        ModuleBadgeState(
-            enabledCount = moduleUiState.modules.count { it.enabled },
-            updatableCount = moduleUiState.updateInfo.count { it.value.downloadUrl.isNotBlank() },
-        )
-    } else {
-        ModuleBadgeState()
-    }
-
-    LaunchedEffect(enableNavigationBadge, isFullFeatured) {
+    LaunchedEffect(badgeEnabled) {
         // The module list normally loads when the module pager is first visited; load it eagerly
         // so the badge is populated while the user is still on another tab.
-        if (enableNavigationBadge && isFullFeatured && moduleViewModel.uiState.value.modules.isEmpty()) {
+        if (badgeEnabled && moduleViewModel.uiState.value.modules.isEmpty()) {
             moduleViewModel.initializePreferences()
             moduleViewModel.loadModuleList()
             moduleViewModel.syncModuleUpdateInfo(moduleViewModel.uiState.value.modules)
         }
+    }
+
+    // Loading the app list just for a badge is too expensive; read the kernel allowlist instead.
+    val superUserViewModel = viewModel<SuperUserViewModel>()
+    val grantedUidCount by remember(superUserViewModel) {
+        superUserViewModel.uiState
+            .map { state -> state.groupedApps.count { it.anyAllowSu } }
+            .distinctUntilChanged()
+    }.collectAsStateWithLifecycle(0)
+    var superuserCount by remember { mutableIntStateOf(0) }
+    LaunchedEffect(badgeEnabled, grantedUidCount) {
+        superuserCount = if (badgeEnabled) withContext(Dispatchers.IO) { getSuperuserCount() } else 0
+    }
+
+    val navigationBadge = if (badgeEnabled) {
+        NavigationBadgeState(
+            superuserCount = superuserCount,
+            moduleEnabledCount = moduleUiState.modules.count { it.enabled },
+            moduleUpdatableCount = moduleUiState.updateInfo.count { it.value.downloadUrl.isNotBlank() },
+        )
+    } else {
+        NavigationBadgeState()
     }
 
     LaunchedEffect(isTopRoute, useNavigationRail) {
@@ -149,14 +170,14 @@ fun MainScreenBreeze(
                             .align(Alignment.BottomCenter)
                             .defaultHazeEffect(mainScreenHazeState, bottomBarHazeStyle()),
                         navBarType = navBarType,
-                        moduleBadge = moduleBadge
+                        navigationBadge = navigationBadge
                     )
                 }
             },
             sideBar = {
                 NavigationRailBreeze(
                     navBarType = navBarType,
-                    moduleBadge = moduleBadge,
+                    navigationBadge = navigationBadge,
                     expandedOverride = railExpandedOverride,
                     onExpandedOverrideChange = { railExpandedOverride = it },
                     modifier = Modifier,

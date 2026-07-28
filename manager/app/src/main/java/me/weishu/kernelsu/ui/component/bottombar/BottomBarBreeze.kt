@@ -23,7 +23,7 @@ import me.weishu.kernelsu.ui.util.rootAvailable
 fun BottomBarBreeze(
     modifier: Modifier = Modifier,
     navBarType: NavigationBarType = NavigationBarType.Bar,
-    moduleBadge: ModuleBadgeState,
+    navigationBadge: NavigationBadgeState,
 ) {
     val isManager = Natives.isManager
     val fullFeatured = isManager && !Natives.requireNewKernel() && rootAvailable()
@@ -59,7 +59,7 @@ fun BottomBarBreeze(
                     NavigationIconWithBadge(
                         icon = painterResource(if (selected) selectedIcon else unselectedIcon),
                         contentDescription = stringResource(id = label),
-                        badge = if (index == BottomBarDestination.Module.ordinal) moduleBadge else null,
+                        badge = badgeFor(index, navigationBadge),
                     )
                 },
                 label = {

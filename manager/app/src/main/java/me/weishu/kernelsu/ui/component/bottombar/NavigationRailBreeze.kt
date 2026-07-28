@@ -1,7 +1,6 @@
 package me.weishu.kernelsu.ui.component.bottombar
 
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -51,7 +50,7 @@ private val railItems = listOf(
 @Composable
 fun NavigationRailBreeze(
     modifier: Modifier = Modifier,
-    moduleBadge: ModuleBadgeState,
+    navigationBadge: NavigationBadgeState,
     navBarType: NavigationBarType = NavigationBarType.Rail,
     expandedOverride: Boolean? = null,
     onExpandedOverrideChange: (Boolean?) -> Unit = {},
@@ -105,7 +104,6 @@ fun NavigationRailBreeze(
             .fillMaxHeight()
             .requiredWidth(animatedWidth),
         state = state,
-        arrangement = Arrangement.Center,
         header = {
             IconButton(
                 modifier = Modifier.padding(start = 24.dp),
@@ -135,7 +133,7 @@ fun NavigationRailBreeze(
                     NavigationIconWithBadge(
                         icon = painterResource(if (selected) selectedIcon else unselectedIcon),
                         contentDescription = stringResource(id = label),
-                        badge = if (index == BottomBarDestination.Module.ordinal) moduleBadge else null,
+                        badge = badgeFor(index, navigationBadge),
                     )
                 },
                 label = { Text(stringResource(id = label)) },

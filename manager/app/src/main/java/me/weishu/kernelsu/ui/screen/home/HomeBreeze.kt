@@ -34,6 +34,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
@@ -41,13 +42,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -56,6 +55,7 @@ import dev.chrisbanes.haze.hazeSource
 import me.weishu.kernelsu.KernelVersion
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ui.component.WarningLevel
 import me.weishu.kernelsu.ui.component.dialog.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
 import me.weishu.kernelsu.ui.component.material.disableDrag
@@ -85,14 +85,10 @@ fun HomePagerBreeze(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
-            StatusCard(
-                state = state,
-                actions = actions,
-            )
             if (state.showManagerPrBuildWarning) {
-                WarningCard(stringResource(id = R.string.home_pr_build_warning))
+                WarningCard(stringResource(id = R.string.home_pr_build_warning), level = WarningLevel.Notice)
             } else if (state.showKernelPrBuildWarning) {
-                WarningCard(stringResource(id = R.string.home_pr_kernel_warning))
+                WarningCard(stringResource(id = R.string.home_pr_kernel_warning), level = WarningLevel.Notice)
             }
             if (state.showVersionMismatchWarning) {
                 WarningCard(
@@ -104,7 +100,7 @@ fun HomePagerBreeze(
                 )
             }
             if (state.showGkiWarning) {
-                WarningCard(stringResource(id = R.string.home_gki_warning))
+                WarningCard(stringResource(id = R.string.home_gki_warning), level = WarningLevel.Notice)
             }
             if (state.showUAPIMisMatchWarning) {
                 WarningCard(
@@ -130,6 +126,10 @@ fun HomePagerBreeze(
             if (state.checkUpdateEnabled) {
                 UpdateCard(state = state, actions = actions)
             }
+            StatusCard(
+                state = state,
+                actions = actions,
+            )
             InfoCard(systemInfo = state.systemInfo)
             DonateCard(onOpenUrl = actions.onOpenUrl)
             LearnMoreCard(onOpenUrl = actions.onOpenUrl)
@@ -159,7 +159,7 @@ private fun UpdateCard(
         val updateDialog = rememberConfirmDialog(onConfirm = { actions.onOpenUrl(newVersion.downloadUrl) })
         WarningCard(
             message = stringResource(id = R.string.new_version_available, newVersion.versionCode),
-            MaterialTheme.colorScheme.outlineVariant
+            level = WarningLevel.Notice
         ) {
             if (newVersion.changelog.isEmpty()) {
                 actions.onOpenUrl(newVersion.downloadUrl)
@@ -307,82 +307,31 @@ private fun StatusCard(
                 }
             }
         }
-        if (state.isFullFeatured) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                OverviewCard(
-                    title = stringResource(R.string.superuser),
-                    count = state.superuserCount.toString(),
-                    icon = painterResource(R.drawable.ic_security_rounded),
-                    onClick = actions.onSuperuserClick,
-                    modifier = Modifier.weight(1f)
-                )
-                OverviewCard(
-                    title = stringResource(R.string.module),
-                    count = state.moduleCount.toString(),
-                    icon = painterResource(R.drawable.ic_extension_rounded_filled),
-                    onClick = actions.onModuleClick,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun OverviewCard(
-    title: String,
-    count: String,
-    icon: Painter,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    TonalCard(modifier = modifier) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick)
-                .padding(start = 24.dp, top = 16.dp, bottom = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(20.dp)
-        ) {
-            Icon(
-                painter = icon,
-                contentDescription = title,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = count,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-        }
     }
 }
 
 @Composable
 private fun WarningCard(
     message: String,
-    color: Color = MaterialTheme.colorScheme.error,
+    level: WarningLevel = WarningLevel.Error,
     onClick: (() -> Unit)? = null
 ) {
-    TonalCard(containerColor = color) {
+    val containerColor = when (level) {
+        WarningLevel.Error -> MaterialTheme.colorScheme.errorContainer
+        WarningLevel.Notice -> MaterialTheme.colorScheme.tertiaryContainer
+    }
+    TonalCard(containerColor = containerColor) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .then(onClick?.let { Modifier.clickable { it() } } ?: Modifier)
                 .padding(24.dp)
         ) {
-            Text(text = message, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.contentColorFor(containerColor)
+            )
         }
     }
 }
@@ -497,15 +446,15 @@ private fun InfoCard(systemInfo: SystemInfo) {
 @Composable
 private fun StatusCardActivatedPreview() {
     StatusCard(
-        state = previewHomeScreenState(ksuVersion = 12345, lkmMode = true, superuserCount = 5, moduleCount = 10),
-        actions = HomeActions({}, {}, {}, {})
+        state = previewHomeScreenState(ksuVersion = 12345, lkmMode = true),
+        actions = HomeActions({}, {}, {})
     )
 }
 
 @Preview(name = "Not Activated")
 @Composable
 private fun StatusCardNotActivatedPreview() {
-    StatusCard(state = previewHomeScreenState(ksuVersion = null, lkmMode = null), actions = HomeActions({}, {}, {}, {}))
+    StatusCard(state = previewHomeScreenState(ksuVersion = null, lkmMode = null), actions = HomeActions({}, {}, {}))
 }
 
 @Preview(name = "Permissive")
@@ -513,7 +462,7 @@ private fun StatusCardNotActivatedPreview() {
 private fun StatusCardPermissivePreview() {
     StatusCard(
         state = previewHomeScreenState(ksuVersion = null, lkmMode = null, selinuxStatus = "Permissive"),
-        actions = HomeActions({}, {}, {}, {})
+        actions = HomeActions({}, {}, {})
     )
 }
 
@@ -521,8 +470,8 @@ private fun StatusCardPermissivePreview() {
 @Composable
 private fun StatusCardJailbreakPreview() {
     StatusCard(
-        state = previewHomeScreenState(ksuVersion = 12345, lkmMode = true, isLateLoadMode = true, superuserCount = 5, moduleCount = 10),
-        actions = HomeActions({}, {}, {}, {})
+        state = previewHomeScreenState(ksuVersion = 12345, lkmMode = true, isLateLoadMode = true),
+        actions = HomeActions({}, {}, {})
     )
 }
 
@@ -545,8 +494,6 @@ private fun HomeScreenPreviewContent(
     lkmMode: Boolean?,
     isSafeMode: Boolean = false,
     isLateLoadMode: Boolean = false,
-    superuserCount: Int = 0,
-    moduleCount: Int = 0,
     selinuxStatus: String = "Enforcing",
 ) {
     CompositionLocalProvider(LocalUriHandler provides previewUriHandler) {
@@ -554,15 +501,13 @@ private fun HomeScreenPreviewContent(
             modifier = Modifier.padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            val actions = HomeActions({}, {}, {}, {})
+            val actions = HomeActions({}, {}, {})
             StatusCard(
                 state = previewHomeScreenState(
                     ksuVersion = ksuVersion,
                     lkmMode = lkmMode,
                     isSafeMode = isSafeMode,
                     isLateLoadMode = isLateLoadMode,
-                    superuserCount = superuserCount,
-                    moduleCount = moduleCount,
                     selinuxStatus = selinuxStatus,
                 ),
                 actions = actions
@@ -577,7 +522,7 @@ private fun HomeScreenPreviewContent(
 @Preview(name = "Home Activated", showBackground = true)
 @Composable
 private fun HomeScreenActivatedPreview() {
-    HomeScreenPreviewContent(ksuVersion = 12345, lkmMode = true, superuserCount = 5, moduleCount = 10)
+    HomeScreenPreviewContent(ksuVersion = 12345, lkmMode = true)
 }
 
 @Preview(name = "Home Not Activated", showBackground = true)
@@ -595,7 +540,7 @@ private fun HomeScreenPermissivePreview() {
 @Preview(name = "Home Jailbreak", showBackground = true)
 @Composable
 private fun HomeScreenJailbreakPreview() {
-    HomeScreenPreviewContent(ksuVersion = 12345, lkmMode = true, isLateLoadMode = true, superuserCount = 5, moduleCount = 10)
+    HomeScreenPreviewContent(ksuVersion = 12345, lkmMode = true, isLateLoadMode = true)
 }
 
 private fun previewHomeScreenState(
@@ -603,8 +548,6 @@ private fun previewHomeScreenState(
     lkmMode: Boolean?,
     isSafeMode: Boolean = false,
     isLateLoadMode: Boolean = false,
-    superuserCount: Int = 0,
-    moduleCount: Int = 0,
     selinuxStatus: String = "Enforcing",
 ) = HomeUiState(
     kernelVersion = KernelVersion(6, 1, 0),
@@ -620,8 +563,6 @@ private fun previewHomeScreenState(
     checkUpdateEnabled = false,
     latestVersionInfo = LatestVersionInfo(),
     currentManagerVersionCode = 10000,
-    superuserCount = superuserCount,
-    moduleCount = moduleCount,
     systemInfo = previewSystemInfo.copy(selinuxStatus = selinuxStatus),
     managerUAPIVersion = 114,
     kernelUAPIVersion = 514,

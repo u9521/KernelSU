@@ -15,12 +15,15 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -81,6 +84,7 @@ import me.weishu.kernelsu.ui.component.breeze.SegmentedListGroup
 import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
 import me.weishu.kernelsu.ui.component.material.disableDrag
 import me.weishu.kernelsu.ui.component.material.expressiveTopBarColors
+import me.weishu.kernelsu.ui.navigation3.breeze.isRailNavbar
 import me.weishu.kernelsu.ui.screen.home.TonalCard
 import me.weishu.kernelsu.ui.theme.ColorMode
 import me.weishu.kernelsu.ui.theme.keyColorOptions
@@ -422,6 +426,8 @@ private fun ThemePreviewCard(
     val screenWidth = configuration.screenWidthDp.toFloat()
     val screenHeight = configuration.screenHeightDp.toFloat()
     val screenRatio = screenWidth / screenHeight
+    val useRail = isRailNavbar()
+
     val colorScheme = rememberKernelSUColorScheme(
         seedColor = if (keyColor == 0) Color.Unspecified else Color(keyColor),
         isDark = isDark,
@@ -437,20 +443,20 @@ private fun ThemePreviewCard(
                 .aspectRatio(screenRatio),
             color = colorScheme.surfaceContainer,
             shape = RoundedCornerShape(20.dp),
-            border = BorderStroke(1.dp, color = MaterialTheme.colorScheme.outlineVariant)
+            border = BorderStroke(1.dp, color = colorScheme.outlineVariant)
         ) {
-            Column {
+            val content: @Composable ColumnScope.() -> Unit = {
                 // top bar
                 Box(
                     modifier = Modifier
-                        .height(48.dp)
+                        .height(if (useRail) 36.dp else 48.dp)
                         .fillMaxWidth(),
                     contentAlignment = Alignment.TopStart
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(start = 12.dp, top = 16.dp, bottom = 8.dp),
+                            .padding(start = 12.dp, top = if (useRail) 8.dp else 16.dp, bottom = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
@@ -461,67 +467,73 @@ private fun ThemePreviewCard(
                     }
                 }
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentAlignment = Alignment.TopStart
-                ) {
+                BoxWithConstraints(modifier = Modifier.weight(1f)) {
+                    val showInfoCard = maxHeight >= 72.dp
                     Column(
-                        modifier = Modifier.padding(horizontal = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        TonalCard(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        me.weishu.kernelsu.ui.component.material.TonalCard(
+                            containerColor = colorScheme.secondaryContainer,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(40.dp),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(8.dp),
                             content = { }
                         )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            TonalCard(
+                        if (showInfoCard) {
+                            me.weishu.kernelsu.ui.component.material.TonalCard(
+                                containerColor = colorScheme.surfaceBright,
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .height(32.dp),
-                                shape = RoundedCornerShape(12.dp),
-                                content = { }
-                            )
-                            TonalCard(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(32.dp),
-                                shape = RoundedCornerShape(12.dp),
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                                shape = RoundedCornerShape(8.dp),
                                 content = { }
                             )
                         }
-                        TonalCard(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(96.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            content = { }
-                        )
                     }
                 }
+            }
 
-                // bottom bar
-                Surface(
-                    color = colorScheme.surfaceContainer,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .height(40.dp)
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+            if (useRail) {
+                Row {
+                    Surface(
+                        color = colorScheme.surfaceContainer,
+                        modifier = Modifier.fillMaxHeight()
                     ) {
-                        Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .width(36.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
                             Icon(Icons.Filled.Home, null, tint = colorScheme.primary)
+                        }
+                    }
+                    Column(modifier = Modifier.weight(1f)) { content() }
+                }
+            } else {
+                Column {
+                    content()
+
+                    // bottom bar
+                    Surface(
+                        color = colorScheme.surfaceContainer,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .height(40.dp)
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(Icons.Filled.Home, null, tint = colorScheme.primary)
+                            }
                         }
                     }
                 }

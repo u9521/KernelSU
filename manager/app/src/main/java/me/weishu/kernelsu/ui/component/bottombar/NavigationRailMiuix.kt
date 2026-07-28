@@ -16,7 +16,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun NavigationRailMiuix(
-    moduleBadge: ModuleBadgeState,
+    navigationBadge: NavigationBadgeState,
     modifier: Modifier = Modifier,
 ) {
     val isManager = Natives.isManager
@@ -44,7 +44,7 @@ fun NavigationRailMiuix(
                 },
                 icon = ImageVector.vectorResource(icon),
                 label = label,
-                badge = moduleBadgeFor(index, moduleBadge),
+                badge = navigationBadgeFor(index, navigationBadge),
             )
         }
     }
