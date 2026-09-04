@@ -56,8 +56,8 @@ import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CheckableDropdownMenuItem
 import androidx.compose.material3.DropdownMenuGroup
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DropdownMenuPopup
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -128,11 +128,11 @@ import me.weishu.kernelsu.ui.component.breeze.VerticalScrollbar
 import me.weishu.kernelsu.ui.component.breeze.rememberScrollbarAdapter
 import me.weishu.kernelsu.ui.component.dialog.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.dialog.rememberLoadingDialog
+import me.weishu.kernelsu.data.repository.isSoftRebootPreferred
 import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
 import me.weishu.kernelsu.ui.component.material.ExpressiveSwitch
 import me.weishu.kernelsu.ui.component.material.SearchAppBarBreeze
 import me.weishu.kernelsu.ui.component.material.disableDrag
-import me.weishu.kernelsu.ui.component.rebootlistpopup.RebootListPopup
 import me.weishu.kernelsu.ui.component.statustag.StatusTag
 import me.weishu.kernelsu.ui.screen.home.TonalCard
 import me.weishu.kernelsu.ui.util.fABBottomPadding
@@ -225,14 +225,15 @@ fun ModulePagerBreeze(
             is ModuleEffect.SnackBar -> {
                 // Cancel the previous reboot snackbar so a new one replaces it instead of queueing
                 snackbarJob.value?.cancel()
+                val softReboot = isSoftRebootPreferred()
                 snackbarJob.value = scope.launch {
                     val result = snackBarHost.showSnackbar(
                         message = event.message,
-                        actionLabel = resource.getString(R.string.reboot),
+                        actionLabel = resource.getString(if (softReboot) R.string.reboot_soft else R.string.reboot),
                         duration = SnackbarDuration.Long
                     )
                     if (result == SnackbarResult.ActionPerformed) {
-                        reboot()
+                        reboot(if (softReboot) "soft_reboot" else "")
                     }
                 }
             }
@@ -254,7 +255,6 @@ fun ModulePagerBreeze(
                 onSearchTextChange = actions.onSearchTextChange,
                 onClearClick = actions.onClearSearch,
                 actions = {
-                    RebootListPopup()
                     SortMenu(uiState, actions)
                 },
                 scrollBehavior = scrollBehavior,
@@ -949,7 +949,7 @@ private fun SortMenu(
         ) {
             PopupFeedBack()
             DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
-                DropdownMenuItem(
+                CheckableDropdownMenuItem(
                     text = { Text(stringResource(R.string.module_sort_action_first)) },
                     checked = uiState.sortActionFirst,
                     checkedLeadingIcon = {
@@ -964,7 +964,7 @@ private fun SortMenu(
                     },
                     shapes = MenuDefaults.itemShape(index = 0, count = 2)
                 )
-                DropdownMenuItem(
+                CheckableDropdownMenuItem(
                     text = { Text(stringResource(R.string.module_sort_enabled_first)) },
                     checked = uiState.sortEnabledFirst,
                     checkedLeadingIcon = {

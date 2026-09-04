@@ -243,6 +243,16 @@ fun SettingPagerMaterial(
                                 onCheckedChange = actions.onSetAdbRootEnabled
                             )
                         },
+                        {
+                            SegmentedSwitchItem(
+                                icon = ImageVector.vectorResource(R.drawable.ic_restart_alt_rounded),
+                                title = stringResource(id = R.string.settings_soft_reboot),
+                                summary = stringResource(id = R.string.settings_soft_reboot_summary),
+                                enabled = !uiState.isLateLoadMode,
+                                checked = uiState.isLateLoadMode || uiState.useSoftReboot,
+                                onCheckedChange = actions.onSetUseSoftReboot
+                            )
+                        },
                     )
                 )
 

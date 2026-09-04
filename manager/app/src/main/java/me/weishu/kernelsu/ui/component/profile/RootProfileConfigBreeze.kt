@@ -18,7 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
@@ -29,6 +29,7 @@ import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SelectableDropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -407,7 +408,7 @@ private fun NamespaceDropdown(
             ) {
                 PopupFeedBack()
                 nameSpaceItems.onEachIndexed { index, (ns, resId) ->
-                    DropdownMenuItem(
+                    SelectableDropdownMenuItem(
                         text = { Text(stringResource(resId)) },
                         shapes = MenuDefaults.itemShape(index, nameSpaceItems.size),
                         selected = currentNamespace == ns,

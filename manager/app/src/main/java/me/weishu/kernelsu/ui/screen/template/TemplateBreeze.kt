@@ -346,17 +346,13 @@ private fun ImportExportMenuButton(
         ) {
             DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
                 DropdownMenuItem(
-                    shapes = MenuDefaults.itemShape(index = 0, count = 2),
                     text = { Text(stringResource(id = R.string.app_profile_import_from_clipboard)) },
-                    selected = false,
                     onClick = {
                         onImport()
                         showDropdown.value = false
                     },
                 )
                 DropdownMenuItem(
-                    shapes = MenuDefaults.itemShape(index = 1, count = 2),
-                    selected = false,
                     text = { Text(stringResource(id = R.string.app_profile_export_to_clipboard)) },
                     onClick = {
                         onExport()

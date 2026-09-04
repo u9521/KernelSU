@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -175,7 +173,7 @@ fun SettingPagerMiuix(
                                 summary = stringResource(id = R.string.settings_profile_template_summary),
                                 startAction = {
                                     Icon(
-                                        painterResource(R.drawable.ic_palette_rounded_filled),
+                                        painterResource(R.drawable.ic_fence_rounded),
                                         modifier = Modifier.padding(end = 6.dp),
                                         contentDescription = profileTemplate,
                                         tint = colorScheme.onBackground
@@ -303,6 +301,21 @@ fun SettingPagerMiuix(
                                 checked = uiState.isAdbRootEnabled,
                                 onCheckedChange = actions.onSetAdbRootEnabled
                             )
+                            SwitchPreference(
+                                title = stringResource(id = R.string.settings_soft_reboot),
+                                summary = stringResource(id = R.string.settings_soft_reboot_summary),
+                                startAction = {
+                                    Icon(
+                                        painterResource(R.drawable.ic_restart_alt_rounded),
+                                        modifier = Modifier.padding(end = 6.dp),
+                                        contentDescription = stringResource(id = R.string.settings_soft_reboot),
+                                        tint = if (uiState.isLateLoadMode) colorScheme.disabledOnSecondaryVariant else colorScheme.onBackground
+                                    )
+                                },
+                                enabled = !uiState.isLateLoadMode,
+                                checked = uiState.isLateLoadMode || uiState.useSoftReboot,
+                                onCheckedChange = actions.onSetUseSoftReboot
+                            )
                         }
 
                         Card(
@@ -369,7 +382,7 @@ fun SettingPagerMiuix(
                                 enabled = !uiState.isLateLoadMode,
                                 startAction = {
                                     Icon(
-                                        Icons.Rounded.Delete,
+                                        painterResource(R.drawable.ic_delete_rounded_filled),
                                         modifier = Modifier.padding(end = 6.dp),
                                         contentDescription = uninstall,
                                         tint = colorScheme.onBackground,

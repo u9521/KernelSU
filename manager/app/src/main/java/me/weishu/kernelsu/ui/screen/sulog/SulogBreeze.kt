@@ -26,8 +26,8 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CheckableDropdownMenuItem
 import androidx.compose.material3.DropdownMenuGroup
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DropdownMenuPopup
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,6 +36,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.SegmentedListItem
+import androidx.compose.material3.SelectableDropdownMenuItem
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -277,7 +278,7 @@ private fun FilterMenu(
         PopupFeedBack()
         DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
             SulogEventFilter.entries.forEachIndexed { index, filter ->
-                DropdownMenuItem(
+                CheckableDropdownMenuItem(
                     text = { Text(sulogFilterLabel(filter)) }, checked = filter in state.selectedFilters, checkedLeadingIcon = {
                         Icon(
                             Icons.Filled.Check,
@@ -308,7 +309,7 @@ private fun LazyListScope.suLogEntriesSection(
         }
 
         else -> {
-            itemsIndexed(entries, key = { _, entry -> entry.key }) { index, entry ->
+            itemsIndexed(entries, key = { index, entry -> "$index-${entry.key}" }) { index, entry ->
                 SulogItem(Modifier.animateItem(), index, entries.size, onEntryClick, entry)
             }
         }
@@ -415,7 +416,7 @@ private fun LogTimeCard(
         menuContent = { dismiss ->
             DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
                 fileSelector.items.forEachIndexed { index, string ->
-                    DropdownMenuItem(
+                    SelectableDropdownMenuItem(
                         text = { Text(string) }, selected = fileSelector.selectedIndex == index, selectedLeadingIcon = {
                             Icon(
                                 Icons.Filled.Check,

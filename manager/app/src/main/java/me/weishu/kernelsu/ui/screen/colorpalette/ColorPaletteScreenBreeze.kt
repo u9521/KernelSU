@@ -44,11 +44,11 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.DropdownMenuGroup
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.SelectableDropdownMenuItem
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -197,7 +197,7 @@ fun ColorPaletteScreenBreeze(
                     ) {
                         rowOptions.forEachIndexed { index, (modes, label) ->
                             ToggleButton(
-                                colors = ToggleButtonDefaults.toggleButtonColors(containerColor = MaterialTheme.colorScheme.surfaceBright),
+                                colors = ToggleButtonDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceBright),
                                 checked = currentColorMode in modes,
                                 onCheckedChange = {
                                     if (it) {
@@ -247,7 +247,7 @@ fun ColorPaletteScreenBreeze(
                         menuContent = { dismissMenu ->
                             DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
                                 styles.forEachIndexed { index, style ->
-                                    DropdownMenuItem(
+                                    SelectableDropdownMenuItem(
                                         text = { Text(style.name) },
                                         onClick = {
                                             actions.onSetColorStyle(style.name)
@@ -282,7 +282,7 @@ fun ColorPaletteScreenBreeze(
                         menuContent = { dismissMenu ->
                             DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
                                 specs.forEachIndexed { index, spec ->
-                                    DropdownMenuItem(
+                                    SelectableDropdownMenuItem(
                                         text = { Text(spec.name) },
                                         onClick = {
                                             actions.onSetColorSpec(spec.name)

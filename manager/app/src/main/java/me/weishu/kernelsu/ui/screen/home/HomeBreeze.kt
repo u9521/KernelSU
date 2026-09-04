@@ -22,8 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Warning
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -42,11 +41,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -58,6 +59,8 @@ import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.WarningLevel
 import me.weishu.kernelsu.ui.component.dialog.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
+import me.weishu.kernelsu.ui.component.breeze.SegmentedListGroup
+import me.weishu.kernelsu.ui.component.breeze.SegmentedListScope
 import me.weishu.kernelsu.ui.component.material.disableDrag
 import me.weishu.kernelsu.ui.component.material.expressiveTopBarColors
 import me.weishu.kernelsu.ui.component.rebootlistpopup.RebootListPopup
@@ -131,8 +134,7 @@ fun HomePagerBreeze(
                 actions = actions,
             )
             InfoCard(systemInfo = state.systemInfo)
-            DonateCard(onOpenUrl = actions.onOpenUrl)
-            LearnMoreCard(onOpenUrl = actions.onOpenUrl)
+            SupportLinks(onOpenUrl = actions.onOpenUrl)
             Spacer(
                 Modifier
                     .navigationBarsPadding()
@@ -207,9 +209,7 @@ private fun StatusCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable {
-                        if (!state.isLateLoadMode) {
-                            actions.onInstallClick()
-                        }
+                        actions.onInstallClick()
                     }
                     .padding(24.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -222,7 +222,7 @@ private fun StatusCard(
                             else -> "Built-In"
                         }
 
-                        Icon(Icons.Outlined.CheckCircle, stringResource(R.string.home_working))
+                        Icon(painterResource(R.drawable.ic_check_circle_rounded), stringResource(R.string.home_working))
                         Column(Modifier.padding(start = 20.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
@@ -261,7 +261,7 @@ private fun StatusCard(
                     }
 
                     state.kernelVersion.isGKI() -> {
-                        Icon(Icons.Outlined.Warning, stringResource(R.string.home_not_installed))
+                        Icon(painterResource(R.drawable.ic_warning_rounded), stringResource(R.string.home_not_installed))
                         Column(
                             modifier = Modifier
                                 .padding(start = 20.dp)
@@ -353,91 +353,130 @@ fun TonalCard(
 }
 
 @Composable
-private fun LearnMoreCard(onOpenUrl: (String) -> Unit) {
-    val url = stringResource(R.string.home_learn_kernelsu_url)
-    TonalCard {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onOpenUrl(url) }
-                .padding(24.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(text = stringResource(R.string.home_learn_kernelsu), style = MaterialTheme.typography.titleSmall)
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = stringResource(R.string.home_click_to_learn_kernelsu),
-                    style = MaterialTheme.typography.bodyMedium
+private fun SupportLinks(
+    onOpenUrl: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val learnMoreUrl = stringResource(R.string.home_learn_kernelsu_url)
+    val supportTitle = stringResource(R.string.home_support_title)
+    val supportContent = stringResource(R.string.home_support_content)
+    val learnTitle = stringResource(R.string.home_learn_kernelsu)
+    val learnContent = stringResource(R.string.home_click_to_learn_kernelsu)
+
+    SegmentedListGroup(modifier = modifier.fillMaxWidth()) {
+        item(
+            onClick = { onOpenUrl("https://patreon.com/weishu") },
+            content = { Text(supportTitle) },
+            supportingContent = { Text(supportContent) },
+            leadingContent = {
+                Icon(
+                    painter = painterResource(R.drawable.ic_volunteer_activism_rounded),
+                    contentDescription = supportTitle,
                 )
-            }
-        }
+            },
+            trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) },
+        )
+        item(
+            onClick = { onOpenUrl(learnMoreUrl) },
+            content = { Text(learnTitle) },
+            supportingContent = { Text(learnContent) },
+            leadingContent = {
+                Icon(
+                    painter = painterResource(R.drawable.ic_menu_book_rounded),
+                    contentDescription = learnTitle,
+                )
+            },
+            trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) },
+        )
     }
 }
 
 @Composable
-private fun DonateCard(onOpenUrl: (String) -> Unit) {
-    TonalCard {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onOpenUrl("https://patreon.com/weishu") }
-                .padding(24.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(text = stringResource(R.string.home_support_title), style = MaterialTheme.typography.titleSmall)
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = stringResource(R.string.home_support_content),
-                    style = MaterialTheme.typography.bodyMedium
+private fun InfoCard(
+    systemInfo: SystemInfo,
+    modifier: Modifier = Modifier,
+) {
+    fun SegmentedListScope.infoCardItem(
+        iconRes: Int,
+        label: String,
+        content: String,
+    ) {
+        item(
+            content = { Text(text = label, style = MaterialTheme.typography.bodyLarge) },
+            leadingContent = {
+                Icon(
+                    imageVector = ImageVector.vectorResource(iconRes),
+                    contentDescription = label,
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun InfoCard(systemInfo: SystemInfo) {
-    TonalCard {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 24.dp, top = 24.dp, end = 24.dp, bottom = 16.dp)
-        ) {
-            @Composable
-            fun InfoCardItem(label: String, content: String) {
-                Text(text = label, style = MaterialTheme.typography.bodyLarge)
+            },
+            supportingContent = {
                 Text(
                     text = content,
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            }
+            },
+        )
+    }
 
-            InfoCardItem(stringResource(R.string.home_manager_version), systemInfo.managerVersion)
-            Spacer(Modifier.height(16.dp))
-            InfoCardItem(stringResource(R.string.home_kernel), systemInfo.kernelVersion)
-            Spacer(Modifier.height(16.dp))
-            InfoCardItem(stringResource(R.string.home_device_model), systemInfo.deviceModel)
-            Spacer(Modifier.height(16.dp))
-            InfoCardItem(stringResource(R.string.home_fingerprint), systemInfo.fingerprint)
-            Spacer(Modifier.height(16.dp))
-            val selinuxDisplay = when (systemInfo.selinuxStatus) {
-                "Enforcing" -> stringResource(R.string.selinux_status_enforcing)
-                "Permissive" -> stringResource(R.string.selinux_status_permissive)
-                "Disabled" -> stringResource(R.string.selinux_status_disabled)
-                else -> stringResource(R.string.selinux_status_unknown)
-            }
-            InfoCardItem(stringResource(R.string.home_selinux_status), selinuxDisplay)
-            Spacer(Modifier.height(16.dp))
-            val seccompDisplay = when (systemInfo.seccompStatus) {
-                -1 -> stringResource(R.string.seccomp_status_not_supported)
-                0 -> stringResource(R.string.seccomp_status_disabled)
-                1 -> stringResource(R.string.seccomp_status_strict)
-                2 -> stringResource(R.string.seccomp_status_filter)
-                else -> stringResource(R.string.seccomp_status_unknown)
-            }
-            InfoCardItem(stringResource(R.string.home_seccomp_status), seccompDisplay)
+    val managerVersionLabel = stringResource(R.string.home_manager_version)
+    val kernelLabel = stringResource(R.string.home_kernel)
+    val deviceModelLabel = stringResource(R.string.home_device_model)
+    val fingerprintLabel = stringResource(R.string.home_fingerprint)
+    val selinuxLabel = stringResource(R.string.home_selinux_status)
+    val seccompLabel = stringResource(R.string.home_seccomp_status)
+
+    val selinuxDisplay = when (systemInfo.selinuxStatus) {
+        "Enforcing" -> stringResource(R.string.selinux_status_enforcing)
+        "Permissive" -> stringResource(R.string.selinux_status_permissive)
+        "Disabled" -> stringResource(R.string.selinux_status_disabled)
+        else -> stringResource(R.string.selinux_status_unknown)
+    }
+    val seccompDisplay = when (systemInfo.seccompStatus) {
+        -1 -> stringResource(R.string.seccomp_status_not_supported)
+        0 -> stringResource(R.string.seccomp_status_disabled)
+        1 -> stringResource(R.string.seccomp_status_strict)
+        2 -> stringResource(R.string.seccomp_status_filter)
+        else -> stringResource(R.string.seccomp_status_unknown)
+    }
+
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(13.dp),
+    ) {
+        SegmentedListGroup(modifier = Modifier.fillMaxWidth()) {
+            infoCardItem(
+                iconRes = R.drawable.ic_tag_rounded,
+                label = managerVersionLabel,
+                content = systemInfo.managerVersion,
+            )
+            infoCardItem(
+                iconRes = R.drawable.ic_developer_board_rounded,
+                label = kernelLabel,
+                content = systemInfo.kernelVersion,
+            )
+            infoCardItem(
+                iconRes = R.drawable.ic_smartphone_rounded,
+                label = deviceModelLabel,
+                content = systemInfo.deviceModel,
+            )
+            infoCardItem(
+                iconRes = R.drawable.ic_fingerprint_rounded,
+                label = fingerprintLabel,
+                content = systemInfo.fingerprint,
+            )
+        }
+        SegmentedListGroup(modifier = Modifier.fillMaxWidth()) {
+            infoCardItem(
+                iconRes = R.drawable.ic_security_rounded,
+                label = selinuxLabel,
+                content = selinuxDisplay,
+            )
+            infoCardItem(
+                iconRes = R.drawable.ic_filter_list_rounded,
+                label = seccompLabel,
+                content = seccompDisplay,
+            )
         }
     }
 }
@@ -513,8 +552,7 @@ private fun HomeScreenPreviewContent(
                 actions = actions
             )
             InfoCard(previewSystemInfo.copy(selinuxStatus = selinuxStatus))
-            DonateCard(onOpenUrl = {})
-            LearnMoreCard(onOpenUrl = {})
+            SupportLinks(onOpenUrl = {})
         }
     }
 }

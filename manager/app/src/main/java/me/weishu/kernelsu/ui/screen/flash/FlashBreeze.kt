@@ -54,7 +54,7 @@ fun FlashScreenBreeze(
                     actions.onReboot()
                 },
                 icon = { Icon(Icons.Filled.Refresh, contentDescription = null) },
-                text = { Text(stringResource(R.string.reboot)) },
+                text = { Text(stringResource(state.rebootLabelRes)) },
                 modifier = Modifier
                     .padding(bottom = fABBottomPadding())
                     .animateFloatingActionButton(state.showRebootAction, alignment = Alignment.CenterEnd),

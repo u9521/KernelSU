@@ -64,16 +64,19 @@ fun MainScreenBreeze(
     onPageChanged: (Int) -> Unit = {},
 ) {
     val navController = LocalNavigator.current
+    val navBarType = currentWindowAdaptiveInfo().getNavBarType()
+    val useNavigationRail = isRailNavbar()
     val pagerState = rememberPagerState(initialPage = initialPage, pageCount = { MainPagerConfig.PAGE_COUNT })
-    val mainPagerState = rememberMainPagerState(pagerState)
+    val mainPagerState = rememberMainPagerState(
+        pagerState = pagerState,
+        animatePageChanges = !useNavigationRail,
+    )
     val isManager = Natives.isManager
     val isFullFeatured = isManager && !Natives.requireNewKernel() && rootAvailable()
     var userScrollEnabled by remember(isFullFeatured) { mutableStateOf(isFullFeatured) }
     val mainScreenHazeState = rememberHazeState()
 
     val isTopRoute = navController.isTopRoute()
-    val navBarType = currentWindowAdaptiveInfo().getNavBarType()
-    val useNavigationRail = isRailNavbar()
     var railExpandedOverride by rememberSaveable { mutableStateOf<Boolean?>(null) }
     val navState = rememberBreezeNavLayoutState(
         initialValue = if (useNavigationRail) NavigationLayoutType.SIDE else NavigationLayoutType.BOTTOM
@@ -147,6 +150,7 @@ fun MainScreenBreeze(
                     .padding(contentPadding.onlyHorizontal()),
                 state = mainPagerState.pagerState,
                 beyondViewportPageCount = if (contentReady) 3 else 0,
+                overscrollEffect = null,
                 userScrollEnabled = userScrollEnabled,
             ) { page ->
                 val isCurrentPage = page == settledPage

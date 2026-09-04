@@ -21,7 +21,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.DropdownMenuGroup
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.SelectableDropdownMenuItem
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -125,6 +125,7 @@ internal fun InstallScreenBreeze(
                 state = uiState,
                 onSelected = actions.onSelectMethod,
                 onSelectBootImage = actions.onSelectBootImage,
+                onDownloadFile = actions.onDownloadFile,
             )
             Spacer(Modifier.height(16.dp))
             InstallConfigGroup(
@@ -155,6 +156,7 @@ private fun InstallMethodSelector(
     state: InstallUiState,
     onSelected: (InstallMethod) -> Unit,
     onSelectBootImage: () -> Unit,
+    onDownloadFile: () -> Unit,
 ) {
     val confirmDialog = rememberConfirmDialog(
         onConfirm = { onSelected(InstallMethod.DirectInstallToInactiveSlot) },
@@ -166,6 +168,7 @@ private fun InstallMethodSelector(
     val onClick = { option: InstallMethod ->
         when (option) {
             is InstallMethod.SelectFile -> onSelectBootImage()
+            is InstallMethod.DownloadFile -> onDownloadFile()
             is InstallMethod.DirectInstall -> onSelected(option)
             is InstallMethod.DirectInstallToInactiveSlot -> confirmDialog.showConfirm(dialogTitle, dialogContent)
         }
@@ -199,7 +202,13 @@ private fun InstallConfigGroup(
     val selectedLkmName = remember(state.lkmSelection) {
         (state.lkmSelection as? LkmSelection.LkmUri)?.let { it.uri.lastPathSegment ?: "(file)" }
     }
-    val selectedPartition = state.displayPartitions.getOrNull(state.partitionSelectionIndex).orEmpty()
+    val isDownloadFile = state.installMethod is InstallMethod.DownloadFile
+    val partitions = if (isDownloadFile) state.remoteDisplayPartitions else state.displayPartitions
+    val selectedPartition = if (isDownloadFile) {
+        state.remoteDisplayPartitions.getOrNull(state.remotePartitionSelectionIndex).orEmpty()
+    } else {
+        state.displayPartitions.getOrNull(state.partitionSelectionIndex).orEmpty()
+    }
     val slotSuffix = state.slotSuffix.ifBlank { null }
     val resources = LocalResources.current
 
@@ -214,7 +223,7 @@ private fun InstallConfigGroup(
         )
         partitionSelector(
             visible = state.canSelectPartition,
-            partitions = state.displayPartitions,
+            partitions = partitions,
             partition = selectedPartition,
             partitionSuffix = slotSuffix,
             onPartitionChange = onSelectPartition,
@@ -320,7 +329,7 @@ private fun SegmentedListScope.partitionSelector(
         menuContent = { dismiss ->
             DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
                 partitions.forEachIndexed { index, name ->
-                    DropdownMenuItem(
+                    SelectableDropdownMenuItem(
                         text = { Text(name) },
                         onClick = {
                             onPartitionChange(index)

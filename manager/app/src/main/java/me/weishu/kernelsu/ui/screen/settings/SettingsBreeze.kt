@@ -19,10 +19,10 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.DropdownMenuGroup
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.SelectableDropdownMenuItem
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -168,7 +168,7 @@ fun SettingPagerBreeze(
                     menuContent = { dismissMenu ->
                         DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
                             uiModes.forEachIndexed { index, name ->
-                                DropdownMenuItem(
+                                SelectableDropdownMenuItem(
                                     text = { Text(name) },
                                     onClick = {
                                         actions.onSetUiModeIndex(index)
@@ -251,6 +251,9 @@ fun SettingPagerBreeze(
                     else -> stringResource(id = R.string.settings_adb_root_summary)
                 }
 
+                val settingsSoftReboot = stringResource(id = R.string.settings_soft_reboot)
+                val settingsSoftRebootSummary = stringResource(id = R.string.settings_soft_reboot_summary)
+
                 SegmentedListGroup {
                     menuItem(
                         content = { Text(stringResource(id = R.string.settings_sucompat)) },
@@ -266,7 +269,7 @@ fun SettingPagerBreeze(
                         menuContent = { dismissMenu ->
                             DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
                                 suCompatModeItems.forEachIndexed { index, name ->
-                                    DropdownMenuItem(
+                                    SelectableDropdownMenuItem(
                                         text = { Text(name) },
                                         onClick = {
                                             actions.onSetSuCompatMode(index)
@@ -340,6 +343,20 @@ fun SettingPagerBreeze(
                         summary = adbRootSummary,
                         checked = { uiState.isAdbRootEnabled },
                         onCheckedChange = actions.onSetAdbRootEnabled
+                    )
+
+                    switchItem(
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_restart_alt_rounded),
+                                contentDescription = settingsSoftReboot
+                            )
+                        },
+                        title = settingsSoftReboot,
+                        summary = settingsSoftRebootSummary,
+                        enabled = !uiState.isLateLoadMode,
+                        checked = { uiState.isLateLoadMode || uiState.useSoftReboot },
+                        onCheckedChange = actions.onSetUseSoftReboot
                     )
 
                 }

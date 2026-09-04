@@ -79,7 +79,8 @@ fun AppProfileScreenBreeze(
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior().disableDrag()
     val profile = state.profile
-    val isRootGranted = profile.allowSu
+    val isSpecialApp = state.appGroup.primary.special
+    val isRootGranted = !isSpecialApp && profile.allowSu
     val hazeState = rememberHazeState()
 
     val initialRootMode = when {
@@ -132,11 +133,12 @@ fun AppProfileScreenBreeze(
                 appUid = state.uid,
                 appVersionName = state.appGroup.primary.packageInfo.versionName ?: "",
                 appVersionCode = state.appGroup.primary.packageInfo.longVersionCode,
-                packageName = if (state.isUidGroup) state.sharedUserId else state.packageName,
+                packageName = if (state.isUidGroup) state.sharedUserId else if (isSpecialApp) state.appGroup.primary.displayIdentifier else state.packageName,
                 affectedAppCount = state.appGroup.apps.size,
                 isRootGranted = isRootGranted,
+                isSpecialApp = isSpecialApp,
                 mode = currentMode.text,
-                menuContent = if (state.isUidGroup) {
+                menuContent = if (state.isUidGroup || isSpecialApp) {
                     null
                 } else {
                     appMenuContent(
@@ -210,6 +212,7 @@ private fun AppInfoGroup(
     packageName: String,
     affectedAppCount: Int,
     isRootGranted: Boolean,
+    isSpecialApp: Boolean,
     mode: String,
     menuContent: (@Composable ColumnScope.(dismissMenu: () -> Unit) -> Unit)?,
     onAllowSuChange: (Boolean) -> Unit,
@@ -224,12 +227,17 @@ private fun AppInfoGroup(
             leadingContent = appIcon,
             supportingContent = {
                 Column {
-                    if (packageName.isNotEmpty()) {
+                    if (isSpecialApp) {
                         Text(packageName)
-                    }
-                    if (!isUidGroup) {
+                    } else if (!isUidGroup) {
                         Text("$appVersionName ($appVersionCode)")
+                        if (packageName.isNotEmpty()) {
+                            Text(packageName)
+                        }
                     } else {
+                        if (packageName.isNotEmpty()) {
+                            Text(packageName)
+                        }
                         Text(stringResource(R.string.group_contains_apps, affectedAppCount))
                     }
                 }
@@ -253,6 +261,7 @@ private fun AppInfoGroup(
             menuContent = menuContent,
         )
         switchItem(
+            visible = !isSpecialApp,
             title = superuserLabel,
             leadingContent = {
                 Icon(
@@ -403,8 +412,10 @@ private fun AffectedAppColumn(
                 content = { Text(app.label) },
                 supportingContent = {
                     Column {
-                        Text(app.packageName)
-                        Text("${app.packageInfo.versionName} ($versionCode)")
+                        Text(app.displayIdentifier)
+                        if (!app.special) {
+                            Text("${app.packageInfo.versionName} ($versionCode)")
+                        }
                     }
                 },
                 leadingContent = {
@@ -417,7 +428,7 @@ private fun AffectedAppColumn(
                         label = app.label,
                     )
                 },
-                menuContent = appMenuContent(
+                menuContent = if (app.special) null else appMenuContent(
                     packageName = app.packageName,
                     userId = app.uid / 100000,
                     actions = actions,
@@ -439,8 +450,6 @@ private fun appMenuContent(
                 dismissMenu()
                 actions.onLaunchApp(packageName, userId)
             },
-            shapes = MenuDefaults.itemShape(index = 0, count = 3),
-            selected = false,
         )
         DropdownMenuItem(
             text = { Text(stringResource(R.string.force_stop_app)) },
@@ -448,8 +457,6 @@ private fun appMenuContent(
                 dismissMenu()
                 actions.onForceStopApp(packageName, userId)
             },
-            shapes = MenuDefaults.itemShape(index = 1, count = 3),
-            selected = false,
         )
         DropdownMenuItem(
             text = { Text(stringResource(R.string.restart_app)) },
@@ -457,8 +464,6 @@ private fun appMenuContent(
                 dismissMenu()
                 actions.onRestartApp(packageName, userId)
             },
-            shapes = MenuDefaults.itemShape(index = 2, count = 3),
-            selected = false,
         )
     }
 }

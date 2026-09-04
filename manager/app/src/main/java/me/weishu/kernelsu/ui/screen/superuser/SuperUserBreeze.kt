@@ -32,8 +32,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.CheckableDropdownMenuItem
 import androidx.compose.material3.DropdownMenuGroup
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DropdownMenuPopup
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -43,6 +43,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.SegmentedListItem
+import androidx.compose.material3.SelectableDropdownMenuItem
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -386,7 +387,7 @@ private fun GroupedAppList(
                             )
                             SimpleAppItem(
                                 app = app,
-                                matched = group.matchedPackageNames.contains(app.packageName),
+                                matched = group.matchedIdentifiers.contains(app.displayIdentifier),
                                 shape = shapes.shape,
                             ) {
                                 onAppClick(group, app)
@@ -462,7 +463,7 @@ private fun SimpleAppItem(
 
     AppIconItem(
         title = { Text(app.label, overflow = TextOverflow.Ellipsis, maxLines = 1) },
-        supportingContent = { Text(app.packageName, overflow = TextOverflow.Ellipsis, maxLines = 1) },
+        supportingContent = { Text(app.displayIdentifier, overflow = TextOverflow.Ellipsis, maxLines = 1) },
         shapes = ListItemDefaults.shapes(shape = shape, pressedShape = shape),
         packageInfo = app.packageInfo,
         iconSize = 40.dp,
@@ -487,7 +488,7 @@ private fun GroupItem(
     val summaryText = if (isGroup) {
         stringResource(R.string.group_contains_apps, group.apps.size)
     } else {
-        group.primary.packageName
+        group.primary.displayIdentifier
     }
     SegmentedListItem(
         onClick = onClickPrimary,
@@ -621,7 +622,7 @@ private fun FilterMenu(
             onDismissRequest = { showDropdown = false }
         ) {
             DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
-                DropdownMenuItem(
+                CheckableDropdownMenuItem(
                     text = { Text(stringResource(R.string.show_system_apps)) },
                     checked = uiState.showSystemApps,
                     checkedLeadingIcon = {
@@ -637,7 +638,7 @@ private fun FilterMenu(
                     shapes = MenuDefaults.itemShape(index = 0, count = 2)
                 )
                 if (uiState.userIds.size > 1) {
-                    DropdownMenuItem(
+                    CheckableDropdownMenuItem(
                         text = { Text(stringResource(R.string.show_only_primary_user_apps)) },
                         checked = uiState.showOnlyPrimaryUserApps,
                         checkedLeadingIcon = {
@@ -685,7 +686,7 @@ private fun SortMenu(
             PopupFeedBack()
             DropdownMenuGroup(shapes = MenuDefaults.groupShape(index = 0, count = 2)) {
                 sortEntries.onEachIndexed { index, (type, resId) ->
-                    DropdownMenuItem(
+                    SelectableDropdownMenuItem(
                         text = { Text(stringResource(resId)) },
                         selected = sortConfig.sortType == type,
                         selectedLeadingIcon = {
@@ -708,17 +709,17 @@ private fun SortMenu(
             }
             Spacer(Modifier.height(MenuDefaults.GroupSpacing))
             DropdownMenuGroup(shapes = MenuDefaults.groupShape(index = 1, count = 2)) {
-                DropdownMenuItem(
+                CheckableDropdownMenuItem(
                     text = { Text(stringResource(R.string.sort_reverse)) },
-                    selected = sortConfig.reversed,
-                    selectedLeadingIcon = {
+                    checked = sortConfig.reversed,
+                    checkedLeadingIcon = {
                         Icon(
                             Icons.Filled.Check,
                             modifier = Modifier.size(MenuDefaults.LeadingIconSize),
                             contentDescription = null,
                         )
                     },
-                    onClick = {
+                    onCheckedChange = {
                         keydownFB()
                         actions.onUpdateSortConfig(sortConfig.toggleReversed())
                     },
