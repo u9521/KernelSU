@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -29,6 +30,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeFlexibleTopAppBar
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -54,13 +56,12 @@ import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import me.weishu.kernelsu.KernelVersion
-import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.WarningLevel
-import me.weishu.kernelsu.ui.component.dialog.rememberConfirmDialog
-import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
 import me.weishu.kernelsu.ui.component.breeze.SegmentedListGroup
 import me.weishu.kernelsu.ui.component.breeze.SegmentedListScope
+import me.weishu.kernelsu.ui.component.dialog.rememberConfirmDialog
+import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
 import me.weishu.kernelsu.ui.component.material.disableDrag
 import me.weishu.kernelsu.ui.component.material.expressiveTopBarColors
 import me.weishu.kernelsu.ui.component.rebootlistpopup.RebootListPopup
@@ -93,34 +94,29 @@ fun HomePagerBreeze(
             } else if (state.showKernelPrBuildWarning) {
                 WarningCard(stringResource(id = R.string.home_pr_kernel_warning), level = WarningLevel.Notice)
             }
-            if (state.showVersionMismatchWarning) {
-                WarningCard(
-                    stringResource(
-                        id = R.string.home_version_mismatch,
-                        state.currentManagerVersionCode,
-                        state.ksuVersion ?: 0
-                    )
-                )
-            }
             if (state.showGkiWarning) {
                 WarningCard(stringResource(id = R.string.home_gki_warning), level = WarningLevel.Notice)
             }
-            if (state.showUAPIMisMatchWarning) {
+            if (state.requiresNewKernel) {
                 WarningCard(
                     stringResource(
-                        id = R.string.uapi_mismatch,
-                        state.managerUAPIVersion,
-                        state.kernelUAPIVersion ?: 0,
+                        id = if (state.lkmMode == true) R.string.require_kernel_version else R.string.require_kernel_version_gki
+                    ),
+                    onClick = if (state.lkmMode == true) actions.onInstallClick else null
+                )
+            }
+            if (state.requiresNewManager) {
+                WarningCard(
+                    stringResource(
+                        id = R.string.require_manager_version
                     )
                 )
             }
-            if (state.showRequireKernelWarning) {
+            if (state.showLkmUpdate) {
                 WarningCard(
-                    stringResource(
-                        id = R.string.require_kernel_version,
-                        state.ksuVersion ?: 0,
-                        Natives.MINIMAL_SUPPORTED_KERNEL
-                    )
+                    message = stringResource(R.string.home_lkm_update_available),
+                    level = WarningLevel.Notice,
+                    onClick = actions.onInstallClick,
                 )
             }
             if (state.showRootWarning) {
@@ -197,116 +193,124 @@ private fun StatusCard(
     state: HomeUiState,
     actions: HomeActions,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        TonalCard(
-            containerColor = if (state.ksuVersion != null) {
-                MaterialTheme.colorScheme.secondaryContainer
-            } else {
-                MaterialTheme.colorScheme.errorContainer
-            }
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        actions.onInstallClick()
-                    }
-                    .padding(24.dp),
-                verticalAlignment = Alignment.CenterVertically
+    val ksuActive = state.ksuVersion != null
+    val notInstalled = !ksuActive && state.kernelVersion.isGKI()
+
+    val containerColor = if (ksuActive) {
+        MaterialTheme.colorScheme.secondaryContainer
+    } else {
+        MaterialTheme.colorScheme.errorContainer
+    }
+    val contentColor = MaterialTheme.colorScheme.contentColorFor(containerColor)
+
+    val statusIcon = when {
+        ksuActive -> R.drawable.ic_check_circle_rounded
+        notInstalled -> R.drawable.ic_warning_rounded
+        else -> R.drawable.ic_block_rounded
+    }
+    val statusTitle = when {
+        ksuActive -> stringResource(R.string.home_working)
+        notInstalled -> stringResource(R.string.home_not_installed)
+        else -> stringResource(R.string.home_unsupported)
+    }
+    val statusSummary = when {
+        ksuActive -> stringResource(R.string.home_working_version, "${state.ksuVersion}-${state.kernelUAPIVersion}")
+        notInstalled -> stringResource(R.string.home_click_to_install)
+        else -> stringResource(R.string.home_unsupported_reason)
+    }
+    val workingMode = if (ksuActive) {
+        when (state.lkmMode) {
+            null -> ""
+            true -> "LKM"
+            else -> "GKI"
+        }
+    } else ""
+
+    val statusTrailing: (@Composable () -> Unit)? = if (notInstalled && state.isSELinuxPermissive) {
+        {
+            Button(
+                onClick = actions.onJailbreakClick,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError
+                )
             ) {
-                when {
-                    state.ksuVersion != null -> {
-                        val workingMode = when (state.lkmMode) {
-                            null -> "Unknown"
-                            true -> "LKM"
-                            else -> "Built-In"
-                        }
-
-                        Icon(painterResource(R.drawable.ic_check_circle_rounded), stringResource(R.string.home_working))
-                        Column(Modifier.padding(start = 20.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = stringResource(id = R.string.home_working),
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                                Spacer(Modifier.width(4.dp))
-                                if (workingMode.isNotEmpty()) {
-                                    StatusTag(
-                                        label = workingMode,
-                                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                                        backgroundColor = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                                if (state.isSafeMode) {
-                                    StatusTag(
-                                        label = stringResource(id = R.string.safe_mode),
-                                        contentColor = MaterialTheme.colorScheme.onError,
-                                        backgroundColor = MaterialTheme.colorScheme.error
-                                    )
-                                }
-                                if (state.isLateLoadMode) {
-                                    StatusTag(
-                                        label = stringResource(id = R.string.jailbreak_mode),
-                                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                                        backgroundColor = MaterialTheme.colorScheme.errorContainer
-                                    )
-                                }
-                            }
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                text = stringResource(R.string.home_working_version, "${state.ksuVersion}-${state.kernelUAPIVersion}"),
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-                    }
-
-                    state.kernelVersion.isGKI() -> {
-                        Icon(painterResource(R.drawable.ic_warning_rounded), stringResource(R.string.home_not_installed))
-                        Column(
-                            modifier = Modifier
-                                .padding(start = 20.dp)
-                                .weight(1f)
-                        ) {
-                            Text(
-                                text = stringResource(R.string.home_not_installed),
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                text = stringResource(R.string.home_click_to_install),
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-                        if (state.isSELinuxPermissive) {
-                            Button(
-                                onClick = actions.onJailbreakClick,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.error,
-                                    contentColor = MaterialTheme.colorScheme.onError
-                                )
-                            ) {
-                                Text(stringResource(R.string.home_jailbreak))
-                            }
-                        }
-                    }
-
-                    else -> {
-                        Icon(painterResource(R.drawable.ic_block_rounded), stringResource(R.string.home_unsupported))
-                        Column(Modifier.padding(start = 20.dp)) {
-                            Text(
-                                text = stringResource(R.string.home_unsupported),
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                text = stringResource(R.string.home_unsupported_reason),
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-                    }
-                }
+                Text(stringResource(R.string.home_jailbreak))
             }
         }
+    } else null
+
+    val cardColors = ListItemDefaults.segmentedColors(
+        containerColor = containerColor,
+        contentColor = contentColor,
+        leadingContentColor = contentColor,
+        trailingContentColor = contentColor,
+        supportingContentColor = contentColor.copy(alpha = 0.7f),
+    )
+
+    val statusTags: @Composable () -> Unit = {
+        if (workingMode != "") {
+            Spacer(Modifier.width(4.dp))
+            StatusTag(
+                label = workingMode,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                backgroundColor = MaterialTheme.colorScheme.primary
+            )
+        }
+        if (ksuActive && state.isSafeMode) {
+            Spacer(Modifier.width(4.dp))
+            StatusTag(
+                label = stringResource(id = R.string.safe_mode),
+                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                backgroundColor = MaterialTheme.colorScheme.errorContainer
+            )
+        }
+        if (ksuActive && state.isLateLoadMode) {
+            Spacer(Modifier.width(4.dp))
+            StatusTag(
+                label = stringResource(id = R.string.jailbreak_mode),
+                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                backgroundColor = MaterialTheme.colorScheme.errorContainer
+            )
+        }
+    }
+
+    SegmentedListGroup {
+        item(
+            modifier = Modifier.heightIn(min = 88.dp),
+            onClick = actions.onInstallClick,
+            colors = cardColors,
+            leadingContent = {
+                Icon(painterResource(statusIcon), contentDescription = statusTitle)
+            },
+            trailingContent = statusTrailing,
+            supportingContent = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = statusSummary,
+                        modifier = Modifier.weight(1f, fill = false),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    if (state.showCustomLkmBadge) {
+                        Spacer(Modifier.width(4.dp))
+                        StatusTag(
+                            label = stringResource(R.string.home_lkm_custom),
+                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                            backgroundColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        )
+                    }
+                }
+            },
+            content = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = statusTitle,
+                        style = MaterialTheme.typography.titleMediumEmphasized
+                    )
+                    statusTags()
+                }
+            },
+        )
     }
 }
 
@@ -370,7 +374,7 @@ private fun SupportLinks(
             supportingContent = { Text(supportContent) },
             leadingContent = {
                 Icon(
-                    painter = painterResource(R.drawable.ic_volunteer_activism_rounded),
+                    painter = painterResource(R.drawable.ic_volunteer_activism_rounded_filled),
                     contentDescription = supportTitle,
                 )
             },
@@ -382,7 +386,7 @@ private fun SupportLinks(
             supportingContent = { Text(learnContent) },
             leadingContent = {
                 Icon(
-                    painter = painterResource(R.drawable.ic_menu_book_rounded),
+                    painter = painterResource(R.drawable.ic_menu_book_rounded_filled),
                     contentDescription = learnTitle,
                 )
             },
@@ -446,22 +450,22 @@ private fun InfoCard(
     ) {
         SegmentedListGroup(modifier = Modifier.fillMaxWidth()) {
             infoCardItem(
-                iconRes = R.drawable.ic_tag_rounded,
+                iconRes = R.drawable.ic_tag_rounded_filled,
                 label = managerVersionLabel,
                 content = systemInfo.managerVersion,
             )
             infoCardItem(
-                iconRes = R.drawable.ic_developer_board_rounded,
+                iconRes = R.drawable.ic_developer_board_rounded_filled,
                 label = kernelLabel,
                 content = systemInfo.kernelVersion,
             )
             infoCardItem(
-                iconRes = R.drawable.ic_smartphone_rounded,
+                iconRes = R.drawable.ic_smartphone_rounded_filled,
                 label = deviceModelLabel,
                 content = systemInfo.deviceModel,
             )
             infoCardItem(
-                iconRes = R.drawable.ic_fingerprint_rounded,
+                iconRes = R.drawable.ic_fingerprint_rounded_filled,
                 label = fingerprintLabel,
                 content = systemInfo.fingerprint,
             )
@@ -591,10 +595,12 @@ private fun previewHomeScreenState(
     kernelVersion = KernelVersion(6, 1, 0),
     ksuVersion = ksuVersion,
     lkmMode = lkmMode,
+    isLkmBundled = lkmMode == true,
     isManager = true,
     isManagerPrBuild = false,
     isKernelPrBuild = false,
     requiresNewKernel = false,
+    requiresNewManager = false,
     isRootAvailable = ksuVersion != null,
     isSafeMode = isSafeMode,
     isLateLoadMode = isLateLoadMode,
@@ -602,7 +608,6 @@ private fun previewHomeScreenState(
     latestVersionInfo = LatestVersionInfo(),
     currentManagerVersionCode = 10000,
     systemInfo = previewSystemInfo.copy(selinuxStatus = selinuxStatus),
-    managerUAPIVersion = 114,
-    kernelUAPIVersion = 514,
-    uapiMismatch = true,
+    kernelUAPIVersion = 1,
+    managerUAPIVersion = 1,
 )

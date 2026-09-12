@@ -318,7 +318,6 @@ fun SegmentedListGroup(
 
 @Composable
 private fun SegmentedListItemRow(
-    modifier: Modifier = Modifier,
     itemData: SegmentedItemData,
     isFirst: Boolean,
     isLast: Boolean,
@@ -370,7 +369,7 @@ private fun SegmentedListItemRow(
 
         SegmentedListItem(
             onClick = onItemClick,
-            modifier = modifier
+            modifier = itemData.modifier
                 .then(styleModifier)
                 .defaultMinSize(minHeight = 72.dp),
             shapes = actualShapes,
@@ -395,7 +394,7 @@ private fun SegmentedListItemRow(
     // If the item has menu content, wrap it in a BrMenuBox (popup trigger)
     if (itemData.menuContent != null) {
         BrMenuBox(
-            modifier = modifier
+            modifier = itemData.modifier
                 .padding(top = topPadding)
                 .fillMaxWidth()
                 .clip(animatedShape),

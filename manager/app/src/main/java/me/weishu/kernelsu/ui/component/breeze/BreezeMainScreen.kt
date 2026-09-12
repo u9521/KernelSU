@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -28,6 +28,7 @@ import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import me.weishu.kernelsu.Natives
@@ -53,7 +54,6 @@ import me.weishu.kernelsu.ui.util.defaultHazeEffect
 import me.weishu.kernelsu.ui.util.getSuperuserCount
 import me.weishu.kernelsu.ui.util.onlyHorizontal
 import me.weishu.kernelsu.ui.util.rememberContentReady
-import me.weishu.kernelsu.ui.util.rootAvailable
 import me.weishu.kernelsu.ui.viewmodel.MainPagerConfig
 import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel
 import me.weishu.kernelsu.ui.viewmodel.SuperUserViewModel
@@ -64,15 +64,14 @@ fun MainScreenBreeze(
     onPageChanged: (Int) -> Unit = {},
 ) {
     val navController = LocalNavigator.current
-    val navBarType = currentWindowAdaptiveInfo().getNavBarType()
+    val navBarType = currentWindowAdaptiveInfoV2().getNavBarType()
     val useNavigationRail = isRailNavbar()
     val pagerState = rememberPagerState(initialPage = initialPage, pageCount = { MainPagerConfig.PAGE_COUNT })
     val mainPagerState = rememberMainPagerState(
         pagerState = pagerState,
         animatePageChanges = !useNavigationRail,
     )
-    val isManager = Natives.isManager
-    val isFullFeatured = isManager && !Natives.requireNewKernel() && rootAvailable()
+    val isFullFeatured = Natives.isFullFeatured()
     var userScrollEnabled by remember(isFullFeatured) { mutableStateOf(isFullFeatured) }
     val mainScreenHazeState = rememberHazeState()
 
@@ -86,23 +85,41 @@ fun MainScreenBreeze(
     val moduleViewModel = viewModel<ModuleViewModel>()
     val moduleUiState by moduleViewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(badgeEnabled) {
-        // The module list normally loads when the module pager is first visited; load it eagerly
-        // so the badge is populated while the user is still on another tab.
-        if (badgeEnabled && moduleViewModel.uiState.value.modules.isEmpty()) {
-            moduleViewModel.initializePreferences()
-            moduleViewModel.loadModuleList()
-            moduleViewModel.syncModuleUpdateInfo(moduleViewModel.uiState.value.modules)
-        }
-    }
-
-    // Loading the app list just for a badge is too expensive; read the kernel allowlist instead.
     val superUserViewModel = viewModel<SuperUserViewModel>()
     val grantedUidCount by remember(superUserViewModel) {
         superUserViewModel.uiState
             .map { state -> state.groupedApps.count { it.anyAllowSu } }
             .distinctUntilChanged()
     }.collectAsStateWithLifecycle(0)
+
+    var startupPreloadStarted by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(isFullFeatured) {
+        if (!isFullFeatured || startupPreloadStarted) {
+            return@LaunchedEffect
+        }
+
+        moduleViewModel.initializePreferences()
+        val moduleState = moduleViewModel.uiState.value
+        if (!moduleState.hasLoaded) {
+            if (!moduleState.isRefreshing) moduleViewModel.fetchModuleList()
+            moduleViewModel.uiState.first { it.hasLoaded }
+        }
+        moduleViewModel.syncModuleUpdateInfo(moduleViewModel.uiState.value.modules)
+
+        val superUserState = superUserViewModel.uiState.value
+        if (!superUserState.hasLoaded) {
+            superUserViewModel.initializePreferences()
+            if (superUserState.isRefreshing) {
+                superUserViewModel.uiState.first { it.hasLoaded }
+            } else {
+                superUserViewModel.loadAppList().join()
+            }
+        }
+
+        startupPreloadStarted = true
+    }
+
+    // Loading the app list just for a badge is too expensive; read the kernel allowlist instead.
     var superuserCount by remember { mutableIntStateOf(0) }
     LaunchedEffect(badgeEnabled, grantedUidCount) {
         superuserCount = if (badgeEnabled) withContext(Dispatchers.IO) { getSuperuserCount() } else 0
@@ -155,10 +172,10 @@ fun MainScreenBreeze(
             ) { page ->
                 val isCurrentPage = page == settledPage
                 when (page) {
-                    0 -> if (isCurrentPage || contentReady) HomePager(navController, bottomInnerPadding, isCurrentPage)
-                    1 -> if (isCurrentPage || contentReady) SuperUserPager(navController, bottomInnerPadding, isCurrentPage)
-                    2 -> if (isCurrentPage || contentReady) ModulePager(bottomInnerPadding, isCurrentPage)
-                    3 -> if (isCurrentPage || contentReady) SettingPager(navController, bottomInnerPadding)
+                    0 -> if (contentReady || isCurrentPage) HomePager(navController, bottomInnerPadding, isCurrentPage)
+                    1 -> if (contentReady || isCurrentPage) SuperUserPager(navController, bottomInnerPadding, isCurrentPage)
+                    2 -> if (contentReady || isCurrentPage) ModulePager(bottomInnerPadding, isCurrentPage)
+                    3 -> if (contentReady || isCurrentPage) SettingPager(navController, bottomInnerPadding, isCurrentPage)
                 }
             }
         }

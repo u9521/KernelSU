@@ -17,7 +17,6 @@ import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.LocalMainPagerState
 import me.weishu.kernelsu.ui.navigation3.breeze.NavigationBarType
 import me.weishu.kernelsu.ui.theme.LocalEnableBlur
-import me.weishu.kernelsu.ui.util.rootAvailable
 
 @Composable
 fun BottomBarBreeze(
@@ -25,12 +24,11 @@ fun BottomBarBreeze(
     navBarType: NavigationBarType = NavigationBarType.Bar,
     navigationBadge: NavigationBadgeState,
 ) {
-    val isManager = Natives.isManager
-    val fullFeatured = isManager && !Natives.requireNewKernel() && rootAvailable()
+    val fullFeatured = Natives.isFullFeatured()
+    if (!fullFeatured) return
+
     val mainPagerState = LocalMainPagerState.current
     val blurEnabled = LocalEnableBlur.current
-
-    if (!fullFeatured) return
 
     val items = listOf(
         Triple(R.string.home, R.drawable.ic_cottage_rounded_filled, R.drawable.ic_cottage_rounded),

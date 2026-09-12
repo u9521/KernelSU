@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.material3.BottomAppBarDefaults
 import androidx.compose.material3.NavigationBarDefaults
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
@@ -23,7 +23,7 @@ fun PaddingValues.onlyHorizontal(): PaddingValues {
 
 @Composable
 fun fABBottomPadding(hasNavBar: Boolean = false): Dp {
-    val barType = currentWindowAdaptiveInfo().getNavBarType()
+    val barType = currentWindowAdaptiveInfoV2().getNavBarType()
     val isRail = barType.isRail()
     if (hasNavBar && !isRail) return 0.dp
     val barInsertHeight = NavigationBarDefaults.windowInsets.asPaddingValues().calculateBottomPadding()

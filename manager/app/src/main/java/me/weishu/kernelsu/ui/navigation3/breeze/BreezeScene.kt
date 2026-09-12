@@ -20,7 +20,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.WindowAdaptiveInfo
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -146,7 +146,7 @@ val LocalHasDetailPane = compositionLocalOf { false }
 fun <T : Any> rememberBreezeListDetailSceneStrategy(
     listContentRatio: MutableFloatState = remember { mutableFloatStateOf(0.4f) },
 ): SceneStrategy<T> {
-    val windowAdaptiveInfo = currentWindowAdaptiveInfo()
+    val windowAdaptiveInfo = currentWindowAdaptiveInfoV2()
     return remember(windowAdaptiveInfo, listContentRatio) {
         BreezeListDetailSceneStrategy(windowAdaptiveInfo, listContentRatio)
     }

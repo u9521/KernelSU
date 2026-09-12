@@ -1,7 +1,7 @@
 package me.weishu.kernelsu.ui.navigation3.breeze
 
 import androidx.compose.material3.adaptive.WindowAdaptiveInfo
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.runtime.Composable
 import androidx.window.core.layout.WindowSizeClass
 
@@ -15,7 +15,7 @@ fun WindowAdaptiveInfo.getNavBarType(): NavigationBarType {
         isTabletop ->
             NavigationBarType.Bar
 
-        sizeClass.isWidthAtLeastBreakpoint(1200) ->
+        sizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_LARGE_LOWER_BOUND) ->
             NavigationBarType.Drawer
 
         sizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND) ->
@@ -35,7 +35,7 @@ fun WindowAdaptiveInfo.isRailNavbar(): Boolean {
 
 @Composable
 fun isRailNavbar(): Boolean {
-    return currentWindowAdaptiveInfo().isRailNavbar()
+    return currentWindowAdaptiveInfoV2().isRailNavbar()
 }
 
 enum class NavigationBarType {

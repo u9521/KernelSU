@@ -14,16 +14,19 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -49,6 +52,7 @@ import me.weishu.kernelsu.ui.component.WarningLevel
 import me.weishu.kernelsu.ui.component.dialog.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.miuix.WarningCard
 import me.weishu.kernelsu.ui.component.rebootlistpopup.RebootListPopupMiuix
+import me.weishu.kernelsu.ui.component.statustag.StatusTag
 import me.weishu.kernelsu.ui.theme.LocalEnableBlur
 import me.weishu.kernelsu.ui.theme.isInDarkTheme
 import me.weishu.kernelsu.ui.util.BlurredBar
@@ -122,45 +126,30 @@ fun HomePagerMiuix(
                         } else if (state.showKernelPrBuildWarning) {
                             WarningCard(stringResource(id = R.string.home_pr_kernel_warning), level = WarningLevel.Notice)
                         }
-                        if (state.showVersionMismatchWarning) {
-                            WarningCard(
-                                stringResource(
-                                    id = R.string.home_version_mismatch,
-                                    state.currentManagerVersionCode,
-                                    state.ksuVersion ?: 0
-                                )
-                            )
-                        }
                         if (state.showGkiWarning) {
                             WarningCard(stringResource(id = R.string.home_gki_warning), level = WarningLevel.Notice)
                         }
-                        if (state.showUAPIMisMatchWarning) {
+                        if (state.requiresNewKernel) {
                             WarningCard(
                                 stringResource(
-                                    id = R.string.uapi_mismatch,
-                                    state.managerUAPIVersion,
-                                    state.kernelUAPIVersion ?: 0,
+                                    id = if (state.lkmMode == true) R.string.require_kernel_version else R.string.require_kernel_version_gki
+                                ),
+                                onClick = if (state.lkmMode == true) actions.onInstallClick else null
+                            )
+                        }
+                        if (state.requiresNewManager) {
+                            WarningCard(
+                                stringResource(
+                                    id = R.string.require_manager_version
                                 )
                             )
                         }
-                        if (state.showRequireKernelWarning) {
-                            if (state.currentManagerVersionCode < (state.ksuVersion ?: 0)) {
-                                WarningCard(
-                                    stringResource(
-                                        id = R.string.require_manager_version,
-                                        state.currentManagerVersionCode,
-                                        state.ksuVersion ?: 0,
-                                    )
-                                )
-                            } else {
-                                WarningCard(
-                                    stringResource(
-                                        id = R.string.require_kernel_version,
-                                        state.ksuVersion ?: 0,
-                                        Natives.MINIMAL_SUPPORTED_KERNEL
-                                    )
-                                )
-                            }
+                        if (state.showLkmUpdate) {
+                            WarningCard(
+                                message = stringResource(R.string.home_lkm_update_available),
+                                level = WarningLevel.Notice,
+                                onClick = actions.onInstallClick,
+                            )
                         }
                         if (state.showRootWarning) {
                             WarningCard(stringResource(id = R.string.grant_root_failed))
@@ -177,7 +166,12 @@ fun HomePagerMiuix(
                             onOpenUrl = actions.onOpenUrl,
                             modifier = Modifier.fillMaxWidth(),
                         )
-                        Spacer(Modifier.height(bottomInnerPadding))
+                        Spacer(
+                            Modifier.height(
+                                bottomInnerPadding + if (!Natives.isFullFeatured())
+                                    WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() else 0.dp
+                            )
+                        )
                     }
                 }
             }
@@ -328,13 +322,36 @@ private fun StatusCard(
                                         fontWeight = FontWeight.SemiBold,
                                     )
                                     Spacer(Modifier.height(1.dp))
-                                    Text(
-                                        text = stringResource(
-                                            R.string.home_working_version,
-                                            "${state.ksuVersion}-${state.kernelUAPIVersion}"
-                                        ),
-                                        fontSize = 15.sp,
-                                    )
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = stringResource(
+                                                R.string.home_working_version,
+                                                "${state.ksuVersion}-${state.kernelUAPIVersion}"
+                                            ),
+                                            modifier = Modifier.weight(1f, fill = false),
+                                            fontSize = 15.sp,
+                                        )
+                                        if (state.showCustomLkmBadge) {
+                                            Spacer(Modifier.width(8.dp))
+                                            StatusTag(
+                                                label = stringResource(R.string.home_lkm_custom),
+                                                contentColor = if (isDynamicColor) {
+                                                    colorScheme.onTertiaryContainer
+                                                } else if (isInDarkTheme()) {
+                                                    Color(0xFFB8E8C5)
+                                                } else {
+                                                    Color(0xFF164A29)
+                                                },
+                                                backgroundColor = if (isDynamicColor) {
+                                                    colorScheme.tertiaryContainer
+                                                } else if (isInDarkTheme()) {
+                                                    Color(0xFF315D3E)
+                                                } else {
+                                                    Color(0xFFB8E8C5)
+                                                },
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -352,7 +369,7 @@ private fun StatusCard(
                             }
                         },
                         showIndication = !state.isLateLoadMode,
-                        pressFeedbackType = PressFeedbackType.Sink
+                        pressFeedbackType = PressFeedbackType.Tilt
                     ) {
                         BasicComponent(
                             title = stringResource(R.string.home_not_installed),
@@ -387,7 +404,7 @@ private fun StatusCard(
                         }
                     },
                     showIndication = !state.isLateLoadMode,
-                    pressFeedbackType = PressFeedbackType.Sink
+                    pressFeedbackType = PressFeedbackType.Tilt
                 ) {
                     BasicComponent(
                         title = stringResource(R.string.home_unsupported),
@@ -420,7 +437,7 @@ private fun SupportLinks(
             summary = stringResource(R.string.home_support_content),
             startAction = {
                 Icon(
-                    painter = painterResource(R.drawable.ic_volunteer_activism_rounded),
+                    painter = painterResource(R.drawable.ic_volunteer_activism_rounded_filled),
                     contentDescription = stringResource(R.string.home_support_title),
                     modifier = Modifier.padding(end = 6.dp),
                     tint = colorScheme.onBackground,
@@ -433,7 +450,7 @@ private fun SupportLinks(
             summary = stringResource(R.string.home_click_to_learn_kernelsu),
             startAction = {
                 Icon(
-                    painter = painterResource(R.drawable.ic_menu_book_rounded),
+                    painter = painterResource(R.drawable.ic_menu_book_rounded_filled),
                     contentDescription = stringResource(R.string.home_learn_kernelsu),
                     modifier = Modifier.padding(end = 6.dp),
                     tint = colorScheme.onBackground,
@@ -508,22 +525,22 @@ private fun InfoCard(
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
                 InfoText(
-                    icon = ImageVector.vectorResource(R.drawable.ic_tag_rounded),
+                    icon = ImageVector.vectorResource(R.drawable.ic_tag_rounded_filled),
                     title = stringResource(R.string.home_manager_version),
                     content = systemInfo.managerVersion,
                 )
                 InfoText(
-                    icon = ImageVector.vectorResource(R.drawable.ic_developer_board_rounded),
+                    icon = ImageVector.vectorResource(R.drawable.ic_developer_board_rounded_filled),
                     title = stringResource(R.string.home_kernel),
                     content = systemInfo.kernelVersion,
                 )
                 InfoText(
-                    icon = ImageVector.vectorResource(R.drawable.ic_smartphone_rounded),
+                    icon = ImageVector.vectorResource(R.drawable.ic_smartphone_rounded_filled),
                     title = stringResource(R.string.home_device_model),
                     content = systemInfo.deviceModel,
                 )
                 InfoText(
-                    icon = ImageVector.vectorResource(R.drawable.ic_fingerprint_rounded),
+                    icon = ImageVector.vectorResource(R.drawable.ic_fingerprint_rounded_filled),
                     title = stringResource(R.string.home_fingerprint),
                     content = systemInfo.fingerprint,
                     bottomPadding = 0.dp,
@@ -665,10 +682,12 @@ private fun previewHomeScreenState(
     kernelVersion = KernelVersion(6, 1, 0),
     ksuVersion = ksuVersion,
     lkmMode = lkmMode,
+    isLkmBundled = lkmMode == true,
     isManager = true,
     isManagerPrBuild = false,
     isKernelPrBuild = false,
     requiresNewKernel = false,
+    requiresNewManager = false,
     isRootAvailable = ksuVersion != null,
     isSafeMode = isSafeMode,
     isLateLoadMode = isLateLoadMode,
@@ -678,5 +697,4 @@ private fun previewHomeScreenState(
     systemInfo = previewSystemInfo.copy(selinuxStatus = selinuxStatus),
     kernelUAPIVersion = 1,
     managerUAPIVersion = 1,
-    uapiMismatch = false,
 )

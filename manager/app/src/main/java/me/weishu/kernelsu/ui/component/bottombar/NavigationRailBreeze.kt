@@ -32,7 +32,6 @@ import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.LocalMainPagerState
 import me.weishu.kernelsu.ui.navigation3.breeze.NavigationBarType
 import me.weishu.kernelsu.ui.navigation3.breeze.isRail
-import me.weishu.kernelsu.ui.util.rootAvailable
 
 private data class RailItem(
     val label: Int,
@@ -56,8 +55,7 @@ fun NavigationRailBreeze(
     onExpandedOverrideChange: (Boolean?) -> Unit = {},
 ) {
     if (!navBarType.isRail()) return
-    val isManager = Natives.isManager
-    val fullFeatured = isManager && !Natives.requireNewKernel() && rootAvailable()
+    val fullFeatured = Natives.isFullFeatured()
     if (!fullFeatured) return
     val mainPagerState = LocalMainPagerState.current
 
