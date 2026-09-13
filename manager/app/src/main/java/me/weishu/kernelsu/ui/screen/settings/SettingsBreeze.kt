@@ -128,7 +128,7 @@ fun SettingPagerBreeze(
                 switchItem(
                     leadingContent = {
                         Icon(
-                            painter = painterResource(R.drawable.ic_bug_report_rounded_filled),
+                            painter = painterResource(R.drawable.ic_update_rounded_filled),
                             contentDescription = settingsCheckUpdate
                         )
                     },

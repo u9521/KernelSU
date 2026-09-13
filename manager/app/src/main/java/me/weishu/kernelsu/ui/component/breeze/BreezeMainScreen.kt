@@ -69,17 +69,19 @@ fun MainScreenBreeze(
     val pagerState = rememberPagerState(initialPage = initialPage, pageCount = { MainPagerConfig.PAGE_COUNT })
     val mainPagerState = rememberMainPagerState(
         pagerState = pagerState,
-        animatePageChanges = !useNavigationRail,
+        animatePageChanges = true,
     )
     val isFullFeatured = Natives.isFullFeatured()
-    var userScrollEnabled by remember(isFullFeatured) { mutableStateOf(isFullFeatured) }
     val mainScreenHazeState = rememberHazeState()
 
-    val isTopRoute = navController.isTopRoute()
     var railExpandedOverride by rememberSaveable { mutableStateOf<Boolean?>(null) }
     val navState = rememberBreezeNavLayoutState(
         initialValue = if (useNavigationRail) NavigationLayoutType.SIDE else NavigationLayoutType.BOTTOM
     )
+    val isTopRoute = navController.isTopRoute()
+    val isNavVisible = isTopRoute && navState.targetValue != NavigationLayoutType.HIDDEN
+    var userScrollEnabled by remember(isFullFeatured, isNavVisible) { mutableStateOf(isFullFeatured && isNavVisible) }
+
     val enableNavigationBadge = LocalEnableNavigationBadge.current
     val badgeEnabled = enableNavigationBadge && isFullFeatured
     val moduleViewModel = viewModel<ModuleViewModel>()

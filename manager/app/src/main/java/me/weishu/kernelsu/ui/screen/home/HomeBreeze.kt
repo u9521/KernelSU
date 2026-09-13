@@ -377,8 +377,7 @@ private fun SupportLinks(
                     painter = painterResource(R.drawable.ic_volunteer_activism_rounded_filled),
                     contentDescription = supportTitle,
                 )
-            },
-            trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) },
+            }
         )
         item(
             onClick = { onOpenUrl(learnMoreUrl) },
@@ -389,8 +388,7 @@ private fun SupportLinks(
                     painter = painterResource(R.drawable.ic_menu_book_rounded_filled),
                     contentDescription = learnTitle,
                 )
-            },
-            trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) },
+            }
         )
     }
 }
