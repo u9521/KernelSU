@@ -22,8 +22,6 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -94,9 +92,9 @@ fun HomePagerBreeze(
             } else if (state.showKernelPrBuildWarning) {
                 WarningCard(stringResource(id = R.string.home_pr_kernel_warning), level = WarningLevel.Notice)
             }
-            if (state.showGkiWarning) {
-                WarningCard(stringResource(id = R.string.home_gki_warning), level = WarningLevel.Notice)
-            }
+//            if (state.showGkiWarning) {
+//                WarningCard(stringResource(id = R.string.home_gki_warning), level = WarningLevel.Notice)
+//            }
             if (state.requiresNewKernel) {
                 WarningCard(
                     stringResource(
@@ -112,13 +110,13 @@ fun HomePagerBreeze(
                     )
                 )
             }
-            if (state.showLkmUpdate) {
-                WarningCard(
-                    message = stringResource(R.string.home_lkm_update_available),
-                    level = WarningLevel.Notice,
-                    onClick = actions.onInstallClick,
-                )
-            }
+//            if (state.showLkmUpdate) {
+//                WarningCard(
+//                    message = stringResource(R.string.home_lkm_update_available),
+//                    level = WarningLevel.Notice,
+//                    onClick = actions.onInstallClick,
+//                )
+//            }
             if (state.showRootWarning) {
                 WarningCard(stringResource(id = R.string.grant_root_failed))
             }

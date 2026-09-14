@@ -215,7 +215,6 @@ fun <T> MultiSelectBottomSheet(
             state = listState,
             modifier = Modifier.weight(1f, fill = true),
             verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
-//            contentPadding = PaddingValues(bottom = 16.dp)
         ) {
             items(items = filteredList, key = { optionTitle(it) to (optionSubtitle(it) ?: "") }) { item ->
                 val isSelected = selectedItems.contains(item)
@@ -257,7 +256,7 @@ fun <T> MultiSelectBottomSheet(
                     })
             }
             item("bottomPadding") {
-                Spacer(modifier = Modifier.navigationBarsPadding())
+                Spacer(modifier = Modifier.navigationBarsPadding().height(16.dp))
             }
         }
         if (filteredList.isEmpty()) {
