@@ -1,0 +1,241 @@
+package me.weishu.kernelsu.breezeui.screen
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
+import me.weishu.kernelsu.Natives
+import me.weishu.kernelsu.breezeui.component.bottombar.BottomBarBreeze
+import me.weishu.kernelsu.breezeui.component.bottombar.BreezeNavigationLayout
+import me.weishu.kernelsu.breezeui.component.bottombar.NavigationLayoutType
+import me.weishu.kernelsu.breezeui.component.bottombar.NavigationRailBreeze
+import me.weishu.kernelsu.breezeui.component.bottombar.rememberBreezeNavLayoutState
+import me.weishu.kernelsu.breezeui.nav.BreezeNavigator
+import me.weishu.kernelsu.breezeui.nav.BreezeRoute
+import me.weishu.kernelsu.breezeui.nav.LocalBreezeNavigator
+import me.weishu.kernelsu.breezeui.nav.getNavBarType
+import me.weishu.kernelsu.breezeui.nav.isRailNavbar
+import me.weishu.kernelsu.breezeui.nav.isTopRoute
+import me.weishu.kernelsu.breezeui.screen.home.HomeEntry
+import me.weishu.kernelsu.breezeui.screen.module.ModuleEntry
+import me.weishu.kernelsu.breezeui.screen.settings.SettingsEntry
+import me.weishu.kernelsu.breezeui.screen.superuser.SuperUserEntry
+import me.weishu.kernelsu.breezeui.util.bottomBarHazeStyle
+import me.weishu.kernelsu.breezeui.util.defaultHazeEffect
+import me.weishu.kernelsu.breezeui.util.onlyHorizontal
+import me.weishu.kernelsu.breezeui.util.rememberBreezeContentReady
+import me.weishu.kernelsu.ui.component.bottombar.MainPagerState
+import me.weishu.kernelsu.ui.component.bottombar.NavigationBadgeState
+import me.weishu.kernelsu.ui.component.bottombar.rememberMainPagerState
+import me.weishu.kernelsu.ui.theme.LocalEnableNavigationBadge
+import me.weishu.kernelsu.ui.util.getSuperuserCount
+import me.weishu.kernelsu.ui.viewmodel.MainPagerConfig
+import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel
+import me.weishu.kernelsu.ui.viewmodel.SuperUserViewModel
+
+@Composable
+fun MainScreenBreeze(
+    initialPage: Int = 0,
+    onPageChanged: (Int) -> Unit = {},
+) {
+    val navController = LocalBreezeNavigator.current
+    val navBarType = currentWindowAdaptiveInfoV2().getNavBarType()
+    val useNavigationRail = isRailNavbar()
+    val pagerState = rememberPagerState(initialPage = initialPage, pageCount = { MainPagerConfig.PAGE_COUNT })
+    val mainPagerState = rememberMainPagerState(
+        pagerState = pagerState,
+        animatePageChanges = true,
+    )
+    val isFullFeatured = Natives.isFullFeatured()
+    val mainScreenHazeState = rememberHazeState()
+
+    var railExpandedOverride by rememberSaveable { mutableStateOf<Boolean?>(null) }
+    val navState = rememberBreezeNavLayoutState(
+        initialValue = if (useNavigationRail) NavigationLayoutType.SIDE else NavigationLayoutType.BOTTOM
+    )
+    val isTopRoute = navController.isTopRoute()
+    val isNavVisible = isTopRoute && navState.targetValue != NavigationLayoutType.HIDDEN
+    var userScrollEnabled by remember(isFullFeatured, isNavVisible) { mutableStateOf(isFullFeatured && isNavVisible) }
+
+    val enableNavigationBadge = LocalEnableNavigationBadge.current
+    val badgeEnabled = enableNavigationBadge && isFullFeatured
+    val moduleViewModel = viewModel<ModuleViewModel>()
+    val moduleUiState by moduleViewModel.uiState.collectAsStateWithLifecycle()
+
+    val superUserViewModel = viewModel<SuperUserViewModel>()
+    val grantedUidCount by remember(superUserViewModel) {
+        superUserViewModel.uiState
+            .map { state -> state.groupedApps.count { it.anyAllowSu } }
+            .distinctUntilChanged()
+    }.collectAsStateWithLifecycle(0)
+
+    var startupPreloadStarted by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(isFullFeatured) {
+        if (!isFullFeatured || startupPreloadStarted) {
+            return@LaunchedEffect
+        }
+
+        moduleViewModel.initializePreferences()
+        val moduleState = moduleViewModel.uiState.value
+        if (!moduleState.hasLoaded) {
+            if (!moduleState.isRefreshing) moduleViewModel.fetchModuleList()
+            moduleViewModel.uiState.first { it.hasLoaded }
+        }
+        moduleViewModel.syncModuleUpdateInfo(moduleViewModel.uiState.value.modules)
+
+        val superUserState = superUserViewModel.uiState.value
+        if (!superUserState.hasLoaded) {
+            superUserViewModel.initializePreferences()
+            if (superUserState.isRefreshing) {
+                superUserViewModel.uiState.first { it.hasLoaded }
+            } else {
+                superUserViewModel.loadAppList().join()
+            }
+        }
+
+        startupPreloadStarted = true
+    }
+
+    // Loading the app list just for a badge is too expensive; read the kernel allowlist instead.
+    var superuserCount by remember { mutableIntStateOf(0) }
+    LaunchedEffect(badgeEnabled, grantedUidCount) {
+        superuserCount = if (badgeEnabled) withContext(Dispatchers.IO) { getSuperuserCount() } else 0
+    }
+
+    val navigationBadge = if (badgeEnabled) {
+        NavigationBadgeState(
+            superuserCount = superuserCount,
+            moduleEnabledCount = moduleUiState.modules.count { it.enabled },
+            moduleUpdatableCount = moduleUiState.updateInfo.count { it.value.downloadUrl.isNotBlank() },
+        )
+    } else {
+        NavigationBadgeState()
+    }
+
+    LaunchedEffect(isTopRoute, useNavigationRail) {
+        if (!isTopRoute) {
+            navState.hideNavController()
+            return@LaunchedEffect
+        }
+        if (useNavigationRail) navState.showRail() else navState.showBar()
+    }
+
+    val settledPage = mainPagerState.pagerState.settledPage
+    LaunchedEffect(settledPage) {
+        onPageChanged(settledPage)
+    }
+
+    val currentPage = mainPagerState.pagerState.currentPage
+    LaunchedEffect(currentPage) {
+        mainPagerState.syncPage()
+    }
+
+    MainScreenBackHandler(mainPagerState, navController)
+
+    CompositionLocalProvider(
+        LocalBreezeMainPagerState provides mainPagerState
+    ) {
+        val contentReady = rememberBreezeContentReady()
+        val pagerContent = @Composable { contentPadding: PaddingValues ->
+            val bottomInnerPadding = contentPadding.calculateBottomPadding()
+            HorizontalPager(
+                modifier = Modifier
+                    .hazeSource(mainScreenHazeState)
+                    .padding(contentPadding.onlyHorizontal()),
+                state = mainPagerState.pagerState,
+                beyondViewportPageCount = if (contentReady) 3 else 0,
+                overscrollEffect = null,
+                userScrollEnabled = userScrollEnabled,
+            ) { page ->
+                val isCurrentPage = page == settledPage
+                when (page) {
+                    0 -> if (contentReady || isCurrentPage) HomeEntry(bottomInnerPadding, isCurrentPage)
+                    1 -> if (contentReady || isCurrentPage) SuperUserEntry(bottomInnerPadding, isCurrentPage)
+                    2 -> if (contentReady || isCurrentPage) ModuleEntry(bottomInnerPadding, isCurrentPage)
+                    3 -> if (contentReady || isCurrentPage) SettingsEntry(bottomInnerPadding, isCurrentPage)
+                }
+            }
+        }
+
+        BreezeNavigationLayout(
+            state = navState,
+            bottomBar = {
+                Box(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    BottomBarBreeze(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .defaultHazeEffect(mainScreenHazeState, bottomBarHazeStyle()),
+                        navBarType = navBarType,
+                        navigationBadge = navigationBadge
+                    )
+                }
+            },
+            sideBar = {
+                NavigationRailBreeze(
+                    navBarType = navBarType,
+                    navigationBadge = navigationBadge,
+                    expandedOverride = railExpandedOverride,
+                    onExpandedOverrideChange = { railExpandedOverride = it },
+                    modifier = Modifier,
+                )
+            },
+        ) { contentPadding ->
+            pagerContent(contentPadding)
+        }
+    }
+}
+
+@Composable
+private fun MainScreenBackHandler(
+    mainState: MainPagerState,
+    navController: BreezeNavigator,
+) {
+    val isPagerBackHandlerEnabled by remember {
+        derivedStateOf {
+            navController.current() is BreezeRoute.Main && navController.backStackSize() == 1 && mainState.selectedPage != 0
+        }
+    }
+
+    val navEventState = rememberNavigationEventState(NavigationEventInfo.None)
+
+    NavigationBackHandler(
+        state = navEventState,
+        isBackEnabled = isPagerBackHandlerEnabled,
+        onBackCompleted = {
+            mainState.animateToPage(0)
+        }
+    )
+}
+
+/** The pager state of Breeze's main screen; Breeze owns it so the shared bottom bar stays untouched. */
+val LocalBreezeMainPagerState = staticCompositionLocalOf<MainPagerState> { error("LocalBreezeMainPagerState not provided") }

@@ -43,6 +43,11 @@ class WebUIActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
+            // S4: Breeze seam. Everything below stays exactly as upstream ships it.
+            if (me.weishu.kernelsu.breezeui.BreezeMode.rememberIsEnabled()) {
+                me.weishu.kernelsu.breezeui.webui.BreezeWebUIRoot(this) { finish() }
+                return@setContent
+            }
             val context = LocalContext.current
             val prefs = context.getSharedPreferences("settings", MODE_PRIVATE)
             val settingsRepo = remember { SettingsRepositoryImpl() }

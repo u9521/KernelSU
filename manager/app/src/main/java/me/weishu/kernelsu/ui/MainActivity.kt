@@ -173,6 +173,11 @@ class MainActivity : ComponentActivity() {
                 LocalModuleDescriptionMaxLines provides uiState.moduleDescriptionMaxLines,
                 LocalUiMode provides uiMode,
             ) {
+                // S1: Breeze seam. Everything below stays exactly as upstream ships it.
+                if (me.weishu.kernelsu.breezeui.BreezeMode.rememberIsEnabled()) {
+                    me.weishu.kernelsu.breezeui.BreezeRoot(intentChannel) { contentReady = true }
+                    return@CompositionLocalProvider
+                }
                 KernelSUTheme(appSettings = appSettings, uiMode = uiMode) {
                     IntentDispatcher(intentChannel = intentChannel)
                     val swipeDismiss = if (uiState.enableSwipeDismiss) {

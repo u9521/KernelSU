@@ -1,0 +1,244 @@
+# Material Symbols icons shipped by the manager app.
+#
+# This file is the source of truth: add, remove or restyle an icon here and
+# regenerate - the script itself never needs to change.
+#
+#   python3 .agents/skills/material-symbols-icons/fetch_material_icons.py
+#   python3 .agents/skills/material-symbols-icons/fetch_material_icons.py --icons info
+#
+# [defaults] is the style shared by every icon. It must stay equal to the
+# hand-written SymbolStyle.FilledRounded in
+# manager/app/src/main/java/me/weishu/kernelsu/breezeui/icons/MaterialSymbol.kt,
+# otherwise the script refuses to run.
+#
+# One [[icons]] block per icon; `name` is the Material Symbols name. An entry may
+# override any of: family, fill, opsz, wght, grad, rond, auto_mirror. The same
+# name may appear twice with different `fill` (e.g. the filled and unfilled
+# variants of Cottage). `auto_mirror = true` matches androidx's Icons.AutoMirrored.
+# Ranges: opsz 20..48, wght 100..700, fill 0|1, grad -50..200, rond 0..100.
+
+[defaults]
+family = "Rounded"
+fill = 1
+opsz = 24
+wght = 400
+grad = 0
+rond = 50
+
+# --- icons used by the settings screens ---
+
+[[icons]]
+name = "system_update"
+
+[[icons]]
+name = "system_update_alt"
+
+[[icons]]
+name = "display_settings"
+
+[[icons]]
+name = "palette"
+
+[[icons]]
+name = "description"
+
+[[icons]]
+name = "admin_panel_settings"
+
+[[icons]]
+name = "layers_clear"
+
+[[icons]]
+name = "security"
+
+[[icons]]
+name = "article"
+auto_mirror = true
+
+[[icons]]
+name = "adb"
+
+[[icons]]
+name = "restart_alt"
+
+[[icons]]
+name = "rule"
+auto_mirror = true
+
+[[icons]]
+name = "developer_mode"
+
+[[icons]]
+name = "flash_on"
+
+[[icons]]
+name = "delete"
+
+[[icons]]
+name = "bug_report"
+
+[[icons]]
+name = "info"
+
+# --- icons migrated from the res/drawable vector XMLs ---
+[[icons]]
+name = "aspect_ratio"
+fill = 0
+
+[[icons]]
+name = "block"
+fill = 0
+auto_mirror = true
+
+[[icons]]
+name = "blur_on"
+fill = 0
+
+[[icons]]
+name = "brightness_1"
+
+[[icons]]
+name = "brightness_2"
+
+[[icons]]
+name = "brightness_5"
+
+[[icons]]
+name = "brightness_auto"
+
+[[icons]]
+name = "check_circle"
+fill = 0
+
+[[icons]]
+name = "cottage"
+fill = 0
+
+[[icons]]
+name = "cottage"
+
+[[icons]]
+name = "delete_forever"
+
+[[icons]]
+name = "delete_sweep"
+fill = 0
+
+[[icons]]
+name = "design_services"
+
+[[icons]]
+name = "developer_board"
+fill = 0
+
+[[icons]]
+name = "download_2"
+fill = 0
+
+[[icons]]
+name = "drive_file_move"
+fill = 0
+auto_mirror = true
+
+[[icons]]
+name = "extension"
+fill = 0
+
+[[icons]]
+name = "extension"
+
+[[icons]]
+name = "filter_list"
+fill = 0
+
+[[icons]]
+name = "fingerprint"
+
+[[icons]]
+name = "hard_drive"
+fill = 0
+
+[[icons]]
+name = "keyboard_arrow_down"
+fill = 0
+
+[[icons]]
+name = "menu"
+fill = 0
+
+[[icons]]
+name = "menu_book"
+auto_mirror = true
+
+[[icons]]
+name = "menu_open"
+fill = 0
+auto_mirror = true
+
+[[icons]]
+name = "pin"
+
+[[icons]]
+name = "restart_alt"
+fill = 0
+
+[[icons]]
+name = "save"
+
+[[icons]]
+name = "security"
+fill = 0
+
+[[icons]]
+name = "settings"
+fill = 0
+
+[[icons]]
+name = "settings"
+
+[[icons]]
+name = "shield"
+fill = 0
+
+[[icons]]
+name = "smartphone"
+fill = 0
+
+[[icons]]
+name = "sort"
+fill = 0
+auto_mirror = true
+
+[[icons]]
+name = "splitscreen_right"
+fill = 0
+auto_mirror = true
+
+[[icons]]
+name = "style"
+
+[[icons]]
+name = "swap_vert"
+fill = 0
+
+[[icons]]
+name = "sync"
+
+[[icons]]
+name = "tag"
+
+[[icons]]
+name = "undo"
+auto_mirror = true
+
+[[icons]]
+name = "volunteer_activism"
+
+[[icons]]
+name = "warning"
+fill = 0
+
+[[icons]]
+name = "wysiwyg"
+fill = 0
+auto_mirror = true

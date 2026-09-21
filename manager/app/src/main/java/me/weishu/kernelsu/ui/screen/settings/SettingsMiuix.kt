@@ -163,6 +163,8 @@ fun SettingPagerMiuix(
                             selectedIndex = if (uiState.uiMode == UiMode.Material.value) 1 else 0,
                             onSelectedIndexChange = actions.onSetUiModeIndex
                         )
+                        // S3: Breeze seam.
+                        me.weishu.kernelsu.breezeui.BreezeSettingsRowMiuix()
                         ArrowPreference(
                             title = stringResource(id = R.string.settings_theme),
                             summary = stringResource(id = R.string.settings_theme_summary),

@@ -132,6 +132,8 @@ fun SettingPagerMaterial(
                             onItemSelected = actions.onSetUiModeIndex
                         )
                     }
+                    // S2: Breeze seam.
+                    add { me.weishu.kernelsu.breezeui.BreezeSettingsRowMaterial() }
                     add {
                         SegmentedListItem(
                             onClick = actions.onOpenTheme,

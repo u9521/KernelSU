@@ -1,0 +1,55 @@
+package me.weishu.kernelsu.breezeui.component.dialog
+
+import android.net.Uri
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import me.weishu.kernelsu.R
+import me.weishu.kernelsu.breezeui.util.ModuleParser
+import me.weishu.kernelsu.data.model.Module
+import me.weishu.kernelsu.ui.util.getFileName
+
+@Composable
+fun InstallModuleDialog(
+    uris: List<Uri>,
+    getInstalledModules: suspend () -> List<Module>,
+    onConfirmInstall: (List<Uri>) -> Unit,
+    onDismiss: () -> Unit
+) {
+    if (uris.isEmpty()) return
+
+    val context = LocalContext.current
+    val loadingDialog = rememberBreezeLoadingDialog()
+    val confirmTitle = stringResource(R.string.module)
+    val multiConfirmContent = stringResource(R.string.module_install_prompt_with_name)
+    val confirmDialog = rememberBreezeConfirmDialog(
+        onConfirm = {
+            onConfirmInstall(uris)
+            onDismiss()
+        },
+        onDismiss = onDismiss
+    )
+
+    LaunchedEffect(uris) {
+        var isMarkdown = false
+        val confirmContent = if (uris.size == 1) {
+            isMarkdown = true
+            loadingDialog.withLoading {
+                val moduleList = getInstalledModules()
+                withContext(Dispatchers.IO) {
+                    ModuleParser.getModuleInstallDesc(context, uris.first(), moduleList)
+                }
+            }
+        } else {
+            val moduleNames = uris.mapIndexed { index, uri ->
+                "\n${index + 1}. ${uri.getFileName(context)}"
+            }.joinToString("")
+            multiConfirmContent.format(moduleNames)
+        }
+
+        confirmDialog.showConfirm(title = confirmTitle, content = confirmContent, markdown = isMarkdown)
+    }
+}
