@@ -186,7 +186,7 @@ private fun UninstallSelectionDialogBreeze(
 @Preview
 private fun UninstallDialogPrevBreeze() {
     val show = remember { mutableStateOf(true) }
-    val navigator = BreezeNavigator(BreezeRoute.Home)
+    val navigator = BreezeNavigator(BreezeRoute.TabRoute.Home)
     CompositionLocalProvider(LocalBreezeNavigator provides navigator) {
         UninstallDialogBreeze(
             true,

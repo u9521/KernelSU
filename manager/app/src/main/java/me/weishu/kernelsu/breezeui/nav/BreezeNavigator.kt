@@ -28,7 +28,25 @@ class BreezeNavigator(
 
     private val resultBus = mutableMapOf<String, MutableSharedFlow<Any>>()
 
+    /**
+     * Navigate to [key].
+     *
+     * A page route ([BreezeRoute.isMainPage]) is not stacked on top of anything: it *is* the page
+     * on screen, so it owns the whole back stack - which is emptied and rebuilt around it, dropping
+     * the details of the page that was left. Going back then returns to the first page rather than
+     * to the page the tab was tapped from, and the pager follows the stack: the page slides in from
+     * where it is now instead of appearing out of a transition.
+     *
+     * Every other key is pushed on top of the page it was opened from, replacing a top entry of the
+     * same type - which is what Breeze's list/detail panes rely on.
+     */
     fun push(key: NavKey) {
+        if (key.isMainPage()) {
+            if (backStack.size == 1 && current() == key) return
+            backStack.clear()
+            backStack.add(key)
+            return
+        }
         if (current() == key) return
         current()?.let {
             if (it.javaClass == key.javaClass) {
@@ -58,9 +76,10 @@ class BreezeNavigator(
     }
 
     /**
-     * Pop the top key if present. The root entry is never popped: an empty back stack makes
-     * androidx.navigation3's `NavDisplay` fail its `require(backStack.isNotEmpty())` check.
-     * Matches upstream's `ui.navigation3.Navigator` after `manager: fix a crash issue`.
+     * Pop the top key if present. The bottom entry is the page on screen (a page route) and is never
+     * popped: an empty back stack makes androidx.navigation3's `NavDisplay` fail its
+     * `require(backStack.isNotEmpty())` check. Matches upstream's `ui.navigation3.Navigator` after
+     * `manager: fix a crash issue`.
      */
     fun pop() {
         if (backStack.size > 1) {
@@ -113,7 +132,7 @@ class BreezeNavigator(
         val Saver: Saver<BreezeNavigator, Any> = listSaver(save = { navigator ->
             navigator.backStack.toList()
         }, restore = { savedList ->
-            val initialKey = savedList.firstOrNull() ?: BreezeRoute.Home
+            val initialKey = savedList.firstOrNull() ?: BreezeRoute.TabRoute.Home
             val navigator = BreezeNavigator(initialKey)
             navigator.backStack.clear()
             navigator.backStack.addAll(savedList)

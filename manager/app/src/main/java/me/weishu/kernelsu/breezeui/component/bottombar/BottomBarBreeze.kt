@@ -14,7 +14,9 @@ import androidx.compose.ui.unit.dp
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.breezeui.icons.MaterialSymbols
+import me.weishu.kernelsu.breezeui.nav.LocalBreezeNavigator
 import me.weishu.kernelsu.breezeui.nav.NavigationBarType
+import me.weishu.kernelsu.breezeui.nav.mainPageRoute
 import me.weishu.kernelsu.breezeui.screen.LocalBreezeMainPagerState
 import me.weishu.kernelsu.ui.component.bottombar.NavigationBadgeState
 import me.weishu.kernelsu.ui.component.bottombar.NavigationIconWithBadge
@@ -31,6 +33,7 @@ fun BottomBarBreeze(
     if (!fullFeatured) return
 
     val mainPagerState = LocalBreezeMainPagerState.current
+    val navigator = LocalBreezeNavigator.current
     val blurEnabled = LocalEnableBlur.current
 
     val items = listOf(
@@ -53,7 +56,7 @@ fun BottomBarBreeze(
                 selected = selected,
                 onClick = {
                     if (!selected) {
-                        mainPagerState.animateToPage(index)
+                        navigator.push(mainPageRoute(index))
                     }
                 },
                 icon = {

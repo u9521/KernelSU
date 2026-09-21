@@ -17,25 +17,15 @@ import me.weishu.kernelsu.ui.viewmodel.TemplateViewModel
  * argument payloads (`FlashIt`, `RepoModuleArg`, `TemplateInfo`) are shared.
  */
 sealed interface BreezeRoute : NavKey, Parcelable {
-    @Parcelize
-    @Serializable
-    data object Main : BreezeRoute
 
     @Parcelize
     @Serializable
-    data object Home : BreezeRoute
-
-    @Parcelize
-    @Serializable
-    data object SuperUser : BreezeRoute
-
-    @Parcelize
-    @Serializable
-    data object Module : BreezeRoute
-
-    @Parcelize
-    @Serializable
-    data object Settings : BreezeRoute
+    enum class TabRoute : BreezeRoute {
+        Home,
+        SuperUser,
+        Module,
+        Settings
+    }
 
     @Parcelize
     @Serializable
@@ -76,3 +66,4 @@ sealed interface BreezeRoute : NavKey, Parcelable {
     @Serializable
     data class ExecuteModuleAction(val moduleId: String, val fromShortcut: Boolean = false) : BreezeRoute
 }
+

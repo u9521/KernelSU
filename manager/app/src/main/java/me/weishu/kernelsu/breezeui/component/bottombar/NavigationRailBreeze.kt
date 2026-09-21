@@ -30,8 +30,10 @@ import androidx.compose.ui.unit.dp
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.breezeui.icons.MaterialSymbols
+import me.weishu.kernelsu.breezeui.nav.LocalBreezeNavigator
 import me.weishu.kernelsu.breezeui.nav.NavigationBarType
 import me.weishu.kernelsu.breezeui.nav.isRail
+import me.weishu.kernelsu.breezeui.nav.mainPageRoute
 import me.weishu.kernelsu.breezeui.screen.LocalBreezeMainPagerState
 import me.weishu.kernelsu.ui.component.bottombar.NavigationBadgeState
 import me.weishu.kernelsu.ui.component.bottombar.NavigationIconWithBadge
@@ -62,6 +64,7 @@ fun NavigationRailBreeze(
     val fullFeatured = Natives.isFullFeatured()
     if (!fullFeatured) return
     val mainPagerState = LocalBreezeMainPagerState.current
+    val navigator = LocalBreezeNavigator.current
 
     val defaultExpanded = navBarType != NavigationBarType.Rail
     val isExpanded = expandedOverride ?: defaultExpanded
@@ -131,7 +134,9 @@ fun NavigationRailBreeze(
             WideNavigationRailItem(
                 selected = selected,
                 onClick = {
-                    if (!selected) mainPagerState.animateToPage(index)
+                    if (!selected) {
+                        navigator.push(mainPageRoute(index))
+                    }
                 },
                 icon = {
                     NavigationIconWithBadge(
