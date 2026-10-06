@@ -44,6 +44,10 @@ fun SplitScreenRatioButton() {
 
     var expanded by remember { mutableStateOf(false) }
 
+    val ratioState = rememberSliderState(
+        value = currentRatioState.floatValue, steps = 0, trackRange = minRatio..maxRatio
+    )
+
     Box(modifier = Modifier.wrapContentSize(Alignment.TopStart)) {
 
         IconButton(onClick = { expanded = true }) {
@@ -61,12 +65,13 @@ fun SplitScreenRatioButton() {
             PopupFeedBack()
             DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
                 Slider(
-                    state = rememberSliderState(value = currentRatioState.floatValue, steps = 0, trackRange = minRatio..maxRatio),
+                    state = ratioState,
                     modifier = Modifier
                         .width(200.dp)
                         .padding(horizontal = 8.dp, vertical = 8.dp),
                     enabled = true,
                     onValueChange = { newValue ->
+                        ratioState.value = newValue
                         currentRatioState.floatValue = newValue
                     },
                 )

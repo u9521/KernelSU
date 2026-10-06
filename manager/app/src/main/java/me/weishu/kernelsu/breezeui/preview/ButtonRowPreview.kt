@@ -18,10 +18,6 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalWindowInfo
@@ -78,9 +74,13 @@ fun ButtonRowPreview() {
         )
     )
 
-    var cardWidth by remember { mutableFloatStateOf(360f) }
     val windowInfo = LocalWindowInfo.current
     val screenWidth = windowInfo.containerDpSize.width
+
+    val cardWidthState = rememberSliderState(
+        value = 360f, steps = 0, trackRange = 180f..screenWidth.value
+    )
+    val cardWidth = cardWidthState.value
 
     Column(
         modifier = Modifier.padding(16.dp)
@@ -100,10 +100,9 @@ fun ButtonRowPreview() {
         )
 
         Slider(
-            state = rememberSliderState(value = cardWidth, steps = 0, trackRange = 180f..screenWidth.value),
+            state = cardWidthState,
             modifier = Modifier.padding(bottom = 16.dp),
             enabled = true,
-            onValueChange = { cardWidth = it },
         )
 
         Box(

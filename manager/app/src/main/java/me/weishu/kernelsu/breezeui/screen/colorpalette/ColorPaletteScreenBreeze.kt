@@ -55,10 +55,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -355,7 +351,10 @@ fun ColorPaletteScreenBreeze(
                     modifier = Modifier.padding(top = 4.dp),
                     containerColor = MaterialTheme.colorScheme.surfaceBright
                 ) {
-                    var sliderValue by remember(uiState.pageScale) { mutableFloatStateOf(uiState.pageScale) }
+                    val pageScaleState = rememberSliderState(
+                        value = uiState.pageScale,
+                        steps = 0, trackRange = 0.8f..1.1f
+                    )
 
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -386,21 +385,17 @@ fun ColorPaletteScreenBreeze(
                                 )
                             }
                             Text(
-                                text = "${(sliderValue * 100).toInt()}%",
+                                text = "${(pageScaleState.value * 100).toInt()}%",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 
                         Slider(
-                            state = rememberSliderState(
-                                value = sliderValue,
-                                steps = 0, trackRange = 0.8f..1.1f
-                            ),
+                            state = pageScaleState,
                             modifier = Modifier.fillMaxWidth(),
                             enabled = true,
-                            onValueChange = { sliderValue = it },
-                            onValueChangeFinished = { actions.onSetPageScale(sliderValue) },
+                            onValueChangeFinished = { actions.onSetPageScale(pageScaleState.value) },
                         )
                     }
                 }
@@ -409,9 +404,10 @@ fun ColorPaletteScreenBreeze(
                     modifier = Modifier.padding(top = 4.dp),
                     containerColor = MaterialTheme.colorScheme.surfaceBright
                 ) {
-                    var linesValue by remember(uiState.moduleDescriptionMaxLines) {
-                        mutableIntStateOf(uiState.moduleDescriptionMaxLines)
-                    }
+                    val linesState = rememberSliderState(
+                        value = uiState.moduleDescriptionMaxLines.toFloat(),
+                        steps = 3, trackRange = 1f..5f
+                    )
 
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -442,18 +438,19 @@ fun ColorPaletteScreenBreeze(
                                 )
                             }
                             Text(
-                                text = "$linesValue " + stringResource(R.string.unit_lines),
+                                text = "${linesState.value.roundToInt()} " + stringResource(R.string.unit_lines),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 
                         Slider(
-                            state = rememberSliderState(value = linesValue.toFloat(), steps = 3, trackRange = 1f..5f),
+                            state = linesState,
                             modifier = Modifier.fillMaxWidth(),
                             enabled = true,
-                            onValueChange = { linesValue = it.roundToInt() },
-                            onValueChangeFinished = { actions.onSetModuleDescriptionMaxLines(linesValue) },
+                            onValueChangeFinished = {
+                                actions.onSetModuleDescriptionMaxLines(linesState.value.roundToInt())
+                            },
                         )
                     }
                 }
